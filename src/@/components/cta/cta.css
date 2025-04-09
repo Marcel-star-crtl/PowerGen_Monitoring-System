@@ -1,0 +1,137 @@
+.ulev__inf {
+    display: flex;
+    flex-direction: column;
+}
+
+.ulev__info-feat {
+    width: 60%;
+}
+
+.ulev__info-feat h4 {
+    font-family: 'Syne', sans-serif;
+    font-style: normal;
+    /* font-size: 90px; */
+    font-size: 5.9vw;
+    font-weight: 700;
+    /* line-height: 100px; */
+    line-height: 1.12;
+    color: white;
+    /* margin-bottom: 70px; */
+    margin-bottom: 3.5vw;
+    /* margin-top: 100px; */
+    margin-top: 6.5vw;
+}
+
+.ulev__info-heading {
+    display: flex;
+    flex-direction: column; 
+    justify-content: space-between;
+    align-items: flex-start; 
+    margin: 2rem 0; 
+}
+
+.ulev__info-heading h1 {
+    font-size: 34px;
+    line-height: 45px;
+    font-weight: 800;
+    font-family: var(--font-family);
+    max-width: 100%; 
+}
+
+.ulev__info-heading p {
+    font-family: var(--font-family);
+    font-weight: 500;
+    font-size: 18px; 
+    line-height: 30px;
+    color: var(--color-subtext);
+    cursor: pointer;
+    margin-top: 1rem; 
+}
+
+.ulev__info-contain {
+    font-size: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 250;
+    line-height: 30px;
+    text-align: right; 
+    /* letter-spacing: 0.1em; */
+    color: #ffffff;
+    width: 100%; 
+    margin-left: auto;
+    width: 40%;
+}
+
+
+.ulev__info-contain h4 {
+    font-family: 'Syne';
+    font-weight: 400;
+    line-height: 25px;
+    font-size: 20px;
+}
+
+.explore__text {
+    color: #ffffff;
+    text-decoration: underline;
+    font-size: 14px;
+    font-family: 'Syne';
+    font-weight: 500;
+}
+
+@media screen and (max-width: 850px) {
+    .ulev__info-heading {
+        margin-bottom: 0;
+        padding-right: 6rem; 
+    }
+
+    .ulev__info-heading p {
+        margin-top: 1rem;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .ulev__info-feat .ulev__features-container__feature {
+        flex-direction: column;
+    }
+
+    .ulev__info-feat .ulev__features-container_feature-text {
+        margin-top: 0.5rem;
+    }
+
+    .ulev__info-heading h1 {
+        font-size: 28px;
+        line-height: 40px;
+    }
+
+    .ulev__info-contain {
+        margin-left: auto;
+        width: 70%;
+    }
+}
+
+@media screen and (max-width: 414px) {
+    .ulev__info-contain .ulev__features-contain__feature {
+        margin: 1rem 0;
+        min-width: 100%;
+    }
+    .ulev__info-feat {
+        width: 100% !important;
+    }
+    .ulev__info-contain {
+        text-align: left !important; 
+        margin-right: auto !important;
+        padding-top: 30px !important;
+        width: 100% !important;
+        margin-bottom: 30px !important;
+    }
+
+    .ulev__info-feat {
+        width: 100% !important; 
+    }
+    .ulev__info-feat h4 {
+        margin-top: 0;
+        font-size: 30px;
+    }
+    .ulev__inf {
+        padding: 4rem 1rem 0 1rem !important;
+    }
+}

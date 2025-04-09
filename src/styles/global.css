@@ -1,0 +1,32 @@
+/* Adjust layout to account for fixed sider */
+.ant-layout {
+    margin-left: 120px !important;
+    min-height: 100vh;
+  }
+  
+  /* When sider is collapsed */
+  .ant-layout-sider-collapsed + .ant-layout {
+    margin-left: 80px !important;
+  }
+  
+  /* Make sure content doesn't hide behind header */
+  .ant-layout-content {
+    padding-top: 64px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .ant-layout {
+      margin-left: 0 !important;
+    }
+    
+    .ant-layout-sider {
+      position: fixed !important;
+      z-index: 100;
+      height: 100vh;
+    }
+    
+    .ant-layout-sider-collapsed + .ant-layout {
+      margin-left: 0 !important;
+    }
+  }

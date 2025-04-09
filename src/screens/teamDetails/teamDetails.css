@@ -1,0 +1,125 @@
+.teamDetails {
+    margin-top: 30px;
+}
+
+.ulev__tdetails {
+    max-width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.slick-slider {
+    width: 100%;
+}
+  
+.slick-track {
+    display: flex;
+}
+  
+.slick-slide {
+    flex: 0 0 auto; 
+}
+  
+.slick-initialized .slick-slide {
+    display: block; 
+}
+  
+
+.ulev__tdetails-heading {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 5rem;
+}
+
+.ulev__tdetails-heading h1 {
+    font-family: 'Syne';
+    color: white;
+    font-weight: 700;
+    font-size: 62px;
+    line-height: 75px;
+    letter-spacing: -0.04rem;
+    padding-bottom: 15px;
+}
+
+.ulev__tdetails-heading p {
+    font-family: var(--font-family-Medium);
+    font-size: 20.36px;
+    line-height: 25px;
+    color: #ffffff;
+    letter-spacing: 1px;
+}
+
+.ulev__tdetails-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+
+.ulev__tdetails-container_groupA {
+  flex-basis: 50%; 
+  max-width: 40%; 
+  padding-left: 20px;
+  padding-right: 20px; 
+}
+
+.ulev__tdetails-container_groupB {
+  flex-basis: 50%; 
+  max-width: 60%; 
+  padding-left: 20px;
+  padding-right: 20px; 
+}
+
+.ulev__tdetails-container_groupA img,
+.ulev__tdetails-container_groupB img {
+    display: none;
+    max-width: 100%;
+    width: 580px !important;
+    height: auto;
+}
+
+.slick-initialized .slick-slide {
+    display: flex;
+}
+
+.ulev__tdetails-container_groupB h1 {
+    font-family: 'Syne' !important;
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 50px !important;
+    line-height: 75px !important;
+    letter-spacing: -0.04rem !important;
+}
+
+
+@media screen and (max-width: 768px) {
+
+
+    .ulev__tdetails-container {
+        flex-direction: column; 
+    }
+    
+    .ulev__tdetails-container_groupA,
+    .ulev__tdetails-container_groupB {
+        flex-basis: auto; 
+        max-width: none; 
+        padding-left: 0;
+        padding-right: 0; 
+        margin-bottom: 20px; 
+    }
+}
+
+@media screen and (max-width: 414px) {
+    .ulev__tdetails {
+        padding: 4rem 1rem 4rem 1rem !important;
+    }
+
+    .ulev__tdetails-container_groupA,
+    .ulev__tdetails-container_groupB {
+        width: 100%;
+        padding-left: 0;
+        max-width: none; 
+    }
+}

@@ -1,0 +1,105 @@
+.gpt3__whatgpt3 {
+    display: flex;
+    flex-direction: column;
+    padding: 0 4rem 0 4rem;
+}
+
+.gpt3__whatgpt3-feature {
+    width: 100% !important;
+}
+  
+.gpt3__whatgpt3-feature h4 {
+    font-family: var(--font-family-Medium);
+    font-size: 40px !important;
+    font-weight: 250;
+    line-height: 45px !important;
+    letter-spacing: 0;
+    color: gray;
+}
+  
+.gpt3__whatgpt3-heading {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1rem 0 2rem;
+}
+  
+.gpt3__whatgpt3-heading h1 {
+    font-size: 34px;
+    line-height: 45px;
+    font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    max-width: 510px;
+}
+  
+.gpt3__whatgpt3-heading p {
+    font-family: 'Syne', sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 30px;
+    color: #ffffff;
+    cursor: pointer;
+    text-decoration: underline;
+}
+  
+.gpt3__whatgpt3-container {
+    font-family: var(--font-family-Medium);
+    font-size: 70px;
+    /* font-size: 4.57vw; */
+    font-weight: 700;
+    /* line-height: 70px; */
+    text-align: right; 
+    letter-spacing: 0;
+    color: #ffffff;
+    margin-top: 70px;
+    line-height: 1.05;
+}
+  
+  
+.gpt3__whatgpt3-container h4 {
+    font-family: 'Syne', sans-serif;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    margin-top: 2rem;
+}
+  
+.explore {
+    color: #ffffff;
+    font-weight: 400px !important;
+    font-size: 25px !important;
+    line-height: 25px !important;
+}
+  
+@media screen and (max-width: 414px) {
+    .gpt3__whatgpt3 {
+        padding: 2rem 1rem
+    }
+    .gpt3__whatgpt3-container {
+      text-align: left; 
+      width: 100%;
+    }
+    .gpt3__whatgpt3-container {
+        font-size: 30px;
+        margin-top: 3.5rem !important;
+    }
+
+    .gpt3__whatgpt3-heading {
+        margin-top: 3.5rem !important;
+    }
+
+    .gpt3__whatgpt3-heading p{
+        text-align: right !important;
+    }
+
+    .gpt3__whatgpt3-heading p {
+        line-height: 20px !important;
+        text-decoration: underline;
+    }
+
+    .explore {
+        display: none;
+    }
+}
+  

@@ -1,0 +1,459 @@
+.footer {
+    /* padding:  */
+}
+
+.popup-open {
+    overflow: hidden;
+}
+
+.ulev__footer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(12, 12, 12);
+}
+
+.ulev__footer-heading h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 62px;
+    line-height: 75px;
+    text-align: center;
+    letter-spacing: -0.04em;
+}
+
+.ulev__footer-icotext {
+    font-family: 'Syne', sans-serif;
+    display: flex;
+    align-items: center;
+    flex-direction: column; 
+    /* padding: 2rem;  */
+    text-align: center;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.ulev__footer-icotext p {
+    font-family: 'Syne', sans-serif;
+    font-style: normal;
+    font-size: 3vw; 
+    /* line-height: 32px; */
+    line-height: 1.2;
+    font-weight: 800;
+    color: #ffffff;
+    /* word-spacing: 2px; */
+    margin-bottom: .1rem; 
+    text-align: left; 
+}
+
+.ulev__footer-icotext button p {
+    font-size: 2.5vw; 
+}
+
+.bi-arrow-right {
+    width: 100px; 
+    height: 50px; 
+    color: #ffffff;
+    margin-top: 8px;
+    margin-right: 0; 
+}
+
+.ulev__footer-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    margin-top: 2rem;
+    margin-bottom: 1rem; 
+    cursor: pointer;
+    width: 100%;
+    padding: 4rem 6rem;
+}
+
+.ulev__footer-btn > div {
+    flex: 1;
+    display: flex;
+    align-items: center; 
+}
+
+.ulev__footer-btn-image {
+    width: 12vw;
+    height: auto;
+    margin-right: 10px; 
+}
+
+.text {
+    flex: 1; 
+    display: flex;
+    justify-content: flex-end;
+}
+
+.text p {
+    font-family: 'Syne', sans-serif;
+    font-size: 15vw; 
+    line-height: 21px;
+    font-weight: 800 !important;
+    color: #ffffff;
+    /* word-spacing: 5px; */
+    letter-spacing: -5px;
+    margin: 0;
+    text-align: right;
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.ulev__footer-links {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    flex-direction: row;
+    width: 100%;
+    text-align: center; 
+    position: relative;
+    padding: 12rem 5rem 2rem 5rem; 
+}
+
+.ulev__footer-links::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px; 
+    background-color: white;
+}
+
+.ulev__footer-links div {
+    flex: 1;
+    max-width: 100%;
+}
+
+.ulev__footer-links_logo {
+    display: flex;
+    flex-direction: column;
+}
+
+.ulev__footer-links_div h4 {
+    font-size: 14px;
+    line-height: 17px;
+    font-family: var(--font-family);
+    color: #fff;
+    margin-bottom: 0;
+}
+
+.ulev__footer-links_logo p {
+    font-family: var(--font-family);
+    font-size: 16px !important;
+    color: #ffffff;
+    text-align: left; 
+    font-weight: 500;
+    line-height: 20px;
+}
+
+.ulev__footer-links_div {
+    display: flex;
+    justify-content: center; 
+    flex-direction: column;
+    align-items: center; 
+    margin-top: auto; 
+    /* padding: 10px; */
+    padding: 10px 10px 0 10;
+}
+
+.ulev__footer-links_div h4 {
+    font-family: var(--font-family);
+    font-size: 14px;
+    line-height: 17px;
+    color: #ffffff;
+    /* margin-bottom: 0.7rem; */
+}
+
+.ulev__footer-links_div p {
+    font-family: var(--font-family);
+    font-size: 12px;
+    line-height: 14px;
+    color: #ffffff;
+    margin: 0.5rem 0;
+    cursor: pointer;
+}
+
+.ulev__footer-copyright {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    height: 100%;
+    margin-bottom: 0;
+    /* padding-top: 30px; */
+}
+
+
+.ulev__footer-copyright p {
+    font-family: var(--font-family);
+    font-size: 16px;
+    line-height: 20px;
+    color: #ffffff;
+    text-align: right; 
+    font-weight: 500;
+    line-height: 20px;
+    margin: 0
+}
+
+.react-calendly-widget-container {
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+.react-calendly-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9) !important; 
+    z-index: 999;
+}
+
+.react-calendly-widget {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000; 
+}
+
+.social-media-modal {
+    position: fixed;
+    top: 80%;
+    left: 50%; 
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.social-media-modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.social-media-modal button {
+    margin-top: 10px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.ulev__TOF {
+    display: flex;
+    flex-direction: column; 
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 1rem 0;
+    box-sizing: border-box;
+    color: #ffffff;
+    background-color: rgb(12, 12, 12);
+}
+
+.left-section,
+.center-section,
+.right-section {
+    width: 100%; 
+    text-align: center; 
+}
+
+.center-section {
+    text-decoration: underline;
+}
+
+.right-section {
+    display: flex;
+    justify-content: center; 
+}
+
+.left-align {
+   text-align: left !important; 
+}
+
+.location {
+    font-weight: 800;
+    font-size: 30px;
+}
+
+.calls {
+    font-weight: 800;
+    font-size: 30px;
+}
+
+.cont {
+    color: #fff; 
+}
+
+.cont:hover {
+    color: gray;
+}
+
+
+.ulev__footer-links_logo,
+.ulev__footer-links_div,
+.ulev__footer-copyright {
+    align-self: flex-end;
+    margin-top: auto; 
+}
+
+
+.ulev__footer-links_logo,
+.ulev__footer-links_div {
+    flex: 1;
+    max-width: 100%;
+}
+
+.ulev__footer-links_logo {
+    min-width: 30%; 
+}
+
+.ulev__footer-links_div {
+    min-width: 10%; 
+}
+
+.ulev__footer-copyright {
+    min-width: 30%
+}
+
+
+@media screen and (max-width: 1050px) {
+    /* .text p {
+        font-size: 60px;
+    } */
+}
+
+@media screen and (max-width: 988px){
+    /* .ulev__footer-links_logo {
+        padding-bottom: 50px;
+    }
+    .ulev__footer-links_div {
+        padding-bottom: 50px;
+    } */
+}
+
+@media screen and (max-width: 824px){
+    /* .ulev__footer-copyright {
+        padding-bottom: 50px !important;
+    } */
+}
+
+@media screen and (max-width: 768px) {
+    .ulev__footer-icotext p {
+        margin-right: 0; 
+        margin-bottom: .5rem; 
+    }
+    .ulev__footer-links div {
+        flex: 100%;
+    }
+    
+    .ulev__footer-copyright {
+        /* padding-top: 30px; */
+        justify-content: center;
+        align-items: center;
+    }
+
+    .ulev__footer-copyright p{
+        text-align: center !important; 
+    }
+
+    .ulev__footer-links_div h4 {
+        align-self: center; 
+        margin-bottom: 0 !important;
+    }
+
+    .ulev__footer-links_div {
+        padding-bottom: 50px;
+    }
+
+    .ulev__footer-links_logo p {
+        text-align: center;
+    }
+    .ulev__footer-btn {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .ulev__footer-btn > div {
+        flex: none;
+        margin-bottom: 1rem;
+    }
+    
+    .ulev__footer-btn-image {
+        width: 100px;
+    }
+    
+    .ulev__footer-btn p {
+        font-size: 40px;
+        line-height: 18px;
+        text-align: center;
+        padding-top: 15px;
+    }
+
+    .insta {
+        padding-top: 50px;
+    }
+    /* .ulev__footer-links_logo {
+        padding-top: 50px;
+    } */
+}
+
+@media screen and (max-width: 414px) {
+    .ulev__footer {
+        padding: 2rem 1rem; 
+    }
+    /* .ulev__footer-icotext {
+        padding: 0;
+    } */
+    .ulev__footer-btn p {
+        font-size: 40px;
+        line-height: 18px;
+        text-align: center;
+        padding-top: 15px;
+    }
+    .ulev__footer {
+        padding: 0;
+        margin: 0;
+    }
+
+    .ulev__footer-links {
+        padding: 6rem 1rem 4rem 1rem;
+    }
+
+    .ulev__footer-btn {
+        /* padding: 1rem;
+        margin: 0; */
+    }
+
+    /* .ulev__footer-icotext {
+        padding: 2rem 1rem; 
+    } */
+
+    .ulev__footer-icotext p {
+        font-size: 24px !important;
+    }
+
+    .ulev__footer-links_logo p {
+        font-size: 18px !important;
+    }
+
+    .ulev__footer-links_div h4 {
+        font-size: 18px;
+    }
+
+    .ulev__footer-copyright p {
+        font-size: 18px;
+    }
+
+}

@@ -1,0 +1,108 @@
+.learn {
+    margin-top: 70px;
+}
+
+.ulev__header {
+    display: flex;
+}
+
+.ulev_learn-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+
+    margin-right: 5rem;
+}
+
+.ulev__learn-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.ulev__learn-content img{
+    width: 100%;
+    height: 100%;
+}
+
+.ulev__learn-text {
+    flex: 1;
+    display: flex;
+    justify-content: left;
+    align-items: left;
+}
+
+.ulev__learn-text h1 {
+    font-family: var(--font-family);
+    font-weight: 600;
+    font-size: 65px;
+    line-height: 156px;
+    letter-spacing: -0.04em;
+    text-align: left;
+    color: #FFFFFF;
+}
+
+.ulev__info {
+    display: flex;
+}
+
+.ulev__empty-space {
+    flex: 1;
+    width: 40%;
+}
+
+.ulev__empty-space p{
+    color: #FFFFFF;
+}
+
+.ulev__info-content {
+    flex: 3;
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-left: auto;
+}
+
+.ulev__info-content p {
+    margin-bottom: 15px; 
+}
+
+.ulev__info-content p:first-child {
+    color: #ffffff;
+    width: 550px;
+    align-items: right;
+    text-align: right;
+    margin-bottom: 50px;
+}
+
+.ulev__info-content p:last-child {
+    color: #ffffff;
+    width: 550px;
+    align-items: right;
+    text-align: right;
+    margin-top: 50px;
+}
+
+.ulev__info-content img {
+    width: 550px;
+    height: 550px;
+}
+
+@media screen and (max-width: 1050px) {
+    .ulev__learn {
+        flex-direction: column;
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+}
+
+@media screen and (max-width: 414px) {
+
+}

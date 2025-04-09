@@ -1,0 +1,228 @@
+.gpt3__header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background-color: #000000;
+  height: 90vh;
+}
+
+.ulev_hero-contain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+
+/* .gpt3__header-content {
+  
+} */
+  
+/* .gpt3__header-content h1 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 7vw;
+  font-style: normal;
+  line-height: 120px;
+  text-align: center;
+  color: #FFFFFF;
+  transition: font-size 0.5s ease, line-height 0.5s ease, letter-spacing 0.5s ease; 
+} */
+
+.gpt3__header-content h1 {
+  font-family: var(--font-family-Medium);
+  font-weight: 400;
+  font-size: 8vw !important;
+  font-style: normal;
+  /* line-height: 120px; */
+  line-height: 1;
+  text-align: left;
+  color: #FFFFFF;
+  /* transition: font-size 0.5s ease, line-height 0.5s ease, letter-spacing 0.5s ease;  */
+}
+  
+/* .gpt3__header-content p {
+  font-family: 'Syne', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 32px;
+  text-align: center;
+  margin-top: 1rem;
+  color: #555;
+} */
+
+.ulev_hero-contain {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 90px;
+}
+
+.ulev_hero-contain p{
+  font-family: var(--font-family-Medium);
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  line-height: 25px !important;
+}
+
+.ulev_hero-contain .ulev_hero-p {
+  color: #888;
+  font-size: 16px;
+  padding-left: 20px;
+  text-align: right;
+  padding-right: 100px;
+}
+
+.ulev_hero-contain .ulev_hero-brand {
+  color: #ffffff;
+  font-size: 2.5rem;
+  padding-bottom: 0.5rem;
+  text-align: left !important;
+  line-height: 1.2;
+  font-weight: 700px;
+  font-style: normal;
+}
+
+.ulev_hero-contain .ulev_hero-other {
+  flex: 40% !important;
+  color: #888;
+}
+
+.ulev_hero-contain .ulev_hero-p {
+  flex: 40% !important;
+  color: #888;
+}
+
+
+
+@media screen and (max-width: 17000px) {
+  .gpt3__header-content h1 {
+    font-size: 80px;
+  }
+
+  .gpt3__header {
+      flex-direction: column;
+      /* padding: 1rem 2rem; */
+  } 
+}
+
+@media screen and (max-width: 768px) {
+  /* .ulev_hero-contain {
+    margin-bottom: 70px;
+  } */
+
+  .gpt3__header-content h1{
+    align-items: left;
+    text-align: left;
+  }
+
+  .gpt3__header-content h1 {
+    font-size: 45px !important;
+    line-height: 47px !important;
+    letter-spacing: -0.01em;
+  }
+
+  .ulev_hero-contain .ulev_hero-other {
+    display: none;
+  }
+
+  .gpt3__header h1 {
+    font-size: 30px;
+    line-height: 32px;
+  }
+
+  .gpt3__header p {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .gpt3__header {
+    margin: 0;
+  }
+
+  .ulev_hero-p {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+  }
+}
+  
+@media screen and (max-width: 650px) {
+  /* .gpt3__header {
+    
+  } */
+
+  .gpt__header-content {
+     height: 45vh !important;
+  }
+
+  .ulev_hero-contain {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 60px;
+  }
+
+  .ulev_hero-p {
+    text-align: left;
+    /* padding-top: 30px; */
+  }
+
+  .gpt3__header-content h1{
+    align-items: left;
+    text-align: left;
+  }
+
+  .ulev_hero-contain .ulev_hero-other {
+    display: none;
+  }
+
+  /* .hide-on-small-screens {
+    display: none;
+  } */
+
+  .ulev_hero-contain .ulev_hero-p {
+    margin-left: 0;
+    padding-left: 0;
+    /* padding-top: 50px !important; */
+    line-height: 10px;
+    padding-right: 0;
+  }
+
+  .ulev_hero-contain .ulev_hero-p {
+    flex: 100% !important;
+  }
+
+  .ulev_hero-contain {
+    align-items: center;
+    text-align: center;
+  }
+
+  .gpt3__header-content h1 {
+    /* font-size: 36px; */
+    font-size: 2.5rem !important;
+    line-height: 44px;
+    letter-spacing: 0;
+  }
+  .gpt3__header h1 {
+    font-size: 28px;
+    line-height: 30px;
+  }
+
+  .gpt3__header p {
+    font-size: 16px;
+    line-height: 18px;
+  }
+
+  .gpt3__header {
+    padding: 0 1rem 0 1rem;
+    height: 80vh;
+  }
+
+  /* .gpt3__header-content h1 {
+    line-height: 0.5 !important;
+  } */
+
+}
+  

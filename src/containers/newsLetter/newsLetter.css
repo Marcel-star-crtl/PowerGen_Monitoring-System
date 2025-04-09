@@ -1,0 +1,57 @@
+/* .newsletter {
+    margin-top: 20px;
+}
+  
+.subscribe-form {
+    display: flex;
+    flex-direction: column;
+}
+  
+.subscribe-form label {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+  
+.subscribe-form {
+    margin-top: 20px;
+}
+  
+.subscribe-form label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+  
+.form-group {
+    display: flex;
+}
+  
+.form-group input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+  
+.form-group button {
+    background-color: #ffffff;
+    color: #000000;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border: 1px solid #000000;
+}
+  
+.form-group button:hover {
+    background-color: #000000;
+    color: white
+}
+  
+.error-message {
+    color: #ff0000;
+    margin-top: 5px;
+}
+   */

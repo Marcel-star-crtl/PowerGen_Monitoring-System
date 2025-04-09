@@ -1,0 +1,118 @@
+.ulev__info {
+    display: flex;
+    flex-direction: column;
+    background-color: rgb(12, 12, 12);
+}
+
+.ulev__info-feature {
+    width: 50%;
+}
+
+.ulev__info-feature h4 {
+    font-family: var(--font-family);
+    font-size: 55px;
+    font-weight: 700;
+    line-height: 55px;
+    color: white;
+}
+
+.ulev__info-heading {
+    display: flex;
+    flex-direction: column; 
+    justify-content: space-between;
+    align-items: flex-start; 
+    margin: 2rem 0; 
+}
+
+.ulev__info-heading h1 {
+    font-size: 34px;
+    line-height: 45px;
+    font-weight: 800;
+    font-family: var(--font-family);
+    max-width: 100%; 
+}
+
+.ulev__info-heading p {
+    font-family: var(--font-family);
+    font-weight: 500;
+    font-size: 18px; 
+    line-height: 30px;
+    color: var(--color-subtext);
+    cursor: pointer;
+    margin-top: 1rem; 
+}
+
+.ulev__info-container {
+    font-family: var(--font-family);
+    font-size: 16px;
+    font-weight: 250;
+    line-height: 30px;
+    text-align: right; 
+    letter-spacing: 0.1em;
+    color: #ffffff;
+    width: 50%; 
+    margin-left: auto; 
+}
+
+.ulev__info-container h4 {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+}
+
+.explore__text {
+    color: #ffffff;
+    text-decoration: underline;
+    font-size: 15px;
+}
+
+@media screen and (max-width: 850px) {
+    .ulev__info-heading {
+        margin-bottom: 0;
+        padding-right: 6rem; 
+    }
+
+    .ulev__info-heading p {
+        margin-top: 1rem;
+    }
+}
+
+@media screen and (max-width: 769px) {
+    .ulev__info-feature .ulev__features-container__feature {
+        flex-direction: column;
+    }
+
+    .ulev__info-feature .ulev__features-container_feature-text {
+        margin-top: 0.5rem;
+    }
+
+    .ulev__info-heading h1 {
+        font-size: 28px;
+        line-height: 40px;
+    }
+    .ulev__info-contain {
+        width: 70% !important; 
+        margin-left: auto !important; 
+        margin-top: 50px !important;
+        margin-bottom: 20px
+    }
+}
+
+@media screen and (max-width: 414px) {
+    .ulev__info-container .ulev__features-container__feature {
+        margin: 1rem 0;
+        min-width: 100%;
+    }
+
+    .ulev__info {
+        padding: 4rem 1rem 4rem 1rem;
+    }
+
+    .ulev__info-contain {
+        text-align: left !important; 
+        margin-right: auto !important;
+        padding-top: 30px !important;
+        width: 100% !important;
+        padding-bottom: 30px !important;
+    }
+}
