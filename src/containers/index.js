@@ -1,9 +1,0 @@
-export { default as MorePD } from './morePD/MorePD';
-export { default as Features } from './features/Features';
-export { default as Footer } from './footer/Footer';
-export { default as Header } from './header/Header';
-export { default as WhatGPT3 } from './whatGPT3/WhatGPT3';
-export { default as Team } from './team/Team';
-export { default as Feed } from './feed/Feed';
-export { default as Modal } from './modal/Modal';
-export { default as NewsLetter } from './newsLetter/NewsLetter';
