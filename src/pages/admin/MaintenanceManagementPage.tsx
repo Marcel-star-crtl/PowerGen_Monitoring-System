@@ -42,8 +42,10 @@ const MaintenanceManagementPage: React.FC = () => {
         limit: pagination.pageSize,
         status: statusFilter || undefined,
       });
-      setMaintenance(result.data);
-      setPagination(result.pagination);
+      if (result.success && result.data) {
+        setMaintenance(result.data.maintenance);
+        setPagination(result.data.pagination);
+      }
     } catch (err) {
       showError('Failed to load maintenance records');
     } finally {
@@ -96,7 +98,7 @@ const MaintenanceManagementPage: React.FC = () => {
     {
       key: 'technician',
       header: 'Technician',
-      render: (item: Maintenance) => item.technician.fullName,
+      render: (item: Maintenance) => item.technician?.fullName || <span className="text-gray-400">Unassigned</span>,
     },
     {
       key: 'visit_date',

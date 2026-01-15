@@ -11,7 +11,8 @@ import { Modal } from '@/components/common/Modal';
 import { Spinner } from '@/components/common/Spinner';
 import { Table } from '@/components/common/Table';
 import { Pagination } from '@/components/common/Pagination';
-import { FiPlus, FiEdit, FiTrash2, FiLock, FiToggleLeft, FiToggleRight } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiLock, FiToggleLeft, FiToggleRight, FiUsers } from 'react-icons/fi';
+import { TechnicianAssignmentModal } from '@/components/admin/TechnicianAssignmentModal';
 
 type UserRole = 'admin' | 'supervisor' | 'technician' | 'diesel_manager' | 'data_collector' | 'analyst';
 
@@ -21,6 +22,8 @@ const UsersPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'create' | 'edit'>('create');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [selectedSupervisor, setSelectedSupervisor] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [pagination, setPagination] = useState({
@@ -60,8 +63,10 @@ const UsersPage: React.FC = () => {
         search: searchQuery || undefined,
         role: roleFilter || undefined,
       });
-      setUsers(result.data);
-      setPagination(result.pagination);
+      if (result.success && result.data) {
+        setUsers(result.data.users.map((u: any) => ({ ...u, id: u._id || u.id })));
+        setPagination(result.data.pagination);
+      }
     } catch (err) {
       showError('Failed to load users');
     } finally {
@@ -203,6 +208,19 @@ const UsersPage: React.FC = () => {
           <Button onClick={() => handleDelete(user.id)} variant="ghost" size="sm">
             <FiTrash2 className="h-4 w-4 text-red-600" />
           </Button>
+          {user.role === 'supervisor' && (
+            <Button
+              onClick={() => {
+                setSelectedSupervisor(user);
+                setShowAssignmentModal(true);
+              }}
+              variant="ghost"
+              size="sm"
+              title="Assign Team"
+            >
+              <FiUsers className="h-4 w-4 text-blue-600" />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -334,7 +352,20 @@ const UsersPage: React.FC = () => {
           </div>
         </div>
       </Modal>
-    </div>
+
+      {selectedSupervisor && (
+        <TechnicianAssignmentModal
+          isOpen={showAssignmentModal}
+          onClose={() => {
+            setShowAssignmentModal(false);
+            setSelectedSupervisor(null);
+          }}
+          supervisor={selectedSupervisor}
+          onAssign={loadUsers}
+        />
+      )
+      }
+    </div >
   );
 };
 

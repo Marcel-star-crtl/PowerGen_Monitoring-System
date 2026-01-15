@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { intelligenceAPI } from '@/api/endpoints/intelligence';
+import { FiZap } from 'react-icons/fi';
 import { Input } from '@/components/common/Input';
 import { Select } from '@/components/common/Select';
 import { Textarea } from '@/components/common/Textarea';
@@ -47,6 +49,8 @@ export const VisitForm: React.FC<VisitFormProps> = ({ initialData, onSubmit, loa
   const [photos, setPhotos] = useState<FileWithPreview[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [enhancing, setEnhancing] = useState(false);
+
   const handleChange = (field: keyof VisitFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -55,6 +59,23 @@ export const VisitForm: React.FC<VisitFormProps> = ({ initialData, onSubmit, loa
         delete newErrors[field];
         return newErrors;
       });
+    }
+  };
+
+  const handleEnhanceNotes = async () => {
+    if (!formData.Visit_Comments?.trim()) return;
+
+    setEnhancing(true);
+    try {
+      const response = await intelligenceAPI.enhanceReport(formData.Visit_Comments);
+      const enhancedText = typeof response.data === 'string' ? response.data : response.data?.data;
+      if (enhancedText) {
+        handleChange('Visit_Comments', enhancedText);
+      }
+    } catch (error) {
+      console.error('Enhancement failed:', error);
+    } finally {
+      setEnhancing(false);
     }
   };
 
@@ -182,33 +203,48 @@ export const VisitForm: React.FC<VisitFormProps> = ({ initialData, onSubmit, loa
       </div>
 
       {/* Comments */}
-      <Textarea
-        label="Visit Comments"
-        value={formData.Visit_Comments || ''}
-        onChange={(e) => handleChange('Visit_Comments', e.target.value)}
-        rows={4}
-        placeholder="Describe the work performed, any issues found, etc."
-        fullWidth
-      />
+      <div className="relative">
+        <div className="flex justify-between items-end mb-2">
+          <label className="text-sm font-medium text-gray-700">Visit Comments</label>
+          <Button
+            type="button"
+            onClick={handleEnhanceNotes}
+            variant="ghost"
+            size="sm"
+            disabled={enhancing || !formData.Visit_Comments}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            <FiZap className={`mr-1 ${enhancing ? 'animate-pulse' : ''}`} />
+            {enhancing ? 'Enhancing...' : 'Enhance with AI'}
+          </Button>
+        </div>
+        <Textarea
+          value={formData.Visit_Comments || ''}
+          onChange={(e) => handleChange('Visit_Comments', e.target.value)}
+          rows={4}
+          placeholder="Describe the work performed, any issues found, etc."
+          fullWidth
+        />
 
-      {/* Photos */}
-      <FileUpload
-        label="Upload Photos"
-        files={photos}
-        onFilesChange={setPhotos}
-        maxFiles={10}
-        maxSizeMB={5}
-        multiple
-      />
+        {/* Photos */}
+        <FileUpload
+          label="Upload Photos"
+          files={photos}
+          onFilesChange={setPhotos}
+          maxFiles={10}
+          maxSizeMB={5}
+          multiple
+        />
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-4">
-        <Button onClick={() => handleSubmit(false)} variant="secondary" loading={loading}>
-          Save as Draft
-        </Button>
-        <Button onClick={() => handleSubmit(true)} variant="primary" loading={loading}>
-          Submit for Approval
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-4">
+          <Button onClick={() => handleSubmit(false)} variant="secondary" loading={loading}>
+            Save as Draft
+          </Button>
+          <Button onClick={() => handleSubmit(true)} variant="primary" loading={loading}>
+            Submit for Approval
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -36,12 +36,12 @@ export const supervisorAPI = {
     return response.data.data!;
   },
 
-  getPendingMaintenance: async (params?: PaginationParams & { priority?: string }) => {
+  getPendingMaintenance: async (params?: PaginationParams & { priority?: string; site_id?: string }) => {
     const response = await apiClient.get('/supervisor/maintenance/pending', { params });
     return response.data;
   },
 
-  getScheduledMaintenance: async (params?: PaginationParams & { status?: string }) => {
+  getScheduledMaintenance: async (params?: PaginationParams & { status?: string; site_id?: string }) => {
     const response = await apiClient.get('/supervisor/maintenance/scheduled', { params });
     return response.data;
   },
@@ -78,7 +78,7 @@ export const supervisorAPI = {
     return response.data;
   },
 
-  getTowers: async () => {
+  getSites: async () => {
     const response = await apiClient.get('/supervisor/sites');
     return response.data;
   },
@@ -97,6 +97,12 @@ export const supervisorAPI = {
     const response = await apiClient.post(`/supervisor/maintenance/${maintenanceId}/assign`, {
       technician_id: technicianId,
     });
+    return response.data;
+  },
+
+  // Get all visits from technicians assigned to supervisor
+  getTechnicianVisits: async (supervisorId: string, params?: PaginationParams & { start_date?: string; end_date?: string; status?: string }) => {
+    const response = await apiClient.get(`/sites/supervisor/${supervisorId}/technician-visits`, { params });
     return response.data;
   },
 

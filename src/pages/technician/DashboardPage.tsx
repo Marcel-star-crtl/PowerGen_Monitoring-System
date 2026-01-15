@@ -11,7 +11,9 @@ import { VisitForm } from '@/components/forms/VisitForm';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useSites } from '@/hooks/useSites';
-import { FiFileText, FiClock, FiCheckSquare, FiCheckCircle, FiMapPin, FiPlus } from 'react-icons/fi';
+
+import { FiFileText, FiClock, FiCheckSquare, FiCheckCircle, FiMapPin, FiPlus, FiLifeBuoy } from 'react-icons/fi';
+import { intelligenceAPI } from '@/api/endpoints/intelligence';
 
 const TechnicianDashboard: React.FC = () => {
   const [dashboard, setDashboard] = useState<any>(null);
@@ -19,7 +21,7 @@ const TechnicianDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showQuickSubmitModal, setShowQuickSubmitModal] = useState(false);
   const [selectedSite, setSelectedSite] = useState<any>(null);
-  
+
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { success, error: showError } = useNotification();
@@ -58,13 +60,13 @@ const TechnicianDashboard: React.FC = () => {
 
     try {
       await submitVisit(selectedSite.IHS_ID_SITE, formData, photos, submitNow);
-      
+
       if (submitNow) {
         success('Visit submitted for approval!');
       } else {
         success('Draft saved successfully!');
       }
-      
+
       setShowQuickSubmitModal(false);
       setSelectedSite(null);
       loadDashboard(); // Refresh stats
@@ -93,10 +95,16 @@ const TechnicianDashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">Welcome back, {user?.fullName}</p>
         </div>
-        <Button onClick={() => navigate('/technician/sites')} variant="primary">
-          <FiPlus className="mr-2" />
-          Submit Site Visit
-        </Button>
+        <div className="flex space-x-3">
+          <Button onClick={() => window.dispatchEvent(new CustomEvent('open-ai-chat'))} variant="secondary">
+            <FiLifeBuoy className="mr-2" />
+            Ask AI
+          </Button>
+          <Button onClick={() => navigate('/technician/sites')} variant="primary">
+            <FiPlus className="mr-2" />
+            Submit Site Visit
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -173,7 +181,7 @@ const TechnicianDashboard: React.FC = () => {
             <h2 className="text-lg font-semibold">Sites Needing Visit</h2>
             <Badge variant="red">{recentSites.length}</Badge>
           </div>
-          
+
           {recentSites.length === 0 ? (
             <p className="text-sm text-gray-600">All sites up to date! 🎉</p>
           ) : (
@@ -201,7 +209,7 @@ const TechnicianDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
-              
+
               {recentSites.length > 0 && (
                 <Button
                   onClick={() => navigate('/technician/sites')}

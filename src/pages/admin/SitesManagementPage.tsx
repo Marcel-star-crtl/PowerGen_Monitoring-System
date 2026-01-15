@@ -52,8 +52,10 @@ const SitesManagementPage: React.FC = () => {
         search: searchQuery || undefined,
         region: regionFilter || undefined,
       });
-      setSites(result.data);
-      setPagination(result.pagination);
+      if (result.success && result.data) {
+        setSites(result.data.sites);
+        setPagination(result.data.pagination);
+      }
     } catch (err) {
       showError('Failed to load sites');
     } finally {

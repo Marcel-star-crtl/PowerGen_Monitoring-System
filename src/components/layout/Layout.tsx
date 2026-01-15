@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { AIChatWidget } from '@/components/AIChatWidget';
 
 export const Layout: React.FC = () => {
   return (
@@ -12,6 +13,7 @@ export const Layout: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
+        <AIChatWidget />
       </div>
     </div>
   );

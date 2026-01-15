@@ -12,7 +12,8 @@ import { Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Select } from '@/components/common/Select';
 import { formatDate, formatStatus, formatPriority } from '@/utils/formatters';
-import { FiCheckSquare, FiPlay, FiCheck, FiEye } from 'react-icons/fi';
+import { FiCheckSquare, FiPlay, FiCheck, FiEye, FiLifeBuoy } from 'react-icons/fi';
+import { intelligenceAPI } from '@/api/endpoints/intelligence';
 
 const TasksPage: React.FC = () => {
   const { user } = useAuthContext();
@@ -25,6 +26,8 @@ const TasksPage: React.FC = () => {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [completionNotes, setCompletionNotes] = useState('');
+  const [aiAdvice, setAiAdvice] = useState<string | null>(null);
+  const [loadingAdvice, setLoadingAdvice] = useState(false);
 
   useEffect(() => {
     loadTasks();
@@ -61,6 +64,23 @@ const TasksPage: React.FC = () => {
       loadTasks();
     } catch (err) {
       showError('Failed to complete task');
+    }
+  };
+
+  const getAdvice = async (task: Maintenance) => {
+    setLoadingAdvice(true);
+    try {
+      const response = await intelligenceAPI.getMaintenanceAdvice({
+        equipmentName: (task as any).equipment_details?.model || 'Generator',
+        description: (task as any).description || task.work_performed || 'General Maintenance',
+        errorCodes: 'None'
+      });
+      const advice = typeof response.data === 'string' ? response.data : response.data?.data;
+      setAiAdvice(advice);
+    } catch (err) {
+      showError('Failed to get AI advice');
+    } finally {
+      setLoadingAdvice(false);
     }
   };
 
@@ -274,7 +294,7 @@ const TasksPage: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Priority</p>
-                
+
                 <Badge variant={formatPriority(selectedTask.priority).color as any}>
                   {formatPriority(selectedTask.priority).label}
                 </Badge>
@@ -303,10 +323,30 @@ const TasksPage: React.FC = () => {
             )}
 
             {selectedTask.status === 'approved' && (
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                <Button
+                  onClick={() => getAdvice(selectedTask)}
+                  variant="secondary"
+                  disabled={loadingAdvice}
+                >
+                  <FiLifeBuoy className={`mr-2 ${loadingAdvice ? 'animate-spin' : ''}`} />
+                  {loadingAdvice ? 'Asking AI...' : 'Get AI Advice'}
+                </Button>
+
                 <Button onClick={() => handleStart(selectedTask)} variant="primary">
                   Start Task
                 </Button>
+              </div>
+            )}
+
+            {aiAdvice && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                  <FiLifeBuoy className="mr-2" /> AI Maintenance Advice
+                </h4>
+                <div className="text-sm text-blue-800 whitespace-pre-wrap">
+                  {aiAdvice}
+                </div>
               </div>
             )}
           </div>

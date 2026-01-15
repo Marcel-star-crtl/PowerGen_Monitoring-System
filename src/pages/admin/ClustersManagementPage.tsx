@@ -7,6 +7,7 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Modal } from '@/components/common/Modal';
 import { Table } from '@/components/common/Table';
+import { SupervisorAutocomplete } from '@/components/common/SupervisorAutocomplete';
 import { FiPlus, FiEdit, FiTrash2 } from 'react-icons/fi';
 
 const ClustersManagementPage: React.FC = () => {
@@ -31,7 +32,9 @@ const ClustersManagementPage: React.FC = () => {
     setLoading(true);
     try {
       const result = await adminAPI.getAllClusters();
-      setClusters(result.data);
+      if (result.success && result.data) {
+        setClusters(result.data);
+      }
     } catch (err) {
       showError('Failed to load clusters');
     } finally {
@@ -183,12 +186,10 @@ const ClustersManagementPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, region: e.target.value })}
             fullWidth
           />
-          <Input
-            label="Supervisor ID"
+          <SupervisorAutocomplete
+            label="Supervisor"
             value={formData.supervisor}
-            onChange={(e) => setFormData({ ...formData, supervisor: e.target.value })}
-            helperText="Enter the supervisor's user ID"
-            fullWidth
+            onChange={(id) => setFormData({ ...formData, supervisor: id })}
           />
 
           <div className="flex justify-end space-x-3">

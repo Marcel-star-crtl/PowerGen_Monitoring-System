@@ -5,6 +5,7 @@ export interface User {
   role: 'admin' | 'supervisor' | 'technician' | 'diesel_manager' | 'data_collector' | 'analyst';
   phone?: string;
   isActive: boolean;
+  assignedTechnicians?: string[];
 }
 
 export interface AuthState {

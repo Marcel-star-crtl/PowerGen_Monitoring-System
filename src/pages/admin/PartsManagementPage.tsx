@@ -50,8 +50,10 @@ const PartsManagementPage: React.FC = () => {
         limit: pagination.pageSize,
         category: categoryFilter || undefined,
       });
-      setParts(result.data);
-      setPagination(result.pagination);
+      if (result.success && result.data) {
+        setParts(result.data.parts);
+        setPagination(result.data.pagination);
+      }
     } catch (err) {
       showError('Failed to load parts');
     } finally {

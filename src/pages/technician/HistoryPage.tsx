@@ -10,8 +10,9 @@ import { Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Pagination } from '@/components/common/Pagination';
 import { Table } from '@/components/common/Table';
+import { VisitDetailsModal } from '@/components/technician/VisitDetailsModal';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import { FiCalendar, FiFilter, FiDownload } from 'react-icons/fi';
+import { FiCalendar, FiFilter, FiDownload, FiEye, FiEdit2 } from 'react-icons/fi';
 import { STATUS_OPTIONS, VISIT_TYPES } from '@/utils/constants';
 
 const HistoryPage: React.FC = () => {
@@ -29,6 +30,8 @@ const HistoryPage: React.FC = () => {
     total: 0,
     pages: 1,
   });
+  const [selectedVisit, setSelectedVisit] = useState<any>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { error: showError } = useNotification();
 
   useEffect(() => {
@@ -124,6 +127,41 @@ const HistoryPage: React.FC = () => {
       render: (item: any) => (
         <span className="text-sm text-gray-600">{item.photos?.length || 0}</span>
       ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (item: any) => {
+        const canEdit = item.status === 'draft' || item.status === 'rejected';
+        return (
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => {
+                setSelectedVisit(item);
+                setShowDetailsModal(true);
+              }}
+              variant="ghost"
+              size="sm"
+              title="View Details"
+            >
+              <FiEye className="h-4 w-4" />
+            </Button>
+            {canEdit && (
+              <Button
+                onClick={() => {
+                  setSelectedVisit(item);
+                  setShowDetailsModal(true);
+                }}
+                variant="ghost"
+                size="sm"
+                title="Edit"
+              >
+                <FiEdit2 className="h-4 w-4 text-blue-600" />
+              </Button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -246,6 +284,17 @@ const HistoryPage: React.FC = () => {
           </Card>
         </div>
       )}
+
+      {/* Visit Details Modal */}
+      <VisitDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedVisit(null);
+        }}
+        visit={selectedVisit}
+        onUpdate={loadHistory}
+      />
     </div>
   );
 };

@@ -10,7 +10,8 @@ import { Modal } from '@/components/common/Modal';
 import { MaintenanceForm } from '@/components/forms/MaintenanceForm';
 import { useNotification } from '@/contexts/NotificationContext';
 import { formatDate, formatRelativeTime } from '@/utils/formatters';
-import { FiClock, FiCheckCircle, FiXCircle, FiTrendingUp, FiUsers, FiAlertCircle, FiPlus } from 'react-icons/fi';
+import { FiClock, FiCheckCircle, FiXCircle, FiTrendingUp, FiUsers, FiAlertCircle, FiPlus, FiCpu } from 'react-icons/fi';
+import { intelligenceAPI } from '@/api/endpoints/intelligence';
 
 const SupervisorDashboard: React.FC = () => {
   const [dashboard, setDashboard] = useState<any>(null);
@@ -18,7 +19,9 @@ const SupervisorDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduling, setScheduling] = useState(false);
-  
+  const [aiInsights, setAiInsights] = useState<string | null>(null);
+  const [generatingInsights, setGeneratingInsights] = useState(false);
+
   const navigate = useNavigate();
   const { success, error: showError } = useNotification();
 
@@ -56,6 +59,26 @@ const SupervisorDashboard: React.FC = () => {
     }
   };
 
+  const handleGenerateInsights = async () => {
+    if (!dashboard) return;
+    setGeneratingInsights(true);
+    try {
+      const response = await intelligenceAPI.getClusterInsights({
+        pending: dashboard.pending,
+        approved: dashboard.approved,
+        rejected: dashboard.rejected,
+        completed: dashboard.completed,
+        avg_approval_time: dashboard.avg_approval_time_hours
+      });
+      const insightText = typeof response.data === 'string' ? response.data : response.data?.data;
+      setAiInsights(insightText);
+    } catch (error) {
+      showError('Failed to generate insights');
+    } finally {
+      setGeneratingInsights(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -69,8 +92,8 @@ const SupervisorDashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Supervisor Dashboard</h1>
         <div className="flex space-x-3">
-          <Button 
-            onClick={() => setShowScheduleModal(true)} 
+          <Button
+            onClick={() => setShowScheduleModal(true)}
             variant="secondary"
           >
             <FiPlus className="mr-2" />
@@ -110,6 +133,43 @@ const SupervisorDashboard: React.FC = () => {
           color="blue"
         />
       </div>
+
+
+
+      {/* AI Insights Card */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <FiCpu className="h-5 w-5 text-purple-600" />
+            <h2 className="text-lg font-semibold text-gray-900">AI Performance Insights</h2>
+          </div>
+          {!aiInsights && (
+            <Button
+              onClick={handleGenerateInsights}
+              variant="secondary"
+              size="sm"
+              disabled={generatingInsights || !dashboard}
+            >
+              {generatingInsights ? 'Analyzing...' : 'Generate Insights'}
+            </Button>
+          )}
+        </div>
+
+        {aiInsights ? (
+          <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+            <p className="text-purple-900 whitespace-pre-line leading-relaxed">{aiInsights}</p>
+            <div className="mt-3 flex justify-end">
+              <Button onClick={() => setAiInsights(null)} variant="ghost" size="sm" className="text-purple-700 hover:bg-purple-100">
+                Refresh
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-gray-500 text-sm italic">
+            Get AI-powered analysis of your team's maintenance performance, approval times, and bottleneck identification.
+          </p>
+        )}
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Pending Approvals */}
@@ -226,20 +286,22 @@ const SupervisorDashboard: React.FC = () => {
       </div>
 
       {/* Alerts */}
-      {dashboard?.pending > 10 && (
-        <Card>
-          <div className="flex items-start space-x-3">
-            <FiAlertCircle className="h-6 w-6 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-gray-900">Action Required</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                You have {dashboard.pending} maintenance requests awaiting approval. 
-                Please review them to keep operations running smoothly.
-              </p>
+      {
+        dashboard?.pending > 10 && (
+          <Card>
+            <div className="flex items-start space-x-3">
+              <FiAlertCircle className="h-6 w-6 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-gray-900">Action Required</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  You have {dashboard.pending} maintenance requests awaiting approval.
+                  Please review them to keep operations running smoothly.
+                </p>
+              </div>
             </div>
-          </div>
-        </Card>
-      )}
+          </Card>
+        )
+      }
 
       {/* Schedule Maintenance Modal */}
       <Modal
@@ -254,7 +316,7 @@ const SupervisorDashboard: React.FC = () => {
           loading={scheduling}
         />
       </Modal>
-    </div>
+    </div >
   );
 };
 

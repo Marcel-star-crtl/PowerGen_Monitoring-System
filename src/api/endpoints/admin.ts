@@ -134,5 +134,14 @@ export const adminAPI = {
     const response = await apiClient.get('/admin/audit-logs', { params });
     return response.data;
   },
+
+  // Assignment
+  assignTechnicians: async (supervisorId: string, technicianIds: string[]) => {
+    const response = await apiClient.post('/admin/assign-technicians', {
+      supervisorId,
+      technicianIds,
+    });
+    return response.data;
+  },
 };
 
