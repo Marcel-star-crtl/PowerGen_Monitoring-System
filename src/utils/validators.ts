@@ -53,11 +53,13 @@ export const validateVisitForm = (formData: any): ValidationResult => {
     errors.technician_id = 'Technician is required';
   }
 
-  if (formData.Earthing_OHM && !validateNumberRange(formData.Earthing_OHM, 0, 1000)) {
+  const electrical_data = formData.electrical_data || {};
+  if (electrical_data.earthing_ohm && !validateNumberRange(electrical_data.earthing_ohm, 0, 1000)) {
     errors.Earthing_OHM = 'Invalid earthing value (0-1000 ohms)';
   }
 
-  if (formData.Fuel_Quantity_Found && !validateNumberRange(formData.Fuel_Quantity_Found, 0, 10000)) {
+  const fuel_data = formData.fuel_data || {};
+  if (fuel_data.qte_trouvee && !validateNumberRange(fuel_data.qte_trouvee, 0, 10000)) {
     errors.Fuel_Quantity_Found = 'Invalid fuel quantity';
   }
 

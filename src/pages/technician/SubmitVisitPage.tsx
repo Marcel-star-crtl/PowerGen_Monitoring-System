@@ -4,7 +4,7 @@ import { technicianAPI } from '@/api';
 import { Card } from '@/components/common/Card';
 import { Spinner } from '@/components/common/Spinner';
 import { Button } from '@/components/common/Button';
-import { VisitForm } from '@/components/forms/VisitForm';
+import { MultiStepVisitForm } from '@/components/forms/MultiStepVisit';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useSites } from '@/hooks/useSites';
@@ -15,7 +15,7 @@ const SubmitVisitPage: React.FC = () => {
   const [site, setSite] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
+
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { success, error: showError } = useNotification();
@@ -47,14 +47,15 @@ const SubmitVisitPage: React.FC = () => {
     setSubmitting(true);
     try {
       await submitVisit(siteId, formData, photos, submitNow);
-      
+
       if (submitNow) {
         success('Visit submitted for approval!');
+        navigate('/technician/sites');
       } else {
         success('Draft saved successfully!');
+        // Keep on page if draft or navigate to drafts?
+        // navigate('/technician/drafts');
       }
-      
-      navigate('/technician/sites');
     } catch (err) {
       showError('Failed to submit visit');
     } finally {
@@ -83,53 +84,35 @@ const SubmitVisitPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <Button
-          onClick={() => navigate('/technician/sites')}
-          variant="ghost"
-          size="sm"
-        >
-          <FiArrowLeft className="mr-2" />
-          Back
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Submit Site Visit</h1>
-          <p className="text-gray-600">{site.Site_Name} - {site.IHS_ID_SITE}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button
+            onClick={() => navigate('/technician/sites')}
+            variant="ghost"
+            size="sm"
+          >
+            <FiArrowLeft className="mr-2" />
+            Back
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Submit Site Visit</h1>
+            <p className="text-gray-600">{site.Site_Name} - {site.IHS_ID_SITE}</p>
+          </div>
         </div>
       </div>
 
-      <Card>
-        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="text-gray-500">Site ID</p>
-              <p className="font-medium">{site.IHS_ID_SITE}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Region</p>
-              <p className="font-medium">{site.Region}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Last Visit</p>
-              <p className="font-medium">
-                {site.Actual_Date_Visit ? new Date(site.Actual_Date_Visit).toLocaleDateString() : 'Never'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <VisitForm
-          initialData={{
-            technician_id: user?.id || '',
-            technician_name: user?.fullName || '',
-            Actual_Date_Visit: new Date().toISOString().split('T')[0],
-            Type_of_Visit: 'PM',
-            priority: 'medium',
-          }}
-          onSubmit={handleSubmit}
-          loading={submitting}
-        />
-      </Card>
+      <MultiStepVisitForm
+        siteDetails={site}
+        initialData={{
+          technician_id: user?.id || '',
+          technician_name: user?.fullName || '',
+          Actual_Date_Visit: new Date().toISOString().split('T')[0],
+          Type_of_Visit: 'PM',
+          priority: 'medium',
+        }}
+        onSubmit={handleSubmit}
+        loading={submitting}
+      />
     </div>
   );
 };

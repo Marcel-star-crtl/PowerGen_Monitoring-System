@@ -9,7 +9,7 @@ import { Input } from '@/components/common/Input';
 import { Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Modal } from '@/components/common/Modal';
-import { VisitForm } from '@/components/forms/VisitForm';
+import { MultiStepVisitForm } from '@/components/forms/MultiStepVisit';
 import { formatDate, calculateDaysSince } from '@/utils/helpers';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
@@ -24,7 +24,7 @@ const TechnicianSites: React.FC = () => {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  
+
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { success, error: showError } = useNotification();
@@ -80,13 +80,13 @@ const TechnicianSites: React.FC = () => {
     setSubmitting(true);
     try {
       await submitVisit(selectedSite.IHS_ID_SITE, formData, photos, submitNow);
-      
+
       if (submitNow) {
         success('Visit submitted for approval!');
       } else {
         success('Draft saved successfully!');
       }
-      
+
       setShowSubmitModal(false);
       setSelectedSite(null);
       loadSites(); // Refresh the sites list
@@ -219,7 +219,8 @@ const TechnicianSites: React.FC = () => {
             </div>
 
             {/* Visit Form */}
-            <VisitForm
+            <MultiStepVisitForm
+              siteDetails={selectedSite}
               initialData={{
                 technician_id: user?.id || '',
                 technician_name: user?.fullName || '',

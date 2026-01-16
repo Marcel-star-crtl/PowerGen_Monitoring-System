@@ -63,3 +63,35 @@ export const ENEO_STATUS = [
   { value: 'no', label: 'No' },
   { value: 'intermittent', label: 'Intermittent' },
 ];
+
+export const TOPOLOGY_OPTIONS = [
+  { value: 'Grid-Gen', label: 'Grid-Gen' },
+  { value: 'Hybrid-Gen', label: 'Hybrid-Gen' },
+  { value: 'Solar-Gen', label: 'Solar-Gen' },
+  { value: 'Solar-Hybrid-Gen', label: 'Solar-Hybrid-Gen' },
+  { value: 'Gen-Only', label: 'Gen-Only' },
+  { value: 'Grid-Only', label: 'Grid-Only' },
+];
+
+export const TANK_TYPES = [
+  { value: 'EXT', label: 'External' },
+  { value: 'INT', label: 'Internal' },
+];
+
+export const OUTDOOR_INDOOR_OPTIONS = [
+  { value: 'Outdoor', label: 'Outdoor' },
+  { value: 'Indoor', label: 'Indoor' },
+  { value: 'Mixed', label: 'Indoor/Outdoor' },
+];
+
+export const GEN_BRANDS = [
+  { value: 'MAHINDRA', label: 'Mahindra' },
+  { value: 'MIKANO', label: 'Mikano' },
+  { value: 'Jubaili Bros', label: 'Jubaili Bros' },
+  { value: 'SDMO', label: 'SDMO' },
+  { value: 'CATERPILLAR', label: 'Caterpillar' },
+  { value: 'GB POWER', label: 'GB Power' },
+  { value: 'COLOR CERAMICA', label: 'Color Ceramica' },
+  { value: 'ELCOS', label: 'Elcos' },
+  { value: 'Other', label: 'Other' },
+];

@@ -7,13 +7,13 @@ import { Spinner } from '@/components/common/Spinner';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
 import { Badge } from '@/components/common/Badge';
-import { VisitForm } from '@/components/forms/VisitForm';
+import { MultiStepVisitForm } from '@/components/forms/MultiStepVisit';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useSites } from '@/hooks/useSites';
 import { FiFileText, FiClock, FiCheckSquare, FiCheckCircle, FiMapPin, FiPlus } from 'react-icons/fi';
 
-const TechnicianDashboard: React.FC = () => {
+const TechnicianDrafts: React.FC = () => {
   const [dashboard, setDashboard] = useState<any>(null);
   const [recentSites, setRecentSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ const TechnicianDashboard: React.FC = () => {
   const [showSelectSiteModal, setShowSelectSiteModal] = useState(false);
   const [selectedSite, setSelectedSite] = useState<any>(null);
   const [allSites, setAllSites] = useState<any[]>([]);
-  
+
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const { success, error: showError } = useNotification();
@@ -60,13 +60,13 @@ const TechnicianDashboard: React.FC = () => {
 
     try {
       await submitVisit(selectedSite.IHS_ID_SITE, formData, photos, submitNow);
-      
+
       if (submitNow) {
         success('Visit submitted for approval!');
       } else {
         success('Draft saved successfully!');
       }
-      
+
       setShowQuickSubmitModal(false);
       setShowSelectSiteModal(false);
       setSelectedSite(null);
@@ -187,7 +187,7 @@ const TechnicianDashboard: React.FC = () => {
             <h2 className="text-lg font-semibold">Sites Needing Visit</h2>
             <Badge variant="red">{recentSites.length}</Badge>
           </div>
-          
+
           {recentSites.length === 0 ? (
             <p className="text-sm text-gray-600">All sites up to date! 🎉</p>
           ) : (
@@ -215,7 +215,7 @@ const TechnicianDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
-              
+
               {recentSites.length > 0 && (
                 <Button
                   onClick={() => navigate('/technician/sites')}
@@ -307,7 +307,8 @@ const TechnicianDashboard: React.FC = () => {
         size="xl"
       >
         {selectedSite && (
-          <VisitForm
+          <MultiStepVisitForm
+            siteDetails={selectedSite}
             initialData={{
               technician_id: user?.id || '',
               technician_name: user?.fullName || '',
@@ -324,5 +325,5 @@ const TechnicianDashboard: React.FC = () => {
   );
 };
 
-export default TechnicianDashboard;
+export default TechnicianDrafts;
 

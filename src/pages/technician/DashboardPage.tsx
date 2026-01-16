@@ -7,7 +7,7 @@ import { Spinner } from '@/components/common/Spinner';
 import { Button } from '@/components/common/Button';
 import { Modal } from '@/components/common/Modal';
 import { Badge } from '@/components/common/Badge';
-import { VisitForm } from '@/components/forms/VisitForm';
+import { MultiStepVisitForm } from '@/components/forms/MultiStepVisit';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useSites } from '@/hooks/useSites';
@@ -263,7 +263,8 @@ const TechnicianDashboard: React.FC = () => {
         size="xl"
       >
         {selectedSite && (
-          <VisitForm
+          <MultiStepVisitForm
+            siteDetails={selectedSite}
             initialData={{
               technician_id: user?.id || '',
               technician_name: user?.fullName || '',

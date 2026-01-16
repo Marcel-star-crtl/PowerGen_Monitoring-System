@@ -29,20 +29,23 @@ export const VisitForm: React.FC<VisitFormProps> = ({ initialData, onSubmit, loa
     technician_id: initialData?.technician_id || '',
     technician_name: initialData?.technician_name || '',
     priority: initialData?.priority || 'medium',
-    Earthing_OHM: initialData?.Earthing_OHM,
-    ENEO_Working: initialData?.ENEO_Working,
-    Phase_Type: initialData?.Phase_Type,
-    N_PH1_Voltage: initialData?.N_PH1_Voltage,
-    N_PH2_Voltage: initialData?.N_PH2_Voltage,
-    N_PH3_Voltage: initialData?.N_PH3_Voltage,
-    ENEO_Meter_Number: initialData?.ENEO_Meter_Number,
-    Actual_Index: initialData?.Actual_Index,
-    Previous_Index: initialData?.Previous_Index,
-    Consumed_KWA: initialData?.Consumed_KWA,
-    Previous_Fuel_Quantity: initialData?.Previous_Fuel_Quantity,
-    Fuel_Quantity_Found: initialData?.Fuel_Quantity_Found,
-    Fuel_Quantity_Added: initialData?.Fuel_Quantity_Added,
-    Tank_Capacity_1: initialData?.Tank_Capacity_1,
+    electrical_data: {
+      earthing_ohm: initialData?.electrical_data?.earthing_ohm,
+      eneo_working: initialData?.electrical_data?.eneo_working,
+      phase_type: initialData?.electrical_data?.phase_type,
+      n_ph1_voltage: initialData?.electrical_data?.n_ph1_voltage,
+      n_ph2_voltage: initialData?.electrical_data?.n_ph2_voltage,
+      n_ph3_voltage: initialData?.electrical_data?.n_ph3_voltage,
+      eneo_meter_number: initialData?.electrical_data?.eneo_meter_number,
+      actual_index: initialData?.electrical_data?.actual_index,
+      previous_index: initialData?.electrical_data?.previous_index,
+      consumed_kwa: initialData?.electrical_data?.consumed_kwa,
+    },
+    fuel_data: {
+      qte_trouvee: initialData?.fuel_data?.qte_trouvee,
+      qte_ajoutee: initialData?.fuel_data?.qte_ajoutee,
+      tank_capacity: initialData?.fuel_data?.tank_capacity,
+    },
     Visit_Comments: initialData?.Visit_Comments || '',
   });
 
@@ -60,6 +63,16 @@ export const VisitForm: React.FC<VisitFormProps> = ({ initialData, onSubmit, loa
         return newErrors;
       });
     }
+  };
+
+  const handleNestedChange = (category: keyof VisitFormData, field: string, value: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      [category]: {
+        ...(prev[category] || {}),
+        [field]: value,
+      },
+    }));
   };
 
   const handleEnhanceNotes = async () => {
@@ -107,15 +120,15 @@ export const VisitForm: React.FC<VisitFormProps> = ({ initialData, onSubmit, loa
           <Select
             label="Visit Type"
             value={formData.Type_of_Visit}
-            onChange={(e) => handleChange('Type_of_Visit', e.target.value)}
+            onChange={(e) => handleChange('Type_of_Visit', (e.target.value as any))}
             options={VISIT_TYPES}
             required
             fullWidth
           />
           <Select
             label="Priority"
-            value={formData.priority}
-            onChange={(e) => handleChange('priority', e.target.value)}
+            value={formData.priority || 'medium'}
+            onChange={(e) => handleChange('priority', (e.target.value as any))}
             options={PRIORITY_LEVELS}
             fullWidth
           />
@@ -130,44 +143,44 @@ export const VisitForm: React.FC<VisitFormProps> = ({ initialData, onSubmit, loa
             label="Earthing (Ohms)"
             type="number"
             step="0.1"
-            value={formData.Earthing_OHM || ''}
-            onChange={(e) => handleChange('Earthing_OHM', parseFloat(e.target.value))}
+            value={formData.electrical_data?.earthing_ohm || ''}
+            onChange={(e) => handleNestedChange('electrical_data', 'earthing_ohm', parseFloat(e.target.value))}
             error={errors.Earthing_OHM}
             fullWidth
           />
           <Select
             label="ENEO Working"
-            value={formData.ENEO_Working || 'yes'}
-            onChange={(e) => handleChange('ENEO_Working', e.target.value)}
+            value={formData.electrical_data?.eneo_working || 'yes'}
+            onChange={(e) => handleNestedChange('electrical_data', 'eneo_working', e.target.value)}
             options={ENEO_STATUS}
             fullWidth
           />
           <Select
             label="Phase Type"
-            value={formData.Phase_Type || 'three'}
-            onChange={(e) => handleChange('Phase_Type', e.target.value)}
+            value={formData.electrical_data?.phase_type || 'three'}
+            onChange={(e) => handleNestedChange('electrical_data', 'phase_type', e.target.value)}
             options={PHASE_TYPES}
             fullWidth
           />
           <Input
             label="ENEO Meter Number"
             type="text"
-            value={formData.ENEO_Meter_Number || ''}
-            onChange={(e) => handleChange('ENEO_Meter_Number', e.target.value)}
+            value={formData.electrical_data?.eneo_meter_number || ''}
+            onChange={(e) => handleNestedChange('electrical_data', 'eneo_meter_number', e.target.value)}
             fullWidth
           />
           <Input
             label="N-PH1 Voltage"
             type="number"
-            value={formData.N_PH1_Voltage || ''}
-            onChange={(e) => handleChange('N_PH1_Voltage', parseFloat(e.target.value))}
+            value={formData.electrical_data?.n_ph1_voltage || ''}
+            onChange={(e) => handleNestedChange('electrical_data', 'n_ph1_voltage', parseFloat(e.target.value))}
             fullWidth
           />
           <Input
             label="N-PH2 Voltage"
             type="number"
-            value={formData.N_PH2_Voltage || ''}
-            onChange={(e) => handleChange('N_PH2_Voltage', parseFloat(e.target.value))}
+            value={formData.electrical_data?.n_ph2_voltage || ''}
+            onChange={(e) => handleNestedChange('electrical_data', 'n_ph2_voltage', parseFloat(e.target.value))}
             fullWidth
           />
         </div>
@@ -180,23 +193,23 @@ export const VisitForm: React.FC<VisitFormProps> = ({ initialData, onSubmit, loa
           <Input
             label="Fuel Found (L)"
             type="number"
-            value={formData.Fuel_Quantity_Found || ''}
-            onChange={(e) => handleChange('Fuel_Quantity_Found', parseFloat(e.target.value))}
+            value={formData.fuel_data?.qte_trouvee || ''}
+            onChange={(e) => handleNestedChange('fuel_data', 'qte_trouvee', parseFloat(e.target.value))}
             error={errors.Fuel_Quantity_Found}
             fullWidth
           />
           <Input
             label="Fuel Added (L)"
             type="number"
-            value={formData.Fuel_Quantity_Added || ''}
-            onChange={(e) => handleChange('Fuel_Quantity_Added', parseFloat(e.target.value))}
+            value={formData.fuel_data?.qte_ajoutee || ''}
+            onChange={(e) => handleNestedChange('fuel_data', 'qte_ajoutee', parseFloat(e.target.value))}
             fullWidth
           />
           <Input
             label="Tank Capacity (L)"
             type="number"
-            value={formData.Tank_Capacity_1 || ''}
-            onChange={(e) => handleChange('Tank_Capacity_1', parseFloat(e.target.value))}
+            value={formData.fuel_data?.tank_capacity || ''}
+            onChange={(e) => handleNestedChange('fuel_data', 'tank_capacity', parseFloat(e.target.value))}
             fullWidth
           />
         </div>

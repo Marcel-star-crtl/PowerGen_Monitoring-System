@@ -1,25 +1,54 @@
 import { Photo, StatusType, PriorityType, VisitType } from './common.types';
 
+export interface FileWithPreview extends File {
+  preview?: string;
+  category?: string;
+  description?: string;
+}
+
 export interface GeneratorDetail {
   generator_number: number;
   brand: string;
+  engine_brand?: string;
   serial_number: string;
-  actual_running_hours: number;
-  last_running_hours?: number;
-  run_hours?: number;
+  maintenance_cycle?: string;
   kva?: number;
+  dg_age_check?: string;
+  dg_age?: string;
+  hour_meter_check?: string;
+  ch_actuel: number;
+  ch_ancien?: number;
+  run_hours?: number;
+  cph?: number;
   load_1ph?: number;
   load_2ph?: number;
   load_3ph?: number;
   dc_load?: number;
+  comments_cph?: string;
 }
 
 export interface FuelData {
-  previous_fuel_quantity?: number;
-  fuel_quantity_found?: number;
-  fuel_quantity_added?: number;
-  fuel_quantity_consumed?: number;
+  fuel_card_number?: string;
+  tom_card_debit?: number;
+  price_per_liter?: number;
+  tank_type?: 'EXT' | 'INT';
   tank_capacity?: number;
+  tank_dimensions?: {
+    long?: number;
+    large?: number;
+    hauteur?: number;
+    coeficiant?: number;
+  };
+  fond_de_cuve?: number;
+  fuel_sq_check?: string;
+  qte_precedente?: number;
+  hauteur_gasoil_trouvee_cm?: number;
+  qte_trouvee?: number;
+  qte_t_cms?: number;
+  qte_ajoutee?: number;
+  qte_laissee?: number;
+  qte_l_cms?: number;
+  qte_consommee?: number;
 }
 
 export interface ElectricalData {
@@ -30,9 +59,11 @@ export interface ElectricalData {
   n_ph2_voltage?: number;
   n_ph3_voltage?: number;
   eneo_meter_number?: string;
+  eneo_sq_check?: string;
   actual_index?: number;
   previous_index?: number;
   consumed_kwa?: number;
+  comments_on_grid?: string;
 }
 
 export interface IssuesFound {
@@ -41,6 +72,8 @@ export interface IssuesFound {
   Issue_of_Aircon?: string;
   Issue_of_Solar?: string;
   Any_Other_Issue?: string;
+  Parts_Replaced?: string;
+  Issues_Corrective_Date?: Date;
 }
 
 export interface PartUsed {
@@ -49,6 +82,17 @@ export interface PartUsed {
   part_number?: string;
   quantity_used: number;
   technician_notes?: string;
+}
+
+export interface PowerCabinet {
+  cabinet_number: number;
+  type?: string;
+  rectifier_type?: string;
+  num_rectifiers?: number;
+  capacity_per_rectifier?: number;
+  num_batteries?: number;
+  battery_capacity?: string;
+  battery_autonomy?: number;
 }
 
 export interface Maintenance {
@@ -69,11 +113,52 @@ export interface Maintenance {
   };
   visit_type: VisitType;
   visit_date: Date;
+  prev_visit_date?: Date;
+  hours_on_site?: number;
+  sbc?: string;
+  site_metadata?: {
+    cluster?: string;
+    site_priority?: string;
+    state?: string;
+    operator?: string;
+    power_topology?: string;
+    outdoor_indoor?: string;
+  };
+  process_tracking?: {
+    ongoing_process_num?: string;
+    pm_end_process_num?: string;
+    rf_process_num?: string;
+  };
   work_performed?: string;
   issues_found?: IssuesFound;
   parts_used?: PartUsed[];
   generators_checked?: GeneratorDetail[];
+  combined_stats?: {
+    total_run_hour?: number;
+    ccph?: number;
+    cl?: number;
+    pertes?: number;
+    dg_vs_hours?: string;
+    grid_gen_percent?: number;
+    reason_grid_gen_percent?: string;
+    automatization_status?: string;
+    ch_next_vidange?: number;
+  };
   fuel_data?: FuelData;
+  pm_checks?: {
+    belt?: string;
+    oil_filter?: string;
+    fuel_filter?: string;
+    separ_filter?: string;
+    air_filter?: string;
+    qty_oil_changed?: number;
+    qty_radiator_water?: number;
+    dirty_oil?: string;
+  };
+  power_systems?: {
+    power_cabinets?: PowerCabinet[];
+    battery_threshold_dg_start?: number;
+  };
   electrical_data?: ElectricalData;
   photos?: Photo[];
   status: StatusType;
@@ -107,24 +192,19 @@ export interface VisitFormData {
   Type_of_Visit: VisitType;
   technician_id: string;
   technician_name?: string;
-  Earthing_OHM?: number;
-  ENEO_Working?: string;
-  Phase_Type?: string;
-  N_PH1_Voltage?: number;
-  N_PH2_Voltage?: number;
-  N_PH3_Voltage?: number;
-  ENEO_Meter_Number?: string;
-  Actual_Index?: number;
-  Previous_Index?: number;
-  Consumed_KWA?: number;
-  Previous_Fuel_Quantity?: number;
-  Fuel_Quantity_Found?: number;
-  Fuel_Quantity_Added?: number;
-  Fuel_Quantity_Consumed?: number;
-  Tank_Capacity_1?: number;
-  Generators_Details?: GeneratorDetail[];
-  Parts_Used_During_Visit?: PartUsed[];
-  Issues_Found?: IssuesFound;
-  Visit_Comments?: string;
   priority?: PriorityType;
+  prev_visit_date?: string;
+  hours_on_site?: number;
+  sbc?: string;
+  site_metadata?: Maintenance['site_metadata'];
+  process_tracking?: Maintenance['process_tracking'];
+  electrical_data?: ElectricalData;
+  fuel_data?: FuelData;
+  generators_checked?: GeneratorDetail[];
+  combined_stats?: Maintenance['combined_stats'];
+  pm_checks?: Maintenance['pm_checks'];
+  power_systems?: Maintenance['power_systems'];
+  parts_used?: PartUsed[];
+  issues_found?: IssuesFound;
+  Visit_Comments?: string;
 }
