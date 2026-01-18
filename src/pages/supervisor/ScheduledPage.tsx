@@ -294,11 +294,12 @@ const ScheduledPage: React.FC = () => {
         {selectedItem && (
           <MaintenanceForm
             initialData={{
-              site_id: selectedItem.site_id,
-              visit_type: selectedItem.visit_type,
-              visit_date: new Date(selectedItem.visit_date).toISOString().split('T')[0],
+              technician: selectedItem.technician?._id || '',
+              tower: selectedItem.site_id,
+              type: selectedItem.visit_type === 'PM' ? 'routine' : 'repair',
+              scheduledDate: new Date(selectedItem.visit_date).toISOString().split('T')[0],
               priority: selectedItem.priority,
-              work_performed: selectedItem.work_performed || '',
+              notes: selectedItem.work_performed || '',
               estimated_duration: selectedItem.estimated_duration,
             }}
             onSubmit={handleEditMaintenance}

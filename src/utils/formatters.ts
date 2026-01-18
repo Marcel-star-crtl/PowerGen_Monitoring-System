@@ -58,11 +58,13 @@ export const formatFuelLevel = (
 
 export const formatStatus = (status: StatusType): { label: string; color: string } => {
   const statusMap: Record<StatusType, { label: string; color: string }> = {
+    pending: { label: 'Assigned', color: 'blue' },
+    scheduled: { label: 'Scheduled', color: 'indigo' },
     draft: { label: 'Draft', color: 'gray' },
-    pending_approval: { label: 'Pending', color: 'yellow' },
+    in_progress: { label: 'In Progress', color: 'blue' },
+    pending_approval: { label: 'Pending Review', color: 'yellow' },
     approved: { label: 'Approved', color: 'green' },
     rejected: { label: 'Rejected', color: 'red' },
-    in_progress: { label: 'In Progress', color: 'blue' },
     completed: { label: 'Completed', color: 'green' },
   };
 

@@ -18,6 +18,7 @@ const ApprovalsPage: React.FC = () => {
   const { user } = useAuthContext();
   const { success, error: showError } = useNotification();
 
+  // These are unified task/visit records
   const [visitsList, setVisitsList] = useState<any[]>([]);
   const [filteredList, setFilteredList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +112,10 @@ const ApprovalsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Technician Site Visits</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Site Visit Approvals</h1>
+          <p className="text-sm text-gray-500 mt-1">Review and approve completed site visits from your technicians</p>
+        </div>
         <div className="flex items-center space-x-4">
           <Select
             value={statusFilter}

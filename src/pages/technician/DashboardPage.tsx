@@ -15,6 +15,8 @@ import { useSites } from '@/hooks/useSites';
 import { FiFileText, FiClock, FiCheckSquare, FiCheckCircle, FiMapPin, FiPlus, FiLifeBuoy } from 'react-icons/fi';
 import { intelligenceAPI } from '@/api/endpoints/intelligence';
 
+// NOTE: Tasks and Visits are unified in this system
+// A task becomes a visit when the technician completes and submits the work
 const TechnicianDashboard: React.FC = () => {
   const [dashboard, setDashboard] = useState<any>(null);
   const [recentSites, setRecentSites] = useState<any[]>([]);

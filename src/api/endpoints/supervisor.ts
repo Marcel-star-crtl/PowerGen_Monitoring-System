@@ -22,11 +22,12 @@ interface MaintenanceStats {
 }
 
 interface ScheduleMaintenanceData {
-  site_id: string;
-  visit_type: string;
-  visit_date: string;
+  technician: string;
+  tower: string;
+  type: 'routine' | 'repair' | 'inspection' | 'emergency';
+  scheduledDate: string;
   priority: string;
-  work_performed: string;
+  notes?: string;
   estimated_duration?: number;
 }
 

@@ -49,7 +49,16 @@ export interface Photo {
   uploaded_at: Date;
 }
 
-export type StatusType = 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'in_progress' | 'completed';
+// StatusType represents the unified task/visit lifecycle:
+// - 'pending': Task assigned but not started
+// - 'scheduled': Task scheduled for a specific date
+// - 'in_progress': Technician actively working on site
+// - 'draft': Visit form saved but not submitted
+// - 'pending_approval': Visit submitted, awaiting supervisor review
+// - 'approved': Visit approved by supervisor
+// - 'rejected': Visit rejected, needs revision
+// - 'completed': Fully completed and approved
+export type StatusType = 'pending' | 'scheduled' | 'in_progress' | 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'completed';
 export type PriorityType = 'low' | 'medium' | 'high' | 'critical';
 export type VisitType = 'PM' | 'END' | 'RF' | 'PM+END' | 'PM+RF' | 'RF+END' | 'PM+RF+END';
 

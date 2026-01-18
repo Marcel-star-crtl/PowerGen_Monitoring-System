@@ -1,5 +1,12 @@
 import { Photo, StatusType, PriorityType, VisitType } from './common.types';
 
+// IMPORTANT: In this system, "Maintenance" records represent BOTH:
+// 1. TASKS - Assigned work for technicians to perform
+// 2. VISITS - Completed site visit records with all details
+// These are unified into a single entity that progresses from assignment to completion
+// Use "Task" terminology in UI when referring to work assignments
+// Use "Visit" terminology when referring to completed/submitted work
+
 export interface FileWithPreview extends File {
   preview?: string;
   category?: string;
@@ -95,12 +102,20 @@ export interface PowerCabinet {
   battery_autonomy?: number;
 }
 
+// Maintenance = Task/Visit (unified concept)
+// A maintenance record starts as a task assignment and becomes a visit when completed
 export interface Maintenance {
   _id: string;
   maintenance_id: string;
   site_id: string;
   site_name?: string;
-  visit_reference: string;
+  visit_reference: string; // Generated when visit is submitted
+  
+  // Assignment Details (Task phase)
+  scheduled_date?: Date; // When task is scheduled
+  assigned_date?: Date;
+  due_date?: Date;
+  
   technician: {
     _id: string;
     fullName: string;

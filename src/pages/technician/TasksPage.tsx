@@ -20,6 +20,7 @@ const TasksPage: React.FC = () => {
   const { getTasks, startTask, completeTask, loading } = useMaintenance(user?.role!);
   const { success, error: showError } = useNotification();
 
+  // Tasks represent assigned work that may become visits once completed
   const [tasks, setTasks] = useState<Maintenance[]>([]);
   const [statusFilter, setStatusFilter] = useState('approved');
   const [selectedTask, setSelectedTask] = useState<Maintenance | null>(null);
