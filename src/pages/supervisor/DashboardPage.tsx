@@ -10,7 +10,7 @@ import { Modal } from '@/components/common/Modal';
 import { MaintenanceForm } from '@/components/forms/MaintenanceForm';
 import { useNotification } from '@/contexts/NotificationContext';
 import { formatDate, formatRelativeTime } from '@/utils/formatters';
-import { FiClock, FiCheckCircle, FiXCircle, FiTrendingUp, FiUsers, FiAlertCircle, FiPlus, FiCpu } from 'react-icons/fi';
+import { FiClock, FiCheckCircle, FiXCircle, FiTrendingUp, FiUsers, FiAlertCircle, FiPlus, FiCpu, FiMapPin } from 'react-icons/fi';
 import { intelligenceAPI } from '@/api/endpoints/intelligence';
 
 const SupervisorDashboard: React.FC = () => {
@@ -234,6 +234,14 @@ const SupervisorDashboard: React.FC = () => {
             >
               <FiClock className="mr-2" />
               Review Pending ({dashboard?.pending || 0})
+            </Button>
+            <Button
+              onClick={() => navigate('/supervisor/sites')}
+              variant="secondary"
+              fullWidth
+            >
+              <FiMapPin className="mr-2" />
+              Manage Sites
             </Button>
             <Button
               onClick={() => navigate('/supervisor/scheduled')}

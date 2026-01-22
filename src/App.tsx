@@ -28,6 +28,8 @@ import TechnicianHistory from '@/pages/technician/HistoryPage';
 
 // ========== SUPERVISOR PAGES ==========
 import SupervisorDashboard from '@/pages/supervisor/DashboardPage';
+import SupervisorSites from '@/pages/supervisor/SitesPage';
+import SupervisorSiteDetail from '@/pages/supervisor/SiteDetailPage';
 import SupervisorApprovals from '@/pages/supervisor/ApprovalsPage';
 import SupervisorScheduled from '@/pages/supervisor/ScheduledPage';
 import SupervisorTechnicians from '@/pages/supervisor/TechniciansPage';
@@ -105,6 +107,8 @@ const App: React.FC = () => {
               }
             >
               <Route index element={<SupervisorDashboard />} />
+              <Route path="sites" element={<SupervisorSites />} />
+              <Route path="sites/:siteId" element={<SupervisorSiteDetail />} />
               <Route path="approvals" element={<SupervisorApprovals />} />
               <Route path="scheduled" element={<SupervisorScheduled />} />
               <Route path="technicians" element={<SupervisorTechnicians />} />

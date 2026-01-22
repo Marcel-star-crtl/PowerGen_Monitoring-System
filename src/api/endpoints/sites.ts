@@ -22,6 +22,16 @@ export const sitesAPI = {
     const response = await apiClient.get('/sites/maintenance/needed', { params });
     return response.data;
   },
+
+  updateSite: async (siteId: string, data: any) => {
+    const response = await apiClient.put(`/sites/${siteId}`, data);
+    return response.data;
+  },
+
+  createSite: async (data: any) => {
+    const response = await apiClient.post('/sites', data);
+    return response.data;
+  },
 };
 
 

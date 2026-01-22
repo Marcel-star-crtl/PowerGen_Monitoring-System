@@ -101,6 +101,12 @@ const navigationItems: NavItem[] = [
   
   // ========== SUPERVISOR NAVIGATION ==========
   {
+    name: 'Sites',
+    path: 'sites',
+    icon: <FiMapPin className="h-5 w-5" />,
+    roles: ['supervisor'],
+  },
+  {
     name: 'Approvals',
     path: 'approvals',
     icon: <FiCheckSquare className="h-5 w-5" />,

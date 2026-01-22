@@ -22,10 +22,11 @@ interface MaintenanceStats {
 }
 
 interface ScheduleMaintenanceData {
+  maintenance_id?: string;
   technician: string;
-  tower: string;
-  type: 'routine' | 'repair' | 'inspection' | 'emergency';
-  scheduledDate: string;
+  site_id: string;
+  visit_type: 'PM' | 'END' | 'RF' | 'PM+END' | 'PM+RF' | 'RF+END' | 'PM+RF+END';
+  visit_date: string;
   priority: string;
   notes?: string;
   estimated_duration?: number;
@@ -81,6 +82,11 @@ export const supervisorAPI = {
 
   getSites: async () => {
     const response = await apiClient.get('/supervisor/sites');
+    return response.data;
+  },
+
+  getSiteDetails: async (siteId: string) => {
+    const response = await apiClient.get(`/supervisor/sites/${siteId}`);
     return response.data;
   },
 

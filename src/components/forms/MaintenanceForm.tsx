@@ -10,9 +10,9 @@ import { supervisorAPI } from '@/api';
 
 interface MaintenanceFormData {
   technician: string | string[];
-  tower: string;
-  type: string;
-  scheduledDate: string;
+  site_id: string;
+  visit_type: string;
+  visit_date: string;
   priority: string;
   notes?: string;
   estimated_duration?: number;
@@ -33,9 +33,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<MaintenanceFormData>({
     technician: initialData?.technician || '',
-    tower: initialData?.tower || '',
-    type: initialData?.type || 'routine',
-    scheduledDate: initialData?.scheduledDate || new Date().toISOString().split('T')[0],
+    site_id: initialData?.site_id || '',
+    visit_type: initialData?.visit_type || 'PM',
+    visit_date: initialData?.visit_date || new Date().toISOString().split('T')[0],
     priority: initialData?.priority || 'medium',
     notes: initialData?.notes || '',
     estimated_duration: initialData?.estimated_duration,
@@ -101,9 +101,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     if (!formData.technician || (Array.isArray(formData.technician) && formData.technician.length === 0)) {
       newErrors.technician = 'At least one technician is required';
     }
-    if (!formData.tower) newErrors.tower = 'Site is required';
-    if (!formData.scheduledDate) newErrors.scheduledDate = 'Scheduled date is required';
-    if (!formData.type) newErrors.type = 'Work type is required';
+    if (!formData.site_id) newErrors.site_id = 'Site is required';
+    if (!formData.visit_date) newErrors.visit_date = 'Scheduled date is required';
+    if (!formData.visit_type) newErrors.visit_type = 'Maintenance type is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -131,24 +131,17 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     );
   }
 
-  const workTypeOptions = [
-    { value: 'routine', label: 'Routine Maintenance' },
-    { value: 'repair', label: 'Repair' },
-    { value: 'inspection', label: 'Inspection' },
-    { value: 'emergency', label: 'Emergency' },
-  ];
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <SearchableSelect
           label="Site / Tower"
-          value={formData.tower}
-          onChange={(value) => handleChange('tower', value)}
+          value={formData.site_id}
+          onChange={(value) => handleChange('site_id', value)}
           options={sites}
           placeholder="Select a site..."
           searchPlaceholder="Search by site name or ID..."
-          error={errors.tower}
+          error={errors.site_id}
           required
           fullWidth
         />
@@ -167,10 +160,10 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         />
 
         <Select
-          label="Work Type"
-          value={formData.type}
-          onChange={(e) => handleChange('type', e.target.value)}
-          options={workTypeOptions}
+          label="Maintenance Type"
+          value={formData.visit_type}
+          onChange={(e) => handleChange('visit_type', e.target.value)}
+          options={VISIT_TYPES}
           required
           fullWidth
         />
@@ -178,9 +171,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         <Input
           label="Scheduled Date"
           type="date"
-          value={formData.scheduledDate}
-          onChange={(e) => handleChange('scheduledDate', e.target.value)}
-          error={errors.scheduledDate}
+          value={formData.visit_date}
+          onChange={(e) => handleChange('visit_date', e.target.value)}
+          error={errors.visit_date}
           required
           fullWidth
         />
