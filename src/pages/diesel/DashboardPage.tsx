@@ -202,7 +202,8 @@ const DieselDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions (refueling management commented out) */}
+      {/*
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div onClick={() => navigate('/diesel/fuel-requests')} className="cursor-pointer">
           <Card className="text-center hover:shadow-lg transition-shadow">
@@ -236,6 +237,7 @@ const DieselDashboard: React.FC = () => {
           </Card>
         </div>
       </div>
+      */}
 
       {/* Create Fuel Request Modal */}
       <Modal

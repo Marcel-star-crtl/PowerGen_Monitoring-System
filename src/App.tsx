@@ -31,6 +31,8 @@ import SupervisorDashboard from '@/pages/supervisor/DashboardPage';
 import SupervisorSites from '@/pages/supervisor/SitesPage';
 import SupervisorSiteDetail from '@/pages/supervisor/SiteDetailPage';
 import SupervisorApprovals from '@/pages/supervisor/ApprovalsPage';
+import SupervisorReportDetail from '@/pages/supervisor/ReportDetailPage';
+import SupervisorPartRequests from '@/pages/supervisor/PartRequestsPage';
 import SupervisorScheduled from '@/pages/supervisor/ScheduledPage';
 import SupervisorTechnicians from '@/pages/supervisor/TechniciansPage';
 import SupervisorStatistics from '@/pages/supervisor/StatisticsPage';
@@ -110,6 +112,8 @@ const App: React.FC = () => {
               <Route path="sites" element={<SupervisorSites />} />
               <Route path="sites/:siteId" element={<SupervisorSiteDetail />} />
               <Route path="approvals" element={<SupervisorApprovals />} />
+              <Route path="approvals/:maintenanceId" element={<SupervisorReportDetail />} />
+              <Route path="part-requests" element={<SupervisorPartRequests />} />
               <Route path="scheduled" element={<SupervisorScheduled />} />
               <Route path="technicians" element={<SupervisorTechnicians />} />
               <Route path="statistics" element={<SupervisorStatistics />} />

@@ -250,7 +250,7 @@ const SupervisorSitesPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Sites Table */}
+      {/* Sites Grid */}
       {filteredSites.length === 0 ? (
         <EmptyState
           icon={<FiMapPin className="h-16 w-16 text-gray-400" />}
@@ -258,84 +258,69 @@ const SupervisorSitesPage: React.FC = () => {
           description="No sites match your current filters"
         />
       ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Site
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Region
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cluster
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Priority
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Visit
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredSites.map((site) => (
-                  <tr key={site._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{site.Site_Name}</div>
-                        <div className="text-sm text-gray-500">{site.IHS_ID_SITE}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{site.Region || 'N/A'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{site.GRATO_Cluster || 'N/A'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge
-                        variant={
-                          site.Sites_Priority === 'P1'
-                            ? 'red'
-                            : site.Sites_Priority === 'P2'
-                            ? 'yellow'
-                            : 'gray'
-                        }
-                      >
-                        {site.Sites_Priority || 'N/A'}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredSites.map((site) => (
+            <Card key={site._id} className="hover:shadow-lg transition-shadow duration-200">
+              <div className="p-4 space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{site.Site_Name}</h3>
+                    <p className="text-sm text-gray-500">{site.IHS_ID_SITE}</p>
+                  </div>
+                  <Badge
+                    variant={
+                      site.Sites_Priority === 'P1'
+                        ? 'red'
+                        : site.Sites_Priority === 'P2'
+                        ? 'yellow'
+                        : 'gray'
+                    }
+                  >
+                    {site.Sites_Priority || 'N/A'}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-gray-500">Region</p>
+                    <p className="font-medium">{site.Region || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Cluster</p>
+                    <p className="font-medium">{site.GRATO_Cluster || 'N/A'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-gray-500">Last Visit</p>
+                    <p className="font-medium">
                       {site.Actual_Date_Visit ? formatDate(site.Actual_Date_Visit) : 'Never'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleViewDetails(site)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <FiEye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(site)}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          <FiEdit className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleViewDetails(site)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <FiEye className="mr-2" />
+                    Details
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleEdit(site)}
+                    className="text-gray-600 hover:text-gray-700"
+                  >
+                    <FiEdit className="mr-2" />
+                    Edit
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Details Modal */}

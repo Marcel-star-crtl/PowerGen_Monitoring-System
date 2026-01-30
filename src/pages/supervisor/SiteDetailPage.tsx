@@ -81,6 +81,59 @@ interface GridInfo {
   Comments_on_Grid: string;
 }
 
+interface SolarSystem {
+  installed: string;
+  cabinet_manufacturer: string;
+  controller_manufacturer: string;
+  controller_type: string;
+  converters_functional: number;
+  converters_faulty: number;
+  converters_empty: number;
+  controller_capacity: number;
+  panel_manufacturer: string;
+  panel_count: number;
+  panel_unit_capacity: number;
+  panel_voltage: number;
+  panel_broken_count: number;
+  total_capacity: number;
+  combiner_box_count: number;
+  combiner_box_voltage: number;
+  lightning_protection: string;
+}
+
+interface ACUnit {
+  brand: string;
+  type: string;
+  capacity: string;
+  gas_type: string;
+  remote_status: string;
+  issue: string;
+  status: string;
+}
+
+interface ACSystem {
+  count: number;
+  units: ACUnit[];
+}
+
+interface LoadReadings {
+  phase_1_amps: number;
+  phase_2_amps: number;
+  phase_3_amps: number;
+  mtn_load_amps: number;
+  ocm_load_amps: number;
+  camtel_load_amps: number;
+  site_dc_load_amps: number;
+  ac_non_telco_load_amps: number;
+  avg_load_on_dg_kw: number;
+}
+
+interface SecurityDetail {
+  company_name: string;
+  guards: Array<{ name: string; phone: string }>;
+  incident_history: string;
+}
+
 interface SiteDetail {
   _id: string;
   IHS_ID_SITE: string;
@@ -134,9 +187,15 @@ interface SiteDetail {
   Hour_Meter_Check?: string;
   Automatization_Status?: string;
   Visit_Comments?: string;
+  
+  // New Enriched Fields
+  Solar_System?: SolarSystem;
+  AC_System?: ACSystem;
+  Load_Readings?: LoadReadings;
+  Security_Detail?: SecurityDetail;
 }
 
-type TabType = 'overview' | 'generators' | 'power_cabinet' | 'fuel' | 'grid' | 'shelter';
+type TabType = 'overview' | 'generators' | 'power_cabinet' | 'fuel' | 'grid' | 'shelter' | 'solar' | 'ac' | 'loads';
 
 const SiteDetailPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
@@ -245,7 +304,10 @@ const SiteDetailPage: React.FC = () => {
     { id: 'power_cabinet' as TabType, label: 'Power Cabinet', icon: FiZap },
     { id: 'fuel' as TabType, label: 'Fuel System', icon: FiDroplet },
     { id: 'grid' as TabType, label: 'Grid Power', icon: FiZap },
-    { id: 'shelter' as TabType, label: 'Shelter', icon: FiHome }
+    { id: 'shelter' as TabType, label: 'Shelter', icon: FiHome },
+    { id: 'solar' as TabType, label: 'Solar', icon: FiZap },
+    { id: 'ac' as TabType, label: 'AC System', icon: FiTool },
+    { id: 'loads' as TabType, label: 'Load Readings', icon: FiActivity }
   ];
 
   return (
@@ -335,6 +397,15 @@ const SiteDetailPage: React.FC = () => {
         )}
         {activeTab === 'shelter' && (
           <ShelterTab site={site} updateField={updateField} />
+        )}
+        {activeTab === 'solar' && (
+          <SolarTab solar={site.Solar_System} updateField={updateField} />
+        )}
+        {activeTab === 'ac' && (
+          <ACTab acSystem={site.AC_System} updateField={updateField} />
+        )}
+        {activeTab === 'loads' && (
+          <LoadTab loads={site.Load_Readings} updateField={updateField} />
         )}
       </div>
     </div>
@@ -592,25 +663,48 @@ const GridTab: React.FC<{ site: SiteDetail; updateField: (field: string, value: 
 );
 
 // Shelter Tab Component
-const ShelterTab: React.FC<{ site: SiteDetail; updateField: (field: string, value: any) => void }> = ({ site, updateField }) => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <SelectField 
-        label="Configuration" 
-        value={site.Sites_Configuration_Outdoor_Indoor} 
-        onChange={(v) => updateField('Sites_Configuration_Outdoor_Indoor', v)}
-        options={[
-          { value: 'Indoor', label: 'Indoor' },
-          { value: 'Outdoor', label: 'Outdoor' },
-          { value: 'Mixed', label: 'Mixed' }
-        ]}
-      />
-      <InputField label="Power Topology" value={site.Sites_Power_Topology} onChange={(v) => updateField('Sites_Power_Topology', v)} />
-      <InputField label="Alarm Cable Status" value={site.Alarm_Cable_Status} onChange={(v) => updateField('Alarm_Cable_Status', v)} />
-      <InputField label="Security Company" value={site.Company_in_charge_of_Security} onChange={(v) => updateField('Company_in_charge_of_Security', v)} />
-    </div>
-  </div>
-);
+const ShelterTab: React.FC<{ site: SiteDetail; updateField: (field: string, value: any) => void }> = ({ site, updateField }) => {
+    
+    const updateSecurity = (field: string, value: any) => {
+        const current = site.Security_Detail || { company_name: '', guards: [], incident_history: '' };
+        updateField('Security_Detail', { ...current, [field]: value });
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SelectField 
+            label="Configuration" 
+            value={site.Sites_Configuration_Outdoor_Indoor} 
+            onChange={(v) => updateField('Sites_Configuration_Outdoor_Indoor', v)}
+            options={[
+              { value: 'Indoor', label: 'Indoor' },
+              { value: 'Outdoor', label: 'Outdoor' },
+              { value: 'Mixed', label: 'Mixed' }
+            ]}
+          />
+          <InputField label="Power Topology" value={site.Sites_Power_Topology} onChange={(v) => updateField('Sites_Power_Topology', v)} />
+          <InputField label="Alarm Cable Status" value={site.Alarm_Cable_Status} onChange={(v) => updateField('Alarm_Cable_Status', v)} />
+          <InputField label="Security Company (Legacy)" value={site.Company_in_charge_of_Security} onChange={(v) => updateField('Company_in_charge_of_Security', v)} />
+        </div>
+        
+        {/* Extended Security Details */}
+        <h3 className="text-lg font-semibold pt-4 border-t">Detailed Security</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputField label="Security Company Name" value={site.Security_Detail?.company_name} onChange={(v) => updateSecurity('company_name', v)} />
+             <div className="col-span-2">
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Incident History</label>
+                 <textarea 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                    value={site.Security_Detail?.incident_history || ''}
+                    onChange={(e) => updateSecurity('incident_history', e.target.value)}
+                 />
+             </div>
+        </div>
+      </div>
+    );
+};
 
 // Reusable Input Component
 const InputField: React.FC<{
@@ -655,5 +749,125 @@ const SelectField: React.FC<{
     </select>
   </div>
 );
+
+
+// Solar Tab Component
+const SolarTab: React.FC<{ solar?: SolarSystem; updateField: (field: string, value: any) => void }> = ({ solar, updateField }) => {
+  if (!solar) return <div className="text-gray-500">No Solar System data available.</div>;
+
+  const updateSolar = (field: string, value: any) => {
+    updateField('Solar_System', { ...solar, [field]: value });
+  };
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold">Controller Information</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SelectField
+          label="Installed"
+          value={solar.installed}
+          onChange={(v) => updateSolar('installed', v)}
+          options={[{ value: 'Yes', label: 'Yes' }, { value: 'No', label: 'No' }]}
+        />
+        <InputField label="Cabinet Manufacturer" value={solar.cabinet_manufacturer} onChange={(v) => updateSolar('cabinet_manufacturer', v)} />
+        <InputField label="Controller Manufacturer" value={solar.controller_manufacturer} onChange={(v) => updateSolar('controller_manufacturer', v)} />
+        <InputField label="Controller Type" value={solar.controller_type} onChange={(v) => updateSolar('controller_type', v)} />
+        <InputField label="Controller Capacity (W)" type="number" value={solar.controller_capacity} onChange={(v) => updateSolar('controller_capacity', parseFloat(v) || 0)} />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <InputField label="Converters Functional" type="number" value={solar.converters_functional} onChange={(v) => updateSolar('converters_functional', parseInt(v) || 0)} />
+        <InputField label="Converters Faulty" type="number" value={solar.converters_faulty} onChange={(v) => updateSolar('converters_faulty', parseInt(v) || 0)} />
+        <InputField label="Converters Empty" type="number" value={solar.converters_empty} onChange={(v) => updateSolar('converters_empty', parseInt(v) || 0)} />
+      </div>
+
+      <h3 className="text-lg font-semibold pt-4 border-t">Panel Information</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <InputField label="Panel Manufacturer" value={solar.panel_manufacturer} onChange={(v) => updateSolar('panel_manufacturer', v)} />
+        <InputField label="Panel Count" type="number" value={solar.panel_count} onChange={(v) => updateSolar('panel_count', parseInt(v) || 0)} />
+        <InputField label="Panel Unit Capacity (W)" type="number" value={solar.panel_unit_capacity} onChange={(v) => updateSolar('panel_unit_capacity', parseFloat(v) || 0)} />
+        <InputField label="Panel Voltage (V)" type="number" value={solar.panel_voltage} onChange={(v) => updateSolar('panel_voltage', parseFloat(v) || 0)} />
+        <InputField label="Broken Panels" type="number" value={solar.panel_broken_count} onChange={(v) => updateSolar('panel_broken_count', parseInt(v) || 0)} />
+        <InputField label="Total Capacity (kW)" type="number" value={solar.total_capacity} onChange={(v) => updateSolar('total_capacity', parseFloat(v) || 0)} />
+      </div>
+
+      <h3 className="text-lg font-semibold pt-4 border-t">Combiner Box</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <InputField label="Combiner Box Count" type="number" value={solar.combiner_box_count} onChange={(v) => updateSolar('combiner_box_count', parseInt(v) || 0)} />
+        <InputField label="Combiner Box Voltage" type="number" value={solar.combiner_box_voltage} onChange={(v) => updateSolar('combiner_box_voltage', parseFloat(v) || 0)} />
+         <InputField label="Lightning Protection" value={solar.lightning_protection} onChange={(v) => updateSolar('lightning_protection', v)} />
+      </div>
+    </div>
+  );
+};
+
+// AC Tab Component
+const ACTab: React.FC<{ acSystem?: ACSystem; updateField: (field: string, value: any) => void }> = ({ acSystem, updateField }) => {
+  if (!acSystem) return <div className="text-gray-500">No AC System data available.</div>;
+
+  const updateUnit = (index: number, field: string, value: any) => {
+    const newUnits = [...acSystem.units];
+    newUnits[index] = { ...newUnits[index], [field]: value };
+    updateField('AC_System', { ...acSystem, units: newUnits });
+  };
+    
+  return (
+      <div>
+        <div className="mb-4">
+             <InputField label="Total Count" type="number" value={acSystem.count} onChange={(v) => updateField('AC_System', { ...acSystem, count: parseInt(v) || 0 })} />
+        </div>
+        {acSystem.units.map((unit, index) => (
+             <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium mb-3">AC Unit #{index + 1}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <InputField label="Brand" value={unit.brand} onChange={(v) => updateUnit(index, 'brand', v)} />
+                   <InputField label="Type" value={unit.type} onChange={(v) => updateUnit(index, 'type', v)} />
+                   <InputField label="Capacity" value={unit.capacity} onChange={(v) => updateUnit(index, 'capacity', v)} />
+                   <InputField label="Gas Type" value={unit.gas_type} onChange={(v) => updateUnit(index, 'gas_type', v)} />
+                   <InputField label="Remote Status" value={unit.remote_status} onChange={(v) => updateUnit(index, 'remote_status', v)} />
+                   <InputField label="Status" value={unit.status} onChange={(v) => updateUnit(index, 'status', v)} />
+                   <div className="col-span-2">
+                       <InputField label="Issue" value={unit.issue} onChange={(v) => updateUnit(index, 'issue', v)} />
+                   </div>
+                </div>
+             </div>
+        ))}
+      </div>
+  );
+};
+
+// Load Tab Component
+const LoadTab: React.FC<{ loads?: LoadReadings; updateField: (field: string, value: any) => void }> = ({ loads, updateField }) => {
+    if (!loads) return <div className="text-gray-500">No Load Readings available.</div>;
+
+    const updateLoad = (field: string, value: any) => {
+        updateField('Load_Readings', { ...loads, [field]: value });
+    };
+
+    return (
+        <div className="space-y-6">
+             <h3 className="text-lg font-semibold">Phase Readings (Amps)</h3>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <InputField label="Phase 1" type="number" value={loads.phase_1_amps} onChange={(v) => updateLoad('phase_1_amps', parseFloat(v) || 0)} />
+                <InputField label="Phase 2" type="number" value={loads.phase_2_amps} onChange={(v) => updateLoad('phase_2_amps', parseFloat(v) || 0)} />
+                <InputField label="Phase 3" type="number" value={loads.phase_3_amps} onChange={(v) => updateLoad('phase_3_amps', parseFloat(v) || 0)} />
+             </div>
+
+             <h3 className="text-lg font-semibold pt-4 border-t">Client Loads (Amps)</h3>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <InputField label="MTN Load" type="number" value={loads.mtn_load_amps} onChange={(v) => updateLoad('mtn_load_amps', parseFloat(v) || 0)} />
+                <InputField label="OCM Load" type="number" value={loads.ocm_load_amps} onChange={(v) => updateLoad('ocm_load_amps', parseFloat(v) || 0)} />
+                <InputField label="Camtel Load" type="number" value={loads.camtel_load_amps} onChange={(v) => updateLoad('camtel_load_amps', parseFloat(v) || 0)} />
+             </div>
+
+             <h3 className="text-lg font-semibold pt-4 border-t">System Loads</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField label="Site DC Load (Amps)" type="number" value={loads.site_dc_load_amps} onChange={(v) => updateLoad('site_dc_load_amps', parseFloat(v) || 0)} />
+                <InputField label="AC Non-Telco Load (Amps)" type="number" value={loads.ac_non_telco_load_amps} onChange={(v) => updateLoad('ac_non_telco_load_amps', parseFloat(v) || 0)} />
+                <InputField label="Avg Load on DG (kW)" type="number" value={loads.avg_load_on_dg_kw} onChange={(v) => updateLoad('avg_load_on_dg_kw', parseFloat(v) || 0)} />
+             </div>
+        </div>
+    );
+};
 
 export default SiteDetailPage;

@@ -10,7 +10,7 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
-  color?: 'blue' | 'green' | 'yellow' | 'red' | 'gray' | 'orange';
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'gray' | 'orange' | 'purple';
 }
 
 export const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, color = 'blue' }) => {
@@ -20,7 +20,8 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, c
     yellow: 'bg-yellow-500',
     red: 'bg-red-500',
     gray: 'bg-gray-500',
-    orange: 'bg-orange-100 text-orange-600',
+    orange: 'bg-orange-500',
+    purple: 'bg-purple-500',
   };
 
   return (

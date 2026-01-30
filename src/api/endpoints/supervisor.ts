@@ -68,6 +68,16 @@ export const supervisorAPI = {
     return response.data;
   },
 
+  approveEquipmentCheck: async (maintenanceId: string, checkType: string, comments: string = '') => {
+    const response = await apiClient.post(`/supervisor/maintenance/${maintenanceId}/equipment/${checkType}/approve`, { comments });
+    return response.data;
+  },
+
+  rejectEquipmentCheck: async (maintenanceId: string, checkType: string, reason: string) => {
+    const response = await apiClient.post(`/supervisor/maintenance/${maintenanceId}/equipment/${checkType}/reject`, { reason });
+    return response.data;
+  },
+
   getMaintenanceStats: async (period: number = 30): Promise<MaintenanceStats> => {
     const response = await apiClient.get<ApiResponse<MaintenanceStats>>('/supervisor/maintenance/stats', {
       params: { period },
@@ -110,6 +120,22 @@ export const supervisorAPI = {
   // Get all visits from technicians assigned to supervisor
   getTechnicianVisits: async (supervisorId: string, params?: PaginationParams & { start_date?: string; end_date?: string; status?: string }) => {
     const response = await apiClient.get(`/sites/supervisor/${supervisorId}/technician-visits`, { params });
+    return response.data;
+  },
+
+  // Part Requests Management
+  getPartRequests: async (params?: { status?: string; urgency?: string }) => {
+    const response = await apiClient.get('/supervisor/part-requests', { params });
+    return response.data;
+  },
+
+  approvePartRequest: async (requestId: string, comments: string = '') => {
+    const response = await apiClient.post(`/supervisor/part-requests/${requestId}/approve`, { comments });
+    return response.data;
+  },
+
+  rejectPartRequest: async (requestId: string, reason: string) => {
+    const response = await apiClient.post(`/supervisor/part-requests/${requestId}/reject`, { reason });
     return response.data;
   },
 

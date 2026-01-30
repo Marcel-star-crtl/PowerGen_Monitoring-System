@@ -10,7 +10,7 @@ import { Modal } from '@/components/common/Modal';
 import { MaintenanceForm } from '@/components/forms/MaintenanceForm';
 import { useNotification } from '@/contexts/NotificationContext';
 import { formatDate, formatRelativeTime } from '@/utils/formatters';
-import { FiClock, FiCheckCircle, FiXCircle, FiTrendingUp, FiUsers, FiAlertCircle, FiPlus, FiCpu, FiMapPin } from 'react-icons/fi';
+import { FiClock, FiCheckCircle, FiXCircle, FiTrendingUp, FiUsers, FiAlertCircle, FiPlus, FiCpu, FiMapPin, FiZap, FiSun, FiBattery, FiDroplet, FiServer } from 'react-icons/fi';
 import { intelligenceAPI } from '@/api/endpoints/intelligence';
 
 const SupervisorDashboard: React.FC = () => {
@@ -130,6 +130,34 @@ const SupervisorDashboard: React.FC = () => {
           title="Completed"
           value={dashboard?.completed || 0}
           icon={<FiTrendingUp className="h-6 w-6" />}
+          color="blue"
+        />
+      </div>
+
+       {/* Infrastructure Statistics */}
+       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total Rectifiers"
+          value={dashboard?.stats?.totalRectifiers || 0}
+          icon={<FiServer className="h-6 w-6" />}
+          color="purple"
+        />
+        <StatCard
+          title="Total Batteries"
+          value={dashboard?.stats?.totalBatteries || 0}
+          icon={<FiBattery className="h-6 w-6" />}
+          color="purple"
+        />
+        <StatCard
+          title="Solar Sites"
+          value={dashboard?.stats?.solarSites || 0}
+          icon={<FiSun className="h-6 w-6" />}
+          color="yellow"
+        />
+        <StatCard
+          title="External Tanks"
+          value={dashboard?.stats?.externalTanks || 0}
+          icon={<FiDroplet className="h-6 w-6" />}
           color="blue"
         />
       </div>

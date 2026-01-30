@@ -95,3 +95,13 @@ export const GEN_BRANDS = [
   { value: 'ELCOS', label: 'Elcos' },
   { value: 'Other', label: 'Other' },
 ];
+
+export const MAINTENANCE_ACTIONS = [
+  { value: 'generator', label: 'Generator Maintenance' },
+  { value: 'fuel_refill', label: 'Fuel Refill' },
+  { value: 'cleaning', label: 'Site Cleaning' },
+  { value: 'power_cabinet', label: 'Power Cabinet Check' },
+  { value: 'grid', label: 'Grid Inspection' },
+  { value: 'shelter', label: 'Shelter Check' },
+  { value: 'fuel_tank_inspection', label: 'Fuel Tank Inspection' },
+];

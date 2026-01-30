@@ -107,9 +107,15 @@ const navigationItems: NavItem[] = [
     roles: ['supervisor'],
   },
   {
-    name: 'Approvals',
+    name: 'Visit Approvals',
     path: 'approvals',
     icon: <FiCheckSquare className="h-5 w-5" />,
+    roles: ['supervisor'],
+  },
+  {
+    name: 'Part Requests',
+    path: 'part-requests',
+    icon: <FiTool className="h-5 w-5" />,
     roles: ['supervisor'],
   },
   {

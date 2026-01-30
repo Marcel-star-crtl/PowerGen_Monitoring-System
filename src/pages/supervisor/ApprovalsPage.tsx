@@ -1,20 +1,19 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supervisorAPI } from '@/api';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useNotification } from '@/contexts/NotificationContext';
 import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
-import { Modal } from '@/components/common/Modal';
-import { Textarea } from '@/components/common/Textarea';
 import { Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
-import { PhotoGallery } from '@/components/common/PhotoGallery';
 import { formatDate, formatStatus } from '@/utils/formatters';
 import { FiCheckCircle, FiXCircle, FiEye, FiFilter } from 'react-icons/fi';
 import { Select } from '@/components/common/Select';
 
 const ApprovalsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuthContext();
   const { success, error: showError } = useNotification();
 
@@ -22,13 +21,8 @@ const ApprovalsPage: React.FC = () => {
   const [visitsList, setVisitsList] = useState<any[]>([]);
   const [filteredList, setFilteredList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'approve' | 'reject' | 'view'>('view');
-  const [comments, setComments] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  // Show final reports (pending_approval) by default
+  const [statusFilter, setStatusFilter] = useState<string>('pending_approval');
 
   useEffect(() => {
     loadVisits();
@@ -46,59 +40,20 @@ const ApprovalsPage: React.FC = () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const result = await supervisorAPI.getTechnicianVisits(user.id);
-      setVisitsList(result.data || []);
-      setFilteredList(result.data || []);
+      const result = await supervisorAPI.getPendingMaintenance();
+      const all = result.data || [];
+      setVisitsList(all);
+      // apply default filter (pending_approval)
+      setFilteredList(all.filter((v: any) => v.status === statusFilter));
     } catch (err) {
-      showError('Failed to load technician visits');
+      showError('Failed to load pending maintenance');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = async () => {
-    if (!selectedItem) return;
-
-    setActionLoading(true);
-    try {
-      // Note: visit_history items from Site don't have _id, we need to implement approval differently
-      // For now, show that this visit is from the site visit history
-      success('Visit review noted!');
-      setShowModal(false);
-      setSelectedItem(null);
-      setComments('');
-      loadVisits();
-    } catch (err) {
-      showError('Failed to approve visit');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedItem || !rejectionReason.trim()) {
-      showError('Please provide a rejection reason');
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      success('Visit rejection noted');
-      setShowModal(false);
-      setSelectedItem(null);
-      setRejectionReason('');
-      loadVisits();
-    } catch (err) {
-      showError('Failed to reject visit');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const openModal = (item: any, type: 'approve' | 'reject' | 'view') => {
-    setSelectedItem(item);
-    setModalType(type);
-    setShowModal(true);
+  const handleViewDetails = (item: any) => {
+    navigate(`/supervisor/approvals/${item._id}`);
   };
 
   if (loading && filteredList.length === 0) {
@@ -121,10 +76,10 @@ const ApprovalsPage: React.FC = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={[
-              { value: 'all', label: 'All Statuses' },
-              { value: 'submitted', label: 'Pending Review' },
+              { value: 'pending_approval', label: 'Pending Review' },
               { value: 'approved', label: 'Approved' },
               { value: 'rejected', label: 'Rejected' },
+              { value: 'all', label: 'All Statuses' },
             ]}
             className="w-40"
           />
@@ -141,17 +96,22 @@ const ApprovalsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {filteredList.map((item: any, index: number) => {
-            const status = formatStatus(item.status || 'submitted');
+            const status = formatStatus(item.status || 'pending_approval');
 
             return (
-              <Card key={item.visit_id || index} className="hover:shadow-lg transition-shadow">
+              <Card key={item._id || index} className="hover:shadow-lg transition-shadow">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        {item.check_title && (
+                          <Badge variant="blue" size="sm">{item.check_title}</Badge>
+                        )}
+                      </div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {item.Site_Name || item.IHS_ID_SITE}
+                        {item.site_details?.Site_Name || item.site_name || item.site_id}
                       </h3>
-                      <p className="text-sm text-gray-500">{item.IHS_ID_SITE}</p>
+                      <p className="text-sm text-gray-500">{item.site_id}</p>
                     </div>
                     <div className="flex space-x-2">
                       <Badge variant={status.color as any}>{status.label}</Badge>
@@ -161,19 +121,27 @@ const ApprovalsPage: React.FC = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <p className="text-gray-500">Technician</p>
-                      <p className="font-medium">{item.technician_name || item.Technician_Name || 'Unknown'}</p>
+                      <p className="font-medium">{item.technician?.fullName || item.technician_name || 'Unknown'}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Visit Date</p>
-                      <p className="font-medium">{formatDate(item.Actual_Date_Visit)}</p>
+                      <p className="font-medium">{formatDate(item.visit_date)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Visit Type</p>
-                      <p className="font-medium">{item.Type_of_Visit}</p>
+                      <Badge variant="blue" size="sm">{item.visit_type}</Badge>
                     </div>
                     <div>
-                      <p className="text-gray-500">Region</p>
-                      <p className="font-medium">{item.Region || 'N/A'}</p>
+                      <p className="text-gray-500">Priority</p>
+                      <Badge 
+                        variant={
+                          item.priority === 'high' || item.priority === 'critical' ? 'red' : 
+                          item.priority === 'medium' ? 'yellow' : 'gray'
+                        } 
+                        size="sm"
+                      >
+                        {item.priority}
+                      </Badge>
                     </div>
                   </div>
 
@@ -199,28 +167,12 @@ const ApprovalsPage: React.FC = () => {
 
                   <div className="flex justify-end space-x-3">
                     <Button
-                      onClick={() => openModal(item, 'view')}
-                      variant="ghost"
+                      onClick={() => handleViewDetails(item)}
+                      variant="primary"
                       size="sm"
                     >
                       <FiEye className="mr-1" />
                       View Details
-                    </Button>
-                    <Button
-                      onClick={() => openModal(item, 'reject')}
-                      variant="danger"
-                      size="sm"
-                    >
-                      <FiXCircle className="mr-1" />
-                      Reject
-                    </Button>
-                    <Button
-                      onClick={() => openModal(item, 'approve')}
-                      variant="success"
-                      size="sm"
-                    >
-                      <FiCheckCircle className="mr-1" />
-                      Approve
                     </Button>
                   </div>
                 </div>
@@ -228,104 +180,6 @@ const ApprovalsPage: React.FC = () => {
             );
           })}
         </div>
-      )}
-
-      {/* Modal */}
-      {showModal && selectedItem && (
-        <Modal
-          isOpen={showModal}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedItem(null);
-            setComments('');
-            setRejectionReason('');
-          }}
-          title={
-            modalType === 'approve'
-              ? 'Approve Maintenance'
-              : modalType === 'reject'
-                ? 'Reject Maintenance'
-                : 'Maintenance Details'
-          }
-          size="lg"
-        >
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500">Site</p>
-              <p className="font-medium">{selectedItem.site_details?.Site_Name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Technician</p>
-              <p className="font-medium">{selectedItem.technician.fullName}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Visit Date</p>
-              <p className="font-medium">{formatDate(selectedItem.visit_date)}</p>
-            </div>
-
-            {modalType === 'view' && (
-              <>
-                {selectedItem.photos && selectedItem.photos.length > 0 && (
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Photos</p>
-                    <PhotoGallery photos={selectedItem.photos} />
-                  </div>
-                )}
-                <div className="flex space-x-3">
-                  <Button onClick={() => setModalType('reject')} variant="danger" fullWidth>
-                    Reject
-                  </Button>
-                  <Button onClick={() => setModalType('approve')} variant="success" fullWidth>
-                    Approve
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {modalType === 'approve' && (
-              <>
-                <Textarea
-                  label="Comments (optional)"
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                  placeholder="Add approval comments..."
-                  rows={4}
-                  fullWidth
-                />
-                <div className="flex justify-end space-x-3">
-                  <Button onClick={() => setShowModal(false)} variant="secondary">
-                    Cancel
-                  </Button>
-                  <Button onClick={handleApprove} variant="success" loading={loading}>
-                    Approve
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {modalType === 'reject' && (
-              <>
-                <Textarea
-                  label="Rejection Reason *"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Explain why this is being rejected..."
-                  rows={4}
-                  required
-                  fullWidth
-                />
-                <div className="flex justify-end space-x-3">
-                  <Button onClick={() => setShowModal(false)} variant="secondary">
-                    Cancel
-                  </Button>
-                  <Button onClick={handleReject} variant="danger" loading={loading}>
-                    Reject
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </Modal>
       )}
     </div>
   );

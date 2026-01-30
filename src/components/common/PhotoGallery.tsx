@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Photo } from '@/types/common.types';
 import { getImageUrl } from '@/utils/helpers';
 import { Modal } from './Modal';
@@ -10,6 +10,8 @@ interface PhotoGalleryProps {
 
 export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [srcs, setSrcs] = useState<string[]>([]);
+  const [failed, setFailed] = useState<Record<number, boolean>>({});
 
   const openLightbox = (index: number) => {
     setSelectedIndex(index);
@@ -31,9 +33,39 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
     }
   };
 
+  useEffect(() => {
+    const resolved = photos.map(p => getImageUrl(p.url));
+    console.log('PhotoGallery resolved URLs:', resolved);
+    setSrcs(resolved);
+    setFailed({});
+  }, [photos]);
+
   if (photos.length === 0) {
     return <p className="text-gray-500">No photos available</p>;
   }
+
+  const tryAlternate = (index: number) => {
+    const photo = photos[index];
+    const tried = srcs[index] || '';
+    const attempts: string[] = [];
+    if (photo.url) {
+      // window origin + path
+      attempts.push(window.location.origin + photo.url);
+      // raw path
+      attempts.push(photo.url);
+    }
+    // keep existing src last
+    if (tried) attempts.push(tried);
+
+    const next = attempts.find(a => a !== tried) || attempts[0];
+    if (next) {
+      const copy = [...srcs];
+      copy[index] = next;
+      setSrcs(copy);
+      setFailed(prev => ({ ...prev, [index]: false }));
+      console.log(`PhotoGallery retry[${index}] ->`, next);
+    }
+  };
 
   return (
     <>
@@ -45,13 +77,28 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
             onClick={() => openLightbox(index)}
           >
             <img
-              src={getImageUrl(photo.url)}
+              src={srcs[index] || getImageUrl(photo.url)}
               alt={photo.description || 'Photo'}
               className="w-full h-full object-cover"
+              onError={(e: any) => {
+                console.warn('Image failed to load:', e.currentTarget.src, 'original:', photo.url);
+                setFailed(prev => ({ ...prev, [index]: true }));
+              }}
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
               <p className="text-white text-xs truncate">{photo.category}</p>
             </div>
+            {failed[index] && (
+              <div className="absolute inset-0 bg-white/80 flex items-center justify-center p-3">
+                <div className="text-center">
+                  <p className="text-sm text-gray-700 mb-2">Failed to load image</p>
+                  <div className="flex justify-center gap-2">
+                    <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={(ev) => { ev.stopPropagation(); tryAlternate(index); }}>Retry</button>
+                    <a className="px-3 py-1 bg-gray-200 text-gray-800 rounded" href={srcs[index] || photo.url} target="_blank" rel="noreferrer" onClick={(ev)=>ev.stopPropagation()}>Open</a>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

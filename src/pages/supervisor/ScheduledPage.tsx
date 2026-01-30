@@ -11,12 +11,12 @@ import { Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { MaintenanceForm } from '@/components/forms/MaintenanceForm';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import { FiCalendar, FiUser, FiMapPin, FiPlus, FiEdit, FiEye } from 'react-icons/fi';
+import { FiCalendar, FiUser, FiMapPin, FiPlus, FiEdit, FiEye, FiTrash2 } from 'react-icons/fi';
 
 const ScheduledPage: React.FC = () => {
   const [scheduled, setScheduled] = useState<Maintenance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('approved');
+  const [statusFilter, setStatusFilter] = useState('scheduled');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -74,6 +74,18 @@ const ScheduledPage: React.FC = () => {
     }
   };
 
+  const handleDelete = async (maintenanceId: string) => {
+    if (!window.confirm('Are you sure you want to delete this scheduled maintenance?')) return;
+
+    try {
+      await supervisorAPI.deleteScheduledMaintenance(maintenanceId);
+      success('Maintenance deleted successfully');
+      loadScheduled();
+    } catch (err) {
+      showError('Failed to delete maintenance');
+    }
+  };
+
   const handleViewDetails = (item: Maintenance) => {
     setSelectedItem(item);
     setShowDetailsModal(true);
@@ -115,6 +127,7 @@ const ScheduledPage: React.FC = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={[
+              { value: 'scheduled', label: 'Scheduled' },
               { value: 'approved', label: 'Approved' },
               { value: 'in_progress', label: 'In Progress' },
               { value: '', label: 'All Scheduled' },
@@ -204,7 +217,7 @@ const ScheduledPage: React.FC = () => {
                           </p>
                         )}
 
-                        <div className="grid grid-cols-2 gap-2 pt-2">
+                        <div className="grid grid-cols-3 gap-2 pt-2">
                           <Button
                             onClick={() => handleViewDetails(item)}
                             variant="ghost"
@@ -222,6 +235,16 @@ const ScheduledPage: React.FC = () => {
                           >
                             <FiEdit className="mr-1" />
                             Edit
+                          </Button>
+                           <Button
+                            onClick={() => handleDelete(item._id)}
+                            variant="ghost"
+                            size="sm"
+                            fullWidth
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          >
+                            <FiTrash2 className="mr-1" />
+                            Delete
                           </Button>
                         </div>
                       </div>
