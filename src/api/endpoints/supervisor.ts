@@ -110,6 +110,20 @@ export const supervisorAPI = {
     return response.data;
   },
 
+  uploadSchedule: async (formData: FormData) => {
+    const response = await apiClient.post('/maintenance/upload-schedule', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  batchSchedule: async (schedules: any[]) => {
+    const response = await apiClient.post('/maintenance/batch-schedule', { schedules });
+    return response.data;
+  },
+
   assignTechnician: async (maintenanceId: string, technicianId: string) => {
     const response = await apiClient.post(`/supervisor/maintenance/${maintenanceId}/assign`, {
       technician_id: technicianId,
