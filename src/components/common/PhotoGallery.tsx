@@ -50,10 +50,18 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
     
     setNormalizedPhotos(normalized);
     const resolved = normalized.map(p => getImageUrl(p.url));
-    console.log('PhotoGallery resolved URLs:', {
-      photos: normalized.map(p => ({ url: p.url, description: p.description })),
-      resolvedUrls: resolved
+    
+    // Enhanced debug logging
+    console.group('PhotoGallery initialized');
+    console.log('Original photos:', photos);
+    console.log('Normalized photos:', normalized.map(p => ({ url: p.url, description: p.description })));
+    console.log('Resolved URLs:', resolved);
+    console.log('Environment:', {
+      REACT_APP_UPLOAD_URL: process.env.REACT_APP_UPLOAD_URL,
+      REACT_APP_API_URL: process.env.REACT_APP_API_URL
     });
+    console.groupEnd();
+    
     setSrcs(resolved);
     setFailed({});
   }, [photos]);
@@ -66,22 +74,35 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
     const photo = normalizedPhotos[index];
     const tried = srcs[index] || '';
     const attempts: string[] = [];
+    
+    // Get base URL from environment
+    const uploadUrl = process.env.REACT_APP_UPLOAD_URL || 'http://localhost:5000';
+    const apiUrl = process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+    
     if (photo.url) {
-      // window origin + path
-      attempts.push(window.location.origin + photo.url);
-      // raw path
-      attempts.push(photo.url);
+      // Try different URL construction methods
+      const cleanPath = photo.url.startsWith('/') ? photo.url : `/${photo.url}`;
+      
+      attempts.push(`${uploadUrl}${cleanPath}`);
+      attempts.push(`${apiUrl}${cleanPath}`);
+      attempts.push(window.location.origin + cleanPath);
+      attempts.push(photo.url); // raw path as last resort
     }
-    // keep existing src last
-    if (tried) attempts.push(tried);
-
-    const next = attempts.find(a => a !== tried) || attempts[0];
+    
+    // Filter out the already-tried URL and duplicates
+    const uniqueAttempts = [...new Set(attempts)].filter(a => a !== tried);
+    
+    const next = uniqueAttempts[0] || attempts[0];
     if (next) {
       const copy = [...srcs];
       copy[index] = next;
       setSrcs(copy);
       setFailed(prev => ({ ...prev, [index]: false }));
-      console.log(`PhotoGallery retry[${index}] ->`, next);
+      console.log(`PhotoGallery retry[${index}]:`, {
+        tried,
+        next,
+        allAttempts: uniqueAttempts
+      });
     }
   };
 
@@ -100,11 +121,15 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
               className="w-full h-full object-cover"
               onError={(e: any) => {
                 const src = e.currentTarget.src;
-                console.error('Image failed to load:', {
+                console.group(`Image load error [${index}]`);
+                console.error('Failed to load image:', {
                   attemptedUrl: src,
                   originalUrl: photo.url,
-                  photoIndex: index
+                  photoIndex: index,
+                  photoData: photo
                 });
+                console.log('Trying alternative URL construction...');
+                console.groupEnd();
                 setFailed(prev => ({ ...prev, [index]: true }));
               }}
             />

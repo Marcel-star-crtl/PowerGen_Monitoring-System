@@ -4,6 +4,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from '@/components/layout/Layout';
+import { EnvCheck } from '@/components/diagnostics/EnvCheck';
 
 // ========== PUBLIC PAGES ==========
 import LoginPage from '@/pages/public/LoginPage';
@@ -58,6 +59,7 @@ const App: React.FC = () => {
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
+          <EnvCheck />
           <Routes>
             {/* ========== PUBLIC ROUTES ========== */}
             <Route path="/login" element={<LoginPage />} />

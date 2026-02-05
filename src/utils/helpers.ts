@@ -98,7 +98,19 @@ export const getImageUrl = (path: string | undefined): string => {
   // If already a full URL, return as-is
   if (/^https?:\/\//i.test(path)) return path;
 
-  const baseUrl = process.env.REACT_APP_UPLOAD_URL || 'http://localhost:5000';
+  // Get base URL from environment or use default
+  // Make sure to use window.location.origin as fallback for client-side
+  let baseUrl = process.env.REACT_APP_UPLOAD_URL;
+  
+  if (!baseUrl) {
+    // Fallback to API URL without /api suffix, or localhost:5000
+    const apiUrl = process.env.REACT_APP_API_URL;
+    if (apiUrl) {
+      baseUrl = apiUrl.replace(/\/api\/?$/, '');
+    } else {
+      baseUrl = 'http://localhost:5000';
+    }
+  }
   
   // Normalize path to ensure it starts with /
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -106,9 +118,18 @@ export const getImageUrl = (path: string | undefined): string => {
   // Construct full URL with proper format
   const fullUrl = `${baseUrl}${normalizedPath}`;
   
-  // Debug logging
+  // Debug logging (only log once per unique URL to avoid spam)
   if (process.env.NODE_ENV === 'development') {
-    console.log('getImageUrl:', { original: path, normalized: normalizedPath, baseUrl, fullUrl });
+    console.log('getImageUrl:', { 
+      original: path, 
+      normalized: normalizedPath, 
+      baseUrl, 
+      fullUrl,
+      env: {
+        REACT_APP_UPLOAD_URL: process.env.REACT_APP_UPLOAD_URL,
+        REACT_APP_API_URL: process.env.REACT_APP_API_URL
+      }
+    });
   }
   
   return fullUrl;
