@@ -177,6 +177,12 @@ const navigationItems: NavItem[] = [
     roles: ['data_collector'],
   },
   {
+    name: 'Maintenance Records',
+    path: 'maintenance',
+    icon: <FiTool className="h-5 w-5" />,
+    roles: ['data_collector'],
+  },
+  {
     name: 'Exports',
     path: 'exports',
     icon: <FiDownload className="h-5 w-5" />,

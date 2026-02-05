@@ -50,6 +50,8 @@ import DataQuality from '@/pages/data-collector/DataQualityPage';
 import MissingData from '@/pages/data-collector/MissingDataPage';
 import DataExports from '@/pages/data-collector/ExportsPage';
 import DataReports from '@/pages/data-collector/ReportsPage';
+import SubmittedMaintenance from '@/pages/data-collector/SubmittedMaintenancePage';
+import MaintenanceDetail from '@/pages/data-collector/MaintenanceDetailPage';
 
 const App: React.FC = () => {
   return (
@@ -151,6 +153,8 @@ const App: React.FC = () => {
               <Route path="missing-data" element={<MissingData />} />
               <Route path="exports" element={<DataExports />} />
               <Route path="reports" element={<DataReports />} />
+              <Route path="maintenance" element={<SubmittedMaintenance />} />
+              <Route path="maintenance/:maintenanceId" element={<MaintenanceDetail />} />
               <Route path="*" element={<Navigate to="/data-collector" replace />} />
             </Route>
 

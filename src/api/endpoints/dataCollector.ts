@@ -72,6 +72,11 @@ export const dataCollectorAPI = {
     });
     return response.data.data;
   },
+
+  getSubmittedMaintenance: async () => {
+    const response = await apiClient.get('/data-collector/maintenance/submitted');
+    return response.data;
+  },
 };
 
 

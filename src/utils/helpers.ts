@@ -94,13 +94,24 @@ export const calculateDaysSince = (date: Date | string | null | undefined): numb
 
 export const getImageUrl = (path: string | undefined): string => {
   if (!path) return '/placeholder-image.png';
+  
   // If already a full URL, return as-is
   if (/^https?:\/\//i.test(path)) return path;
 
   const baseUrl = process.env.REACT_APP_UPLOAD_URL || 'http://localhost:5000';
-  // Ensure there's exactly one slash between baseUrl and path
-  if (path.startsWith('/')) return `${baseUrl}${path}`;
-  return `${baseUrl}/${path}`;
+  
+  // Normalize path to ensure it starts with /
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  
+  // Construct full URL with proper format
+  const fullUrl = `${baseUrl}${normalizedPath}`;
+  
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('getImageUrl:', { original: path, normalized: normalizedPath, baseUrl, fullUrl });
+  }
+  
+  return fullUrl;
 };
 
 export const classNames = (...classes: (string | undefined | null | false)[]): string => {

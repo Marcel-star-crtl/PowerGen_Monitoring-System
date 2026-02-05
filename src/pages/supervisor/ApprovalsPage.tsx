@@ -9,8 +9,9 @@ import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { formatDate, formatStatus } from '@/utils/formatters';
-import { FiCheckCircle, FiXCircle, FiEye, FiFilter } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiEye, FiFilter, FiDownload } from 'react-icons/fi';
 import { Select } from '@/components/common/Select';
+import * as XLSX from 'xlsx';
 
 const ApprovalsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,6 +57,69 @@ const ApprovalsPage: React.FC = () => {
     navigate(`/supervisor/approvals/${item._id}`);
   };
 
+  const handleExportToExcel = () => {
+    if (filteredList.length === 0) {
+      showError('No data to export');
+      return;
+    }
+
+    try {
+      // Prepare data for Excel
+      const exportData = filteredList.map((item: any) => ({
+        'Site Name': item.site_details?.Site_Name || item.site_name || item.site_id || 'N/A',
+        'Site ID': item.site_id || 'N/A',
+        'Technician': item.technician?.fullName || item.technician_name || 'Unknown',
+        'Visit Date': formatDate(item.visit_date),
+        'Visit Type': item.visit_type || 'N/A',
+        'Status': formatStatus(item.status || 'pending_approval').label,
+        'Priority': item.priority || 'N/A',
+        'Check Title': item.check_title || 'N/A',
+        'Work Performed': item.work_performed || 'N/A',
+        'Parts Used': item.parts_used?.map((p: any) => `${p.name} (Qty: ${p.quantity})`).join(', ') || 'None',
+        'Issues Found': item.issues_found || 'N/A',
+        'Recommendations': item.recommendations || 'N/A',
+        'Photos Count': item.photos?.length || 0,
+        'Submitted At': item.submitted_at ? formatDate(item.submitted_at) : 'N/A',
+      }));
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Site Visit Approvals');
+
+      // Auto-size columns
+      const colWidths = [
+        { wch: 25 }, // Site Name
+        { wch: 15 }, // Site ID
+        { wch: 20 }, // Technician
+        { wch: 12 }, // Visit Date
+        { wch: 15 }, // Visit Type
+        { wch: 15 }, // Status
+        { wch: 10 }, // Priority
+        { wch: 20 }, // Check Title
+        { wch: 40 }, // Work Performed
+        { wch: 40 }, // Parts Used
+        { wch: 30 }, // Issues Found
+        { wch: 30 }, // Recommendations
+        { wch: 12 }, // Photos Count
+        { wch: 18 }, // Submitted At
+      ];
+      ws['!cols'] = colWidths;
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const statusLabel = statusFilter === 'all' ? 'All' : statusFilter.replace('_', ' ');
+      const filename = `Site_Visits_${statusLabel}_${timestamp}.xlsx`;
+
+      // Download file
+      XLSX.writeFile(wb, filename);
+      success(`Exported ${filteredList.length} visit${filteredList.length !== 1 ? 's' : ''} to Excel`);
+    } catch (err) {
+      console.error('Export error:', err);
+      showError('Failed to export data to Excel');
+    }
+  };
+
   if (loading && filteredList.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -83,6 +147,16 @@ const ApprovalsPage: React.FC = () => {
             ]}
             className="w-40"
           />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExportToExcel}
+            disabled={filteredList.length === 0}
+            className="flex items-center gap-2"
+          >
+            <FiDownload className="h-4 w-4" />
+            Export to Excel
+          </Button>
           <Badge variant="blue">{filteredList.length} Visit{filteredList.length !== 1 ? 's' : ''}</Badge>
         </div>
       </div>

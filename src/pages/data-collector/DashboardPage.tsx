@@ -213,6 +213,13 @@ const DataCollectorDashboard: React.FC = () => {
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="space-y-2">
             <Button
+              onClick={() => navigate('/data-collector/maintenance')}
+              variant="secondary"
+              fullWidth
+            >
+              View Submitted Maintenance
+            </Button>
+            <Button
               onClick={() => navigate('/data-collector/data-quality')}
               variant="secondary"
               fullWidth

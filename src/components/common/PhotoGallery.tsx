@@ -5,13 +5,14 @@ import { Modal } from './Modal';
 import { FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 interface PhotoGalleryProps {
-  photos: Photo[];
+  photos: (Photo | string)[];
 }
 
 export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [srcs, setSrcs] = useState<string[]>([]);
   const [failed, setFailed] = useState<Record<number, boolean>>({});
+  const [normalizedPhotos, setNormalizedPhotos] = useState<Photo[]>([]);
 
   const openLightbox = (index: number) => {
     setSelectedIndex(index);
@@ -34,18 +35,35 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
   };
 
   useEffect(() => {
-    const resolved = photos.map(p => getImageUrl(p.url));
-    console.log('PhotoGallery resolved URLs:', resolved);
+    // Normalize photos array - convert strings to Photo objects
+    const normalized: Photo[] = photos.map((p, idx) => {
+      if (typeof p === 'string') {
+        return {
+          url: p,
+          category: 'general',
+          description: `Photo ${idx + 1}`,
+          uploaded_at: new Date()
+        };
+      }
+      return p as Photo;
+    });
+    
+    setNormalizedPhotos(normalized);
+    const resolved = normalized.map(p => getImageUrl(p.url));
+    console.log('PhotoGallery resolved URLs:', {
+      photos: normalized.map(p => ({ url: p.url, description: p.description })),
+      resolvedUrls: resolved
+    });
     setSrcs(resolved);
     setFailed({});
   }, [photos]);
 
-  if (photos.length === 0) {
+  if (normalizedPhotos.length === 0) {
     return <p className="text-gray-500">No photos available</p>;
   }
 
   const tryAlternate = (index: number) => {
-    const photo = photos[index];
+    const photo = normalizedPhotos[index];
     const tried = srcs[index] || '';
     const attempts: string[] = [];
     if (photo.url) {
@@ -70,7 +88,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {photos.map((photo, index) => (
+        {normalizedPhotos.map((photo, index) => (
           <div
             key={index}
             className="relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-200 hover:border-primary-500 transition-colors"
@@ -81,7 +99,12 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
               alt={photo.description || 'Photo'}
               className="w-full h-full object-cover"
               onError={(e: any) => {
-                console.warn('Image failed to load:', e.currentTarget.src, 'original:', photo.url);
+                const src = e.currentTarget.src;
+                console.error('Image failed to load:', {
+                  attemptedUrl: src,
+                  originalUrl: photo.url,
+                  photoIndex: index
+                });
                 setFailed(prev => ({ ...prev, [index]: true }));
               }}
             />
@@ -123,7 +146,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
               <FiChevronLeft className="h-12 w-12" />
             </button>
           )}
-          {selectedIndex < photos.length - 1 && (
+          {selectedIndex < normalizedPhotos.length - 1 && (
             <button
               onClick={goToNext}
               className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10"
@@ -136,19 +159,19 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos }) => {
           <div className="flex items-center justify-center h-full p-8">
             <div className="max-w-4xl max-h-full">
               <img
-                src={getImageUrl(photos[selectedIndex].url)}
-                alt={photos[selectedIndex].description || 'Photo'}
+                src={getImageUrl(normalizedPhotos[selectedIndex].url)}
+                alt={normalizedPhotos[selectedIndex].description || 'Photo'}
                 className="max-w-full max-h-full object-contain"
               />
-              {photos[selectedIndex].description && (
-                <p className="text-white text-center mt-4">{photos[selectedIndex].description}</p>
+              {normalizedPhotos[selectedIndex].description && (
+                <p className="text-white text-center mt-4">{normalizedPhotos[selectedIndex].description}</p>
               )}
             </div>
           </div>
 
           {/* Counter */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white">
-            {selectedIndex + 1} / {photos.length}
+            {selectedIndex + 1} / {normalizedPhotos.length}
           </div>
         </div>
       )}
