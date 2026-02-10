@@ -4,16 +4,19 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { FiDownload, FiFileText } from 'react-icons/fi';
+import { Input } from '@/components/common/Input';
 
 const ExportsPage: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [dataType, setDataType] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const { success, error: showError } = useNotification();
 
   const handleExport = async () => {
     setExporting(true);
     try {
-      await dataCollectorAPI.exportAllData(dataType as any);
+      await dataCollectorAPI.exportAllData(dataType as any, startDate, endDate);
       success('Export downloaded successfully!');
     } catch (err) {
       showError('Export failed. Please try again.');
@@ -93,23 +96,43 @@ const ExportsPage: React.FC = () => {
       </div>
 
       <Card>
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-2">Export Format</h3>
-            <p className="text-sm text-gray-600">
-              Data will be exported as an Excel (.xlsx) file with multiple sheets
-            </p>
+        <div className="flex flex-col md:flex-row items-end justify-between gap-4">
+          <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Date (Optional)</label>
+                 <Input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={(e) => setStartDate(e.target.value)} 
+                 />
+            </div>
+            <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">End Date (Optional)</label>
+                 <Input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={(e) => setEndDate(e.target.value)}
+                 />
+            </div>
           </div>
-          <Button
-            onClick={handleExport}
-            loading={exporting}
-            variant="primary"
-            size="lg"
-          >
-            <FiDownload className="mr-2" />
-            {exporting ? 'Exporting...' : 'Export to Excel'}
-          </Button>
+          
+          <div className="flex flex-col items-end">
+            <h3 className="font-semibold text-gray-900 mb-2 sr-only">Export Action</h3>
+            <Button
+                onClick={handleExport}
+                loading={exporting}
+                variant="primary"
+                size="lg"
+                className="whitespace-nowrap"
+            >
+                <FiDownload className="mr-2" />
+                {exporting ? 'Exporting...' : 'Export to Excel'}
+            </Button>
+          </div>
         </div>
+        <p className="text-sm text-gray-600 mt-4">
+            Data will be exported as an Excel (.xlsx) file with multiple sheets. Date range applies to Maintenance and Visit records.
+        </p>
       </Card>
 
       <Card>

@@ -41,9 +41,17 @@ export const dataCollectorAPI = {
     return response.data.data;
   },
 
-  exportAllData: async (dataType: 'all' | 'sites' | 'technicians' | 'maintenance' = 'all') => {
+  exportAllData: async (
+      dataType: 'all' | 'sites' | 'technicians' | 'maintenance' = 'all',
+      startDate?: string,
+      endDate?: string
+    ) => {
     const response = await apiClient.get('/data-collector/export/all', {
-      params: { data_type: dataType },
+      params: { 
+          data_type: dataType,
+          start_date: startDate,
+          end_date: endDate
+      },
       responseType: 'blob',
     });
 
