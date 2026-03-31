@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'admin' | 'supervisor' | 'technician' | 'diesel_manager' | 'data_collector' | 'analyst';
+  role: 'admin' | 'supervisor' | 'technician' | 'ac' | 'diesel_manager' | 'data_collector' | 'analyst' | 'operations' | 'fuel';
   phone?: string;
   isActive: boolean;
   assignedTechnicians?: string[];

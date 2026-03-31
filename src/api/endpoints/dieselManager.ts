@@ -1,3 +1,5 @@
+
+
 import apiClient from '../client';
 import { ApiResponse, PaginationParams } from '@/types/common.types';
 import { FuelConsumption, FuelDashboard, LowFuelAlert } from '@/types/fuel.types';
@@ -9,6 +11,14 @@ interface DeliveryData {
 }
 
 export const dieselManagerAPI = {
+  getScheduledMaintenance: async (params?: { page?: number; limit?: number; status?: string }) => {
+    const response = await apiClient.get('/fuel/maintenance/scheduled', { params });
+    return response.data;
+  },
+  getTechnicians: async () => {
+    const response = await apiClient.get('/fuel/technicians');
+    return response.data;
+  },
   getDashboard: async (period: number = 30): Promise<FuelDashboard> => {
     const response = await apiClient.get<ApiResponse<FuelDashboard>>('/fuel/dashboard', {
       params: { period },
@@ -66,7 +76,7 @@ export const dieselManagerAPI = {
   },
 
   getSites: async () => {
-    const response = await apiClient.get('/diesel/sites');
+    const response = await apiClient.get('/fuel/sites');
     return response.data;
   },
 
@@ -78,17 +88,17 @@ export const dieselManagerAPI = {
     current_fuel_level?: number;
     tank_capacity?: number;
   }) => {
-    const response = await apiClient.post('/diesel/fuel-requests', data);
+    const response = await apiClient.post('/fuel/fuel-requests', data);
     return response.data;
   },
 
   updateFuelRequest: async (requestId: string, data: any) => {
-    const response = await apiClient.put(`/diesel/fuel-requests/${requestId}`, data);
+    const response = await apiClient.put(`/fuel/fuel-requests/${requestId}`, data);
     return response.data;
   },
 
   deleteFuelRequest: async (requestId: string) => {
-    const response = await apiClient.delete(`/diesel/fuel-requests/${requestId}`);
+    const response = await apiClient.delete(`/fuel/fuel-requests/${requestId}`);
     return response.data;
   },
 };

@@ -8,7 +8,7 @@ import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
-import { formatDate, formatStatus } from '@/utils/formatters';
+import { formatDate, formatDateTime, formatStatus } from '@/utils/formatters';
 import { FiCheckCircle, FiXCircle, FiEye, FiFilter, FiDownload } from 'react-icons/fi';
 import { Select } from '@/components/common/Select';
 import * as XLSX from 'xlsx';
@@ -28,6 +28,18 @@ const ApprovalsPage: React.FC = () => {
   useEffect(() => {
     loadVisits();
   }, [user]);
+
+  const getLatestEntry = (item: any) => {
+    const entries = Array.isArray(item?.site_entries) ? item.site_entries : [];
+    if (entries.length === 0) return null;
+    return entries
+      .slice()
+      .sort((a: any, b: any) => {
+        const aTime = new Date(a.entry_time || 0).getTime();
+        const bTime = new Date(b.entry_time || 0).getTime();
+        return bTime - aTime;
+      })[0];
+  };
 
   useEffect(() => {
     if (statusFilter === 'all') {
@@ -65,7 +77,9 @@ const ApprovalsPage: React.FC = () => {
 
     try {
       // Prepare data for Excel
-      const exportData = filteredList.map((item: any) => ({
+      const exportData = filteredList.map((item: any) => {
+        const entry = getLatestEntry(item);
+        return {
         'Site Name': item.site_details?.Site_Name || item.site_name || item.site_id || 'N/A',
         'Site ID': item.site_id || 'N/A',
         'Technician': item.technician?.fullName || item.technician_name || 'Unknown',
@@ -73,6 +87,8 @@ const ApprovalsPage: React.FC = () => {
         'Visit Type': item.visit_type || 'N/A',
         'Status': formatStatus(item.status || 'pending_approval').label,
         'Priority': item.priority || 'N/A',
+        'Entry Time': entry?.entry_time ? formatDateTime(entry.entry_time) : 'N/A',
+        'Exit Time': entry?.exit_time ? formatDateTime(entry.exit_time) : 'N/A',
         'Check Title': item.check_title || 'N/A',
         'Work Performed': item.work_performed || 'N/A',
         'Parts Used': item.parts_used?.map((p: any) => `${p.name} (Qty: ${p.quantity})`).join(', ') || 'None',
@@ -80,7 +96,8 @@ const ApprovalsPage: React.FC = () => {
         'Recommendations': item.recommendations || 'N/A',
         'Photos Count': item.photos?.length || 0,
         'Submitted At': item.submitted_at ? formatDate(item.submitted_at) : 'N/A',
-      }));
+        };
+      });
 
       // Create workbook and worksheet
       const ws = XLSX.utils.json_to_sheet(exportData);
@@ -96,6 +113,8 @@ const ApprovalsPage: React.FC = () => {
         { wch: 15 }, // Visit Type
         { wch: 15 }, // Status
         { wch: 10 }, // Priority
+        { wch: 20 }, // Entry Time
+        { wch: 20 }, // Exit Time
         { wch: 20 }, // Check Title
         { wch: 40 }, // Work Performed
         { wch: 40 }, // Parts Used
@@ -216,6 +235,14 @@ const ApprovalsPage: React.FC = () => {
                       >
                         {item.priority}
                       </Badge>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Entry Time</p>
+                      <p className="font-medium">{formatDateTime(getLatestEntry(item)?.entry_time)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Exit Time</p>
+                      <p className="font-medium">{formatDateTime(getLatestEntry(item)?.exit_time)}</p>
                     </div>
                   </div>
 

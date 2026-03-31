@@ -1,29 +1,43 @@
 module.exports = {
-  content: ['./src/**/*.{js,jsx,ts,tsx}'],
+  content: ['./src/**/*.{js,jsx,ts,tsx}', './src/styles/global.css'],
   theme: {
     extend: {
       colors: {
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+          DEFAULT: '#e53935',
+          500: '#e53935',
+          light: '#ffcdd2',
+        },
+        secondary: {
+          DEFAULT: '#222222',
         },
         success: {
-          50: '#f0fdf4',
-          500: '#22c55e',
-          600: '#16a34a',
-        },
-        danger: {
-          50: '#fef2f2',
-          500: '#ef4444',
-          600: '#dc2626',
+          DEFAULT: '#388e3c',
         },
         warning: {
-          50: '#fffbeb',
-          500: '#f59e0b',
-          600: '#d97706',
+          DEFAULT: '#fbc02d',
+        },
+        danger: {
+          DEFAULT: '#b71c1c',
+        },
+        error: {
+          DEFAULT: '#b71c1c',
+        },
+        background: {
+          DEFAULT: '#f4f4f4',
+        },
+        surface: {
+          DEFAULT: '#ffffff',
+        },
+        text: {
+          DEFAULT: '#222222',
+          secondary: '#757575',
+        },
+        border: {
+          DEFAULT: '#e0e0e0',
+        },
+        lightGray: {
+          DEFAULT: '#f4f4f4',
         },
       },
     },

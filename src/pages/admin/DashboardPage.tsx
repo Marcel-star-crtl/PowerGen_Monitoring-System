@@ -59,26 +59,26 @@ const AdminDashboard: React.FC = () => {
         <StatCard
           title="Total Users"
           value={dashboard?.users?.total || 0}
-          icon={<FiUsers className="h-6 w-6" />}
-          color="blue"
+          icon={<FiUsers className="h-6 w-6 text-primary" />}
+          color="red"
         />
         <StatCard
           title="Total Sites"
           value={dashboard?.sites?.total || 0}
-          icon={<FiMapPin className="h-6 w-6" />}
-          color="green"
+          icon={<FiMapPin className="h-6 w-6 text-primary" />}
+          color="red"
         />
         <StatCard
           title="Active Maintenance"
           value={dashboard?.maintenance?.active || 0}
-          icon={<FiTool className="h-6 w-6" />}
+          icon={<FiTool className="h-6 w-6 text-warning" />}
           color="yellow"
         />
         <StatCard
           title="Pending Approvals"
           value={dashboard?.maintenance?.pending || 0}
-          icon={<FiClock className="h-6 w-6" />}
-          color="orange"
+          icon={<FiClock className="h-6 w-6 text-danger" />}
+          color="red"
         />
       </div>
 
@@ -88,34 +88,34 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Button
             onClick={() => navigate('/admin/users')}
-            variant="secondary"
+            variant="primary"
             fullWidth
           >
-            <FiUsers className="mr-2" />
+            <FiUsers className="mr-2 text-primary-light" />
             Manage Users
           </Button>
           <Button
             onClick={() => navigate('/admin/sites')}
-            variant="secondary"
+            variant="primary"
             fullWidth
           >
-            <FiMapPin className="mr-2" />
+            <FiMapPin className="mr-2 text-primary-light" />
             Manage Sites
           </Button>
           <Button
             onClick={() => navigate('/admin/maintenance')}
-            variant="secondary"
+            variant="primary"
             fullWidth
           >
-            <FiTool className="mr-2" />
+            <FiTool className="mr-2 text-primary-light" />
             View Maintenance
           </Button>
           <Button
             onClick={() => navigate('/admin/reports')}
-            variant="secondary"
+            variant="primary"
             fullWidth
           >
-            <FiCheckCircle className="mr-2" />
+            <FiCheckCircle className="mr-2 text-primary-light" />
             System Reports
           </Button>
         </div>
@@ -131,7 +131,7 @@ const AdminDashboard: React.FC = () => {
               <XAxis dataKey="role" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" />
+              <Bar dataKey="count" fill="#e53935" />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -144,7 +144,7 @@ const AdminDashboard: React.FC = () => {
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#22c55e" />
+              <Line type="monotone" dataKey="count" stroke="#e53935" />
             </LineChart>
           </ResponsiveContainer>
         </Card>
@@ -158,9 +158,9 @@ const AdminDashboard: React.FC = () => {
             <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0">
-                  {activity.type === 'user' && <FiUsers className="h-5 w-5 text-blue-500" />}
-                  {activity.type === 'maintenance' && <FiTool className="h-5 w-5 text-green-500" />}
-                  {activity.type === 'alert' && <FiAlertTriangle className="h-5 w-5 text-yellow-500" />}
+                  {activity.type === 'user' && <FiUsers className="h-5 w-5 text-primary" />}
+                  {activity.type === 'maintenance' && <FiTool className="h-5 w-5 text-success" />}
+                  {activity.type === 'alert' && <FiAlertTriangle className="h-5 w-5 text-warning" />}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">{activity.message}</p>
@@ -176,7 +176,7 @@ const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <div className="text-center">
-            <FiCheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+            <FiCheckCircle className="h-12 w-12 text-success mx-auto mb-2" />
             <p className="text-sm text-gray-500">System Status</p>
             <p className="text-lg font-bold text-green-600">Healthy</p>
           </div>

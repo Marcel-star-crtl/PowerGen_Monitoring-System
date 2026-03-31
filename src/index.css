@@ -55,9 +55,23 @@
   font-style: normal;
 }
 
-/* :root {
-  --font-family: 'CustomFont', sans-serif; 
-} */
+
+/* PowerGen Brand Color Variables (from Mobile Colors.ts) */
+:root {
+  --color-primary: #e53935;
+  --color-primary-light: #ffcdd2;
+  --color-secondary: #222222;
+  --color-success: #388e3c;
+  --color-warning: #fbc02d;
+  --color-danger: #b71c1c;
+  --color-error: #b71c1c;
+  --color-background: #f4f4f4;
+  --color-surface: #ffffff;
+  --color-text: #222222;
+  --color-text-secondary: #757575;
+  --color-border: #e0e0e0;
+  --color-light-gray: #f4f4f4;
+}
 
 
 :root {

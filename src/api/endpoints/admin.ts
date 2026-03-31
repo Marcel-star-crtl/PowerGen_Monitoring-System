@@ -3,8 +3,14 @@ import { ApiResponse, PaginationParams } from '@/types/common.types';
 import { User } from '@/types/common.types';
 
 export const adminAPI = {
+    // Remove technician from cluster
+    // removeTechnicianFromCluster: async (clusterId: string, technicianId: string) => {
+    //   const response = await apiClient.delete(`/clusters/${clusterId}/technicians/${technicianId}`);
+    //   return response.data;
+    // },
   // User Management
   getUsers: async (params?: PaginationParams & { role?: string; search?: string }) => {
+    // Only use this for admin context. For diesel manager, use dieselManagerAPI.getTechnicians
     const response = await apiClient.get('/admin/users', { params });
     return response.data;
   },
@@ -43,7 +49,7 @@ export const adminAPI = {
   },
 
   // Sites Management
-  getAllSites: async (params?: PaginationParams & { search?: string; region?: string }) => {
+  getAllSites: async (params?: PaginationParams & { search?: string; region?: string; cluster?: string }) => {
     const response = await apiClient.get('/admin/sites', { params });
     return response.data;
   },
@@ -143,5 +149,12 @@ export const adminAPI = {
     });
     return response.data;
   },
+
+  assignTechnicianToCluster: (clusterId: string, technicianId: string) =>
+  apiClient.post(`/admin/clusters/${clusterId}/technicians`, { technicianId }),
+
+removeTechnicianFromCluster: (clusterId: string, technicianId: string) =>
+  apiClient.delete(`/admin/clusters/${clusterId}/technicians/${technicianId}`),
+
 };
 

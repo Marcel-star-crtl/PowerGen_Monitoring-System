@@ -1,3 +1,6 @@
+// ========== TECHNICIAN AUDITS PAGE ==========
+import TechnicianAuditsPage from '@/pages/supervisor/TechnicianAuditsPage';
+import TechnicianAuditDetailPage from '@/pages/supervisor/TechnicianAuditDetailPage';
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -54,6 +57,11 @@ import DataReports from '@/pages/data-collector/ReportsPage';
 import SubmittedMaintenance from '@/pages/data-collector/SubmittedMaintenancePage';
 import MaintenanceDetail from '@/pages/data-collector/MaintenanceDetailPage';
 
+// ========== OPERATIONS PAGES ==========
+import OperationsDashboard from '@/pages/operations/DashboardPage';
+import OperationsAudits from '@/pages/operations/AuditsPage';
+import OperationsAuditDetail from '@/pages/operations/AuditDetailPage';
+
 const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -81,6 +89,9 @@ const App: React.FC = () => {
               <Route path="parts" element={<AdminParts />} />
               <Route path="clusters" element={<AdminClusters />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="technician-audits" element={<TechnicianAuditsPage />} />
+              <Route path="technician-audits/:id" element={<TechnicianAuditDetailPage />} />
+              <Route path="technician-audits/:id" element={<TechnicianAuditDetailPage />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
 
@@ -121,6 +132,10 @@ const App: React.FC = () => {
               <Route path="scheduled" element={<SupervisorScheduled />} />
               <Route path="technicians" element={<SupervisorTechnicians />} />
               <Route path="statistics" element={<SupervisorStatistics />} />
+              {/* <Route path="technician-audits" element={<TechnicianAuditsPage />} />
+              <Route path="*" element={<Navigate to="/supervisor" replace />} /> */}
+              <Route path="technician-audits" element={<TechnicianAuditsPage />} />
+              <Route path="technician-audits/:id" element={<TechnicianAuditDetailPage />} />
               <Route path="*" element={<Navigate to="/supervisor" replace />} />
             </Route>
 
@@ -138,6 +153,7 @@ const App: React.FC = () => {
               <Route path="consumption" element={<FuelConsumption />} />
               <Route path="alerts" element={<LowFuelAlerts />} />
               <Route path="trends" element={<FuelTrends />} />
+              <Route path="scheduled" element={React.createElement(require('@/pages/diesel/ScheduledPage').default)} />
               <Route path="*" element={<Navigate to="/diesel" replace />} />
             </Route>
 
@@ -158,6 +174,21 @@ const App: React.FC = () => {
               <Route path="maintenance" element={<SubmittedMaintenance />} />
               <Route path="maintenance/:maintenanceId" element={<MaintenanceDetail />} />
               <Route path="*" element={<Navigate to="/data-collector" replace />} />
+            </Route>
+
+            {/* ========== OPERATIONS ROUTES ========== */}
+            <Route
+              path="/operations"
+              element={
+                <ProtectedRoute allowedRoles={['operations', 'admin']}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<OperationsDashboard />} />
+              <Route path="audits" element={<OperationsAudits />} />
+              <Route path="audits/:auditId" element={<OperationsAuditDetail />} />
+              <Route path="*" element={<Navigate to="/operations" replace />} />
             </Route>
 
             {/* ========== DEFAULT REDIRECTS ========== */}

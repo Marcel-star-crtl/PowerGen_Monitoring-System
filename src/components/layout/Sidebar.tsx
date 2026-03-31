@@ -1,7 +1,9 @@
+// ...existing code...
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { classNames } from '@/utils/helpers';
+import PowerGenLogo from '@/components/common/PowerGenLogo';
 import {
   FiHome,
   FiTruck,
@@ -18,6 +20,7 @@ import {
   FiPackage,
   FiLayers,
   FiAlertCircle,
+  FiClipboard,
 } from 'react-icons/fi';
 
 interface NavItem {
@@ -32,10 +35,15 @@ const navigationItems: NavItem[] = [
     name: 'Dashboard',
     path: '',
     icon: <FiHome className="h-5 w-5" />,
-    roles: ['admin', 'supervisor', 'technician', 'diesel_manager', 'data_collector', 'analyst'],
+    roles: ['admin', 'supervisor', 'technician', 'diesel_manager', 'data_collector', 'analyst', 'operations'],
   },
-  
-  // ========== ADMIN NAVIGATION ==========
+  {
+    name: 'Technician Audits',
+    path: 'technician-audits',
+    icon: <FiClipboard className="h-5 w-5" />,
+    roles: ['admin', 'supervisor'],
+  },
+  // ========== ADMIN NAVIGATION ===========
   {
     name: 'Users',
     path: 'users',
@@ -157,6 +165,12 @@ const navigationItems: NavItem[] = [
     roles: ['diesel_manager'],
   },
   {
+    name: 'Scheduled Fuel Tasks',
+    path: 'scheduled',
+    icon: <FiCalendar className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+  {
     name: 'Trends',
     path: 'trends',
     icon: <FiBarChart2 className="h-5 w-5" />,
@@ -194,6 +208,14 @@ const navigationItems: NavItem[] = [
     icon: <FiBarChart2 className="h-5 w-5" />,
     roles: ['data_collector'],
   },
+
+  // ========== OPERATIONS NAVIGATION ==========
+  {
+    name: 'Site Audits',
+    path: 'audits',
+    icon: <FiClipboard className="h-5 w-5" />,
+    roles: ['operations'],
+  },
 ];
 
 export const Sidebar: React.FC = () => {
@@ -204,19 +226,23 @@ export const Sidebar: React.FC = () => {
   );
 
   return (
-    <aside className="w-64 bg-gray-900 min-h-screen overflow-y-auto">
-      <div className="p-4">
+    <aside className="w-64 bg-secondary min-h-screen overflow-y-auto">
+      <div className="flex flex-col items-center py-6">
+        <PowerGenLogo className="mb-4" />
+      </div>
+      <div className="p-4 pt-0">
         {/* Role Badge */}
         <div className="mb-6">
-          <h2 className="text-white text-lg font-semibold mb-2">
+          <h2 className="text-primary text-lg font-semibold mb-2">
             {user?.role === 'admin' && 'Admin Portal'}
             {user?.role === 'supervisor' && 'Supervisor Portal'}
             {user?.role === 'technician' && 'Technician Portal'}
             {user?.role === 'diesel_manager' && 'Diesel Manager'}
             {user?.role === 'data_collector' && 'Data Collector'}
             {user?.role === 'analyst' && 'Analyst Portal'}
+            {user?.role === 'operations' && 'Operations Portal'}
           </h2>
-          <div className="text-xs text-gray-400 uppercase tracking-wider">
+          <div className="text-xs text-primary-light uppercase tracking-wider">
             {user?.fullName}
           </div>
         </div>
@@ -231,12 +257,15 @@ export const Sidebar: React.FC = () => {
                 classNames(
                   'flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors',
                   isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    ? 'bg-primary text-white'
+                    : 'text-primary-light hover:bg-danger hover:text-white'
                 )
               }
             >
-              {item.icon}
+              {/* Icon color is always text-primary-light for consistency */}
+              {React.cloneElement(item.icon as React.ReactElement, {
+                className: classNames('h-5 w-5', 'text-primary-light'),
+              })}
               <span>{item.name}</span>
             </NavLink>
           ))}

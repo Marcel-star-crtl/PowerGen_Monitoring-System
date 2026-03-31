@@ -1,4 +1,5 @@
 export interface FuelConsumption {
+    photos?: string[];
   _id: string;
   site_id: string;
   site_name?: string;
@@ -13,13 +14,34 @@ export interface FuelConsumption {
     fuel_consumed: number;
     tank_capacity: number;
     fuel_type: 'diesel' | 'gasoline' | 'natural_gas';
+    tank_length_cm?: number;
+    tank_height_cm?: number;
+    tank_width_cm?: number;
+    tank_observations?: string;
+    fuel_sensor_status?: string;
+    dip_stick_before_cm?: number;
+    dip_stick_after_cm?: number;
   };
   runtime_data?: {
     opening_hours?: number;
     closing_hours?: number;
     runtime_hours?: number;
     load_average?: number;
+    truck_flow_meter_before_l?: number;
+    truck_flow_meter_after_l?: number;
+    truck_plate_number?: string;
+    departure_time_min?: number;
+    arrival_time_station?: string;
+    arrival_time_site?: string;
+    transfer_time_min?: number;
+    quantity_transfer_l?: number;
   };
+  fse_name?: string;
+  planifier?: string;
+  guard_name?: string;
+  guard_number?: string;
+  comments?: string;
+  notes?: string;
   metrics?: {
     consumption_rate?: number;
     efficiency_rating?: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';

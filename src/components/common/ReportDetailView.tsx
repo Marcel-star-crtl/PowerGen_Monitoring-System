@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from './Badge';
 import { PhotoGallery } from './PhotoGallery';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 
 interface ReportDetailViewProps {
   report: any;
@@ -11,6 +11,11 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
   if (!report) return null;
 
   const checks = report.equipment_checks || {};
+  const entry = Array.isArray(report.site_entries)
+    ? report.site_entries
+        .slice()
+        .sort((a: any, b: any) => new Date(b.entry_time || 0).getTime() - new Date(a.entry_time || 0).getTime())[0]
+    : null;
 
   const renderSectionHeader = (title: string, icon: string) => (
     <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b-2 border-blue-500 flex items-center">
@@ -63,6 +68,8 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
              </Badge>
           ))}
           {renderField('Status', <Badge variant="blue">{report.status}</Badge>)}
+          {renderField('Entry Time', formatDateTime(entry?.entry_time))}
+          {renderField('Exit Time', formatDateTime(entry?.exit_time))}
         </div>
         {report.work_performed && (
           <div className="mt-4">
@@ -86,12 +93,67 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                 <div className="mb-6">
                   <h5 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Equipment Status</h5>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {gen.batteryStatus !== undefined && renderField('Battery Check', gen.batteryStatus, 'status')}
-                    {gen.fanBeltStatus !== undefined && renderField('Fan Belt', gen.fanBeltStatus, 'status')}
-                    {gen.radiatorStatus !== undefined && renderField('Radiator', gen.radiatorStatus, 'status')}
-                    {gen.coolantStatus !== undefined && renderField('Coolant Level', gen.coolantStatus, 'status')}
+                    {(gen.batteryStatus !== undefined || gen.battery_status !== undefined) && renderField('Battery Check', gen.batteryStatus ?? gen.battery_status, 'status')}
+                    {(gen.fanBeltStatus !== undefined || gen.fan_belt_status !== undefined) && renderField('Fan Belt', gen.fanBeltStatus ?? gen.fan_belt_status, 'status')}
+                    {(gen.radiatorStatus !== undefined || gen.radiator_status !== undefined) && renderField('Radiator', gen.radiatorStatus ?? gen.radiator_status, 'status')}
+                    {(gen.coolantStatus !== undefined || gen.coolant_status !== undefined) && renderField('Coolant Level', gen.coolantStatus ?? gen.coolant_status, 'status')}
                   </div>
                 </div>
+
+                {/* Additional Generator Checks */}
+                {(gen.runningHours || gen.running_hours ||
+                  gen.fuelFilterChanged !== undefined || gen.fuel_filter_changed !== undefined ||
+                  gen.oilFilterChanged !== undefined || gen.oil_filter_changed !== undefined ||
+                  gen.airFilterChanged !== undefined || gen.air_filter_changed !== undefined ||
+                  gen.oilLevelMax !== undefined || gen.oil_level_max !== undefined ||
+                  gen.oilQualityChecked !== undefined || gen.oil_quality_checked !== undefined ||
+                  gen.fuelLeakageChecked !== undefined || gen.fuel_leakage_checked !== undefined ||
+                  gen.alarmsStatusChecked !== undefined || gen.alarms_status_checked !== undefined
+                ) && (
+                  <div className="mb-6">
+                    <h5 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Additional Generator Checks</h5>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {(gen.runningHours || gen.running_hours) && renderField('Running Hours', gen.runningHours ?? gen.running_hours)}
+                      {(gen.fuelFilterChanged !== undefined || gen.fuel_filter_changed !== undefined) && renderField('Fuel Filter Changed', gen.fuelFilterChanged ?? gen.fuel_filter_changed, 'boolean')}
+                      {(gen.oilFilterChanged !== undefined || gen.oil_filter_changed !== undefined) && renderField('Oil Filter Changed', gen.oilFilterChanged ?? gen.oil_filter_changed, 'boolean')}
+                      {(gen.airFilterChanged !== undefined || gen.air_filter_changed !== undefined) && renderField('Air Filter Changed', gen.airFilterChanged ?? gen.air_filter_changed, 'boolean')}
+                      {(gen.oilLevelMax !== undefined || gen.oil_level_max !== undefined) && renderField('Oil Level Max', gen.oilLevelMax ?? gen.oil_level_max, 'boolean')}
+                      {(gen.oilQualityChecked !== undefined || gen.oil_quality_checked !== undefined) && renderField('Oil Quality Checked', gen.oilQualityChecked ?? gen.oil_quality_checked, 'boolean')}
+                      {(gen.fuelLeakageChecked !== undefined || gen.fuel_leakage_checked !== undefined) && renderField('Fuel Leakage Checked', gen.fuelLeakageChecked ?? gen.fuel_leakage_checked, 'boolean')}
+                      {(gen.alarmsStatusChecked !== undefined || gen.alarms_status_checked !== undefined) && renderField('Alarms Status Checked', gen.alarmsStatusChecked ?? gen.alarms_status_checked, 'boolean')}
+                    </div>
+                  </div>
+                )}
+
+                {(gen.batteryStatusComment || gen.battery_status_comment ||
+                  gen.fanBeltStatusComment || gen.fan_belt_status_comment ||
+                  gen.radiatorStatusComment || gen.radiator_status_comment ||
+                  gen.coolantStatusComment || gen.coolant_status_comment ||
+                  gen.fuelFilterChangedComment || gen.fuel_filter_changed_comment ||
+                  gen.oilFilterChangedComment || gen.oil_filter_changed_comment ||
+                  gen.airFilterChangedComment || gen.air_filter_changed_comment ||
+                  gen.oilLevelMaxComment || gen.oil_level_max_comment ||
+                  gen.oilQualityCheckedComment || gen.oil_quality_checked_comment ||
+                  gen.fuelLeakageCheckedComment || gen.fuel_leakage_checked_comment ||
+                  gen.alarmsStatusCheckedComment || gen.alarms_status_checked_comment
+                ) && (
+                  <div className="mb-6">
+                    <h5 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Issue Comments</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {(gen.batteryStatusComment || gen.battery_status_comment) && renderField('Battery Comment', gen.batteryStatusComment ?? gen.battery_status_comment)}
+                      {(gen.fanBeltStatusComment || gen.fan_belt_status_comment) && renderField('Fan Belt Comment', gen.fanBeltStatusComment ?? gen.fan_belt_status_comment)}
+                      {(gen.radiatorStatusComment || gen.radiator_status_comment) && renderField('Radiator Comment', gen.radiatorStatusComment ?? gen.radiator_status_comment)}
+                      {(gen.coolantStatusComment || gen.coolant_status_comment) && renderField('Coolant Comment', gen.coolantStatusComment ?? gen.coolant_status_comment)}
+                      {(gen.fuelFilterChangedComment || gen.fuel_filter_changed_comment) && renderField('Fuel Filter Comment', gen.fuelFilterChangedComment ?? gen.fuel_filter_changed_comment)}
+                      {(gen.oilFilterChangedComment || gen.oil_filter_changed_comment) && renderField('Oil Filter Comment', gen.oilFilterChangedComment ?? gen.oil_filter_changed_comment)}
+                      {(gen.airFilterChangedComment || gen.air_filter_changed_comment) && renderField('Air Filter Comment', gen.airFilterChangedComment ?? gen.air_filter_changed_comment)}
+                      {(gen.oilLevelMaxComment || gen.oil_level_max_comment) && renderField('Oil Level Comment', gen.oilLevelMaxComment ?? gen.oil_level_max_comment)}
+                      {(gen.oilQualityCheckedComment || gen.oil_quality_checked_comment) && renderField('Oil Quality Comment', gen.oilQualityCheckedComment ?? gen.oil_quality_checked_comment)}
+                      {(gen.fuelLeakageCheckedComment || gen.fuel_leakage_checked_comment) && renderField('Fuel Leakage Comment', gen.fuelLeakageCheckedComment ?? gen.fuel_leakage_checked_comment)}
+                      {(gen.alarmsStatusCheckedComment || gen.alarms_status_checked_comment) && renderField('Alarms Comment', gen.alarmsStatusCheckedComment ?? gen.alarms_status_checked_comment)}
+                    </div>
+                  </div>
+                )}
                 
                 {/* Readings */}
                 {((gen.v1 || gen.v2 || gen.v3) || (gen.i1 || gen.i2 || gen.i3)) && (
@@ -188,6 +250,20 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                  <div className="bg-purple-50 px-4 py-2 rounded-lg mb-4">
                    <h4 className="font-bold text-purple-900 text-base">Cabinet #{idx + 1}</h4>
                  </div>
+
+                 {(cab.rectifierSummary || cab.modulesFound || cab.modulesMissing || cab.rectifierTypeCapacity || cab.outputVoltage || cab.breakersChecked !== undefined || cab.cablingStatusGood !== undefined) && (
+                   <div className="mb-6">
+                     <h5 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Rectifier Summary</h5>
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                       {renderField('Modules Found', cab.rectifierSummary?.modulesFound ?? cab.modulesFound ?? cab.modules_found)}
+                       {renderField('Modules Missing', cab.rectifierSummary?.modulesMissing ?? cab.modulesMissing ?? cab.modules_missing)}
+                       {renderField('Type & Capacity', cab.rectifierSummary?.rectifierTypeCapacity ?? cab.rectifierTypeCapacity ?? cab.rectifier_type_capacity)}
+                       {renderField('Output Voltage', cab.rectifierSummary?.outputVoltage ?? cab.outputVoltage ?? cab.output_voltage)}
+                       {(cab.rectifierSummary?.breakersChecked !== undefined || cab.breakersChecked !== undefined || cab.breakers_checked !== undefined) && renderField('Breakers Checked', cab.rectifierSummary?.breakersChecked ?? cab.breakersChecked ?? cab.breakers_checked, 'boolean')}
+                       {(cab.rectifierSummary?.cablingStatusGood !== undefined || cab.cablingStatusGood !== undefined || cab.cabling_status_good !== undefined) && renderField('Cabling Status Good', cab.rectifierSummary?.cablingStatusGood ?? cab.cablingStatusGood ?? cab.cabling_status_good, 'boolean')}
+                     </div>
+                   </div>
+                 )}
                  
                  {/* Rectifiers */}
                  {cab.rectifiers && Array.isArray(cab.rectifiers) && cab.rectifiers.length > 0 && (
@@ -210,6 +286,16 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                                <Badge variant={rect.cleanliness ? 'green' : 'red'} size="sm">{rect.cleanliness ? 'Clean' : 'Dirty'}</Badge>
                              </div>
                            </div>
+                           {(rect.statusComment || rect.status_comment || rect.cleanlinessComment || rect.cleanliness_comment) && (
+                             <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
+                               {rect.statusComment || rect.status_comment ? (
+                                 <p className="text-xs text-gray-700">Status: {rect.statusComment || rect.status_comment}</p>
+                               ) : null}
+                               {rect.cleanlinessComment || rect.cleanliness_comment ? (
+                                 <p className="text-xs text-gray-700">Cleanliness: {rect.cleanlinessComment || rect.cleanliness_comment}</p>
+                               ) : null}
+                             </div>
+                           )}
                            {rect.comments && (
                              <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
                                <p className="text-xs text-gray-700 italic">{rect.comments}</p>
@@ -247,6 +333,17 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                                 </div>
                              </div>
                          ))}
+                     </div>
+                   </div>
+                 )}
+
+                 {(cab.batterySummary || cab.outputChecked !== undefined || cab.autonomyTestDone !== undefined || cab.autonomyEstimated) && (
+                   <div className="mb-6">
+                     <h5 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Battery Summary</h5>
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                       {(cab.batterySummary?.outputChecked !== undefined || cab.outputChecked !== undefined || cab.output_checked !== undefined) && renderField('Output Checked', cab.batterySummary?.outputChecked ?? cab.outputChecked ?? cab.output_checked, 'boolean')}
+                       {(cab.batterySummary?.autonomyTestDone !== undefined || cab.autonomyTestDone !== undefined || cab.autonomy_test_done !== undefined) && renderField('Autonomy Test Done', cab.batterySummary?.autonomyTestDone ?? cab.autonomyTestDone ?? cab.autonomy_test_done, 'boolean')}
+                       {renderField('Autonomy Estimated', cab.batterySummary?.autonomyEstimated ?? cab.autonomyEstimated ?? cab.autonomy_estimated)}
                      </div>
                    </div>
                  )}
@@ -304,11 +401,28 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
            {renderSectionHeader('Grid Power', '⚡')}
            <div className="p-6">
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {(checks.grid_checks.gridIndex !== undefined || checks.grid_checks.grid_index !== undefined) &&
+                renderField('Grid Index', checks.grid_checks.gridIndex ?? checks.grid_checks.grid_index)}
+              {(checks.grid_checks.gridConnectedOperational !== undefined || checks.grid_checks.grid_connected_operational !== undefined) &&
+                renderField('Grid Connected & Operational', checks.grid_checks.gridConnectedOperational ?? checks.grid_checks.grid_connected_operational, 'boolean')}
+              {(checks.grid_checks.gridStable !== undefined || checks.grid_checks.grid_stable !== undefined) &&
+                renderField('Grid Stable', checks.grid_checks.gridStable ?? checks.grid_checks.grid_stable, 'boolean')}
                 {(checks.grid_checks.gridStatus !== undefined || checks.grid_checks.status !== undefined) && 
                   renderField('Grid Status', checks.grid_checks.gridStatus || checks.grid_checks.status, 'status')}
                 {(checks.grid_checks.breakerStatus !== undefined || checks.grid_checks.breaker_status !== undefined) && 
                   renderField('Breaker Status', checks.grid_checks.breakerStatus || checks.grid_checks.breaker_status, 'status')}
              </div>
+             {(checks.grid_checks.status_comment || checks.grid_checks.gridStatusComment || checks.grid_checks.breaker_status_comment || checks.grid_checks.breakerStatusComment || checks.grid_checks.grid_connected_operational_comment || checks.grid_checks.gridConnectedOperationalComment || checks.grid_checks.grid_stable_comment || checks.grid_checks.gridStableComment) && (
+               <div className="mb-6">
+                 <h5 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Issue Comments</h5>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                   {(checks.grid_checks.status_comment || checks.grid_checks.gridStatusComment) && renderField('Grid Status Comment', checks.grid_checks.status_comment ?? checks.grid_checks.gridStatusComment)}
+                   {(checks.grid_checks.breaker_status_comment || checks.grid_checks.breakerStatusComment) && renderField('Breaker Comment', checks.grid_checks.breaker_status_comment ?? checks.grid_checks.breakerStatusComment)}
+                   {(checks.grid_checks.grid_connected_operational_comment || checks.grid_checks.gridConnectedOperationalComment) && renderField('Grid Connected Comment', checks.grid_checks.grid_connected_operational_comment ?? checks.grid_checks.gridConnectedOperationalComment)}
+                   {(checks.grid_checks.grid_stable_comment || checks.grid_checks.gridStableComment) && renderField('Grid Stable Comment', checks.grid_checks.grid_stable_comment ?? checks.grid_checks.gridStableComment)}
+                 </div>
+               </div>
+             )}
              {checks.grid_checks.meter_photos && checks.grid_checks.meter_photos.length > 0 && (
                <div className="border-t pt-6">
                  <h5 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide flex items-center">
@@ -332,6 +446,8 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                  renderField('Shelter Status', checks.shelter_checks.shelterStatus || checks.shelter_checks.status, 'status')}
                {(checks.shelter_checks.doorStatus !== undefined || checks.shelter_checks.door_status !== undefined) &&
                  renderField('Door Status', checks.shelter_checks.doorStatus || checks.shelter_checks.door_status, 'status')}
+               {(checks.shelter_checks.controllerStatus !== undefined || checks.shelter_checks.controller_status !== undefined) &&
+                 renderField('Controller Status', checks.shelter_checks.controllerStatus ?? checks.shelter_checks.controller_status, 'status')}
                {checks.shelter_checks.temperature && (
                  <div className="flex flex-col">
                    <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">Temperature</span>
@@ -339,6 +455,17 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                  </div>
                )}
              </div>
+
+             {(checks.shelter_checks.status_comment || checks.shelter_checks.shelterStatusComment || checks.shelter_checks.door_status_comment || checks.shelter_checks.doorStatusComment || checks.shelter_checks.controller_status_comment || checks.shelter_checks.controllerStatusComment) && (
+               <div className="mb-6">
+                 <h5 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Issue Comments</h5>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                   {(checks.shelter_checks.status_comment || checks.shelter_checks.shelterStatusComment) && renderField('Shelter Comment', checks.shelter_checks.status_comment ?? checks.shelter_checks.shelterStatusComment)}
+                   {(checks.shelter_checks.door_status_comment || checks.shelter_checks.doorStatusComment) && renderField('Door Comment', checks.shelter_checks.door_status_comment ?? checks.shelter_checks.doorStatusComment)}
+                   {(checks.shelter_checks.controller_status_comment || checks.shelter_checks.controllerStatusComment) && renderField('Controller Comment', checks.shelter_checks.controller_status_comment ?? checks.shelter_checks.controllerStatusComment)}
+                 </div>
+               </div>
+             )}
              
              {checks.shelter_checks.ac_units && Array.isArray(checks.shelter_checks.ac_units) && checks.shelter_checks.ac_units.length > 0 && (
                <div className="border-t pt-6">
@@ -350,6 +477,37 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                            <Badge variant={ac.status ? 'green' : 'red'} size="sm">{ac.status ? 'Working' : 'Faulty'}</Badge>
                         </div>
                     ))}
+                 </div>
+               </div>
+             )}
+
+             {(checks.shelter_checks.ac_type || checks.shelter_checks.internal_filter_cleaned !== undefined || checks.shelter_checks.outdoor_compressor_cleaned !== undefined || checks.shelter_checks.high_low_pressure_measured !== undefined || checks.shelter_checks.temperature_recorded || checks.shelter_checks.amps_measured !== undefined || checks.shelter_checks.condenser_evaporator_cleaned !== undefined || checks.shelter_checks.outdoor_fan_checked !== undefined) && (
+               <div className="border-t pt-6">
+                 <h5 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">AC Maintenance</h5>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                   {checks.shelter_checks.ac_type && renderField('AC Type', checks.shelter_checks.ac_type)}
+                   {(checks.shelter_checks.internal_filter_cleaned !== undefined) && renderField('Internal Filter Cleaned', checks.shelter_checks.internal_filter_cleaned, 'boolean')}
+                   {(checks.shelter_checks.outdoor_compressor_cleaned !== undefined) && renderField('Outdoor Compressor Cleaned', checks.shelter_checks.outdoor_compressor_cleaned, 'boolean')}
+                   {(checks.shelter_checks.high_low_pressure_measured !== undefined) && renderField('High/Low Pressure Measured', checks.shelter_checks.high_low_pressure_measured, 'boolean')}
+                   {checks.shelter_checks.temperature_recorded && renderField('Recorded Temperature', checks.shelter_checks.temperature_recorded)}
+                   {(checks.shelter_checks.amps_measured !== undefined) && renderField('Amps Measured', checks.shelter_checks.amps_measured, 'boolean')}
+                   {(checks.shelter_checks.condenser_evaporator_cleaned !== undefined) && renderField('Condenser/Evaporator Cleaned', checks.shelter_checks.condenser_evaporator_cleaned, 'boolean')}
+                   {(checks.shelter_checks.outdoor_fan_checked !== undefined) && renderField('Outdoor Fan Checked', checks.shelter_checks.outdoor_fan_checked, 'boolean')}
+                 </div>
+               </div>
+             )}
+
+             {(checks.shelter_checks.internal_filter_cleaned_comment || checks.shelter_checks.internalFilterCleanedComment || checks.shelter_checks.outdoor_compressor_cleaned_comment || checks.shelter_checks.outdoorCompressorCleanedComment || checks.shelter_checks.high_low_pressure_measured_comment || checks.shelter_checks.highLowPressureMeasuredComment || checks.shelter_checks.temperature_recorded_comment || checks.shelter_checks.temperatureRecordedComment || checks.shelter_checks.amps_measured_comment || checks.shelter_checks.ampsMeasuredComment || checks.shelter_checks.condenser_evaporator_cleaned_comment || checks.shelter_checks.condenserEvaporatorCleanedComment || checks.shelter_checks.outdoor_fan_checked_comment || checks.shelter_checks.outdoorFanCheckedComment) && (
+               <div className="mt-4">
+                 <h5 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">AC Maintenance Comments</h5>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                   {(checks.shelter_checks.internal_filter_cleaned_comment || checks.shelter_checks.internalFilterCleanedComment) && renderField('Internal Filter Comment', checks.shelter_checks.internal_filter_cleaned_comment ?? checks.shelter_checks.internalFilterCleanedComment)}
+                   {(checks.shelter_checks.outdoor_compressor_cleaned_comment || checks.shelter_checks.outdoorCompressorCleanedComment) && renderField('Outdoor Compressor Comment', checks.shelter_checks.outdoor_compressor_cleaned_comment ?? checks.shelter_checks.outdoorCompressorCleanedComment)}
+                   {(checks.shelter_checks.high_low_pressure_measured_comment || checks.shelter_checks.highLowPressureMeasuredComment) && renderField('Pressure Comment', checks.shelter_checks.high_low_pressure_measured_comment ?? checks.shelter_checks.highLowPressureMeasuredComment)}
+                   {(checks.shelter_checks.temperature_recorded_comment || checks.shelter_checks.temperatureRecordedComment) && renderField('Recorded Temp Comment', checks.shelter_checks.temperature_recorded_comment ?? checks.shelter_checks.temperatureRecordedComment)}
+                   {(checks.shelter_checks.amps_measured_comment || checks.shelter_checks.ampsMeasuredComment) && renderField('Amps Comment', checks.shelter_checks.amps_measured_comment ?? checks.shelter_checks.ampsMeasuredComment)}
+                   {(checks.shelter_checks.condenser_evaporator_cleaned_comment || checks.shelter_checks.condenserEvaporatorCleanedComment) && renderField('Condenser/Evaporator Comment', checks.shelter_checks.condenser_evaporator_cleaned_comment ?? checks.shelter_checks.condenserEvaporatorCleanedComment)}
+                   {(checks.shelter_checks.outdoor_fan_checked_comment || checks.shelter_checks.outdoorFanCheckedComment) && renderField('Outdoor Fan Comment', checks.shelter_checks.outdoor_fan_checked_comment ?? checks.shelter_checks.outdoorFanCheckedComment)}
                  </div>
                </div>
              )}
@@ -367,6 +525,16 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                   renderField('Site Clean', checks.cleaning_checks.isClean || checks.cleaning_checks.is_clean, 'boolean', 'Yes', 'No')}
                 {checks.cleaning_checks.spillage !== undefined &&
                   renderField('Spillage Present', checks.cleaning_checks.spillage, 'boolean', 'Yes', 'No')}
+                {(checks.cleaning_checks.insideClean !== undefined || checks.cleaning_checks.inside_clean !== undefined) &&
+                  renderField('Inside Clean', checks.cleaning_checks.insideClean ?? checks.cleaning_checks.inside_clean, 'boolean', 'Yes', 'No')}
+                {(checks.cleaning_checks.outsidePerimeterClean !== undefined || checks.cleaning_checks.outside_perimeter_clean !== undefined) &&
+                  renderField('Outside Perimeter Clean', checks.cleaning_checks.outsidePerimeterClean ?? checks.cleaning_checks.outside_perimeter_clean, 'boolean', 'Yes', 'No')}
+                {(checks.cleaning_checks.shelterCleaned !== undefined || checks.cleaning_checks.shelter_cleaned !== undefined) &&
+                  renderField('Shelter Cleaned', checks.cleaning_checks.shelterCleaned ?? checks.cleaning_checks.shelter_cleaned, 'boolean', 'Yes', 'No')}
+                {(checks.cleaning_checks.outdoorEquipmentCleaned !== undefined || checks.cleaning_checks.outdoor_equipment_cleaned !== undefined) &&
+                  renderField('Outdoor Equipment Cleaned', checks.cleaning_checks.outdoorEquipmentCleaned ?? checks.cleaning_checks.outdoor_equipment_cleaned, 'boolean', 'Yes', 'No')}
+                {(checks.cleaning_checks.airBlowerUsed !== undefined || checks.cleaning_checks.air_blower_used !== undefined) &&
+                  renderField('Air Blower Used', checks.cleaning_checks.airBlowerUsed ?? checks.cleaning_checks.air_blower_used, 'boolean', 'Yes', 'No')}
                 {(checks.cleaning_checks.securityLight !== undefined || checks.cleaning_checks.security_light !== undefined) &&
                   renderField('Security Light', checks.cleaning_checks.securityLight || checks.cleaning_checks.security_light, 'boolean', 'Working', 'Faulty')}
                 {(checks.cleaning_checks.guardPresent !== undefined || checks.cleaning_checks.guard_present !== undefined) &&
@@ -374,6 +542,24 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({ report }) =>
                 {(checks.cleaning_checks.securityBox !== undefined || checks.cleaning_checks.security_box !== undefined) &&
                   renderField('Security Box', checks.cleaning_checks.securityBox || checks.cleaning_checks.security_box, 'boolean', 'Present', 'Absent')}
              </div>
+
+             {(checks.cleaning_checks.is_clean_comment || checks.cleaning_checks.isCleanComment || checks.cleaning_checks.spillage_comment || checks.cleaning_checks.spillageComment || checks.cleaning_checks.security_light_comment || checks.cleaning_checks.securityLightComment || checks.cleaning_checks.guard_present_comment || checks.cleaning_checks.guardPresentComment || checks.cleaning_checks.security_box_comment || checks.cleaning_checks.securityBoxComment || checks.cleaning_checks.inside_clean_comment || checks.cleaning_checks.insideCleanComment || checks.cleaning_checks.outside_perimeter_clean_comment || checks.cleaning_checks.outsidePerimeterCleanComment || checks.cleaning_checks.shelter_cleaned_comment || checks.cleaning_checks.shelterCleanedComment || checks.cleaning_checks.outdoor_equipment_cleaned_comment || checks.cleaning_checks.outdoorEquipmentCleanedComment || checks.cleaning_checks.air_blower_used_comment || checks.cleaning_checks.airBlowerUsedComment) && (
+               <div className="mb-6">
+                 <h5 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Issue Comments</h5>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                   {(checks.cleaning_checks.is_clean_comment || checks.cleaning_checks.isCleanComment) && renderField('Site Clean Comment', checks.cleaning_checks.is_clean_comment ?? checks.cleaning_checks.isCleanComment)}
+                   {(checks.cleaning_checks.spillage_comment || checks.cleaning_checks.spillageComment) && renderField('Spillage Comment', checks.cleaning_checks.spillage_comment ?? checks.cleaning_checks.spillageComment)}
+                   {(checks.cleaning_checks.security_light_comment || checks.cleaning_checks.securityLightComment) && renderField('Security Light Comment', checks.cleaning_checks.security_light_comment ?? checks.cleaning_checks.securityLightComment)}
+                   {(checks.cleaning_checks.guard_present_comment || checks.cleaning_checks.guardPresentComment) && renderField('Guard Comment', checks.cleaning_checks.guard_present_comment ?? checks.cleaning_checks.guardPresentComment)}
+                   {(checks.cleaning_checks.security_box_comment || checks.cleaning_checks.securityBoxComment) && renderField('Security Box Comment', checks.cleaning_checks.security_box_comment ?? checks.cleaning_checks.securityBoxComment)}
+                   {(checks.cleaning_checks.inside_clean_comment || checks.cleaning_checks.insideCleanComment) && renderField('Inside Clean Comment', checks.cleaning_checks.inside_clean_comment ?? checks.cleaning_checks.insideCleanComment)}
+                   {(checks.cleaning_checks.outside_perimeter_clean_comment || checks.cleaning_checks.outsidePerimeterCleanComment) && renderField('Outside Perimeter Comment', checks.cleaning_checks.outside_perimeter_clean_comment ?? checks.cleaning_checks.outsidePerimeterCleanComment)}
+                   {(checks.cleaning_checks.shelter_cleaned_comment || checks.cleaning_checks.shelterCleanedComment) && renderField('Shelter Cleaned Comment', checks.cleaning_checks.shelter_cleaned_comment ?? checks.cleaning_checks.shelterCleanedComment)}
+                   {(checks.cleaning_checks.outdoor_equipment_cleaned_comment || checks.cleaning_checks.outdoorEquipmentCleanedComment) && renderField('Outdoor Equipment Comment', checks.cleaning_checks.outdoor_equipment_cleaned_comment ?? checks.cleaning_checks.outdoorEquipmentCleanedComment)}
+                   {(checks.cleaning_checks.air_blower_used_comment || checks.cleaning_checks.airBlowerUsedComment) && renderField('Air Blower Comment', checks.cleaning_checks.air_blower_used_comment ?? checks.cleaning_checks.airBlowerUsedComment)}
+                 </div>
+               </div>
+             )}
              
              {checks.cleaning_checks.comments && (
                <div className="mb-6">

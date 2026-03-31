@@ -10,7 +10,7 @@ import { Modal } from '@/components/common/Modal';
 import { Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { MaintenanceForm } from '@/components/forms/MaintenanceForm';
-import { formatDate, formatStatus } from '@/utils/formatters';
+import { formatDate, formatDateTime, formatStatus } from '@/utils/formatters';
 import { FiCalendar, FiUser, FiMapPin, FiPlus, FiEdit, FiEye, FiTrash2, FiUpload, FiSettings } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
 
@@ -57,6 +57,14 @@ const ScheduledPage: React.FC = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   const { success, error: showError } = useNotification();
+
+  const getLatestEntry = (item: Maintenance | null) => {
+    const entries = Array.isArray(item?.site_entries) ? item?.site_entries : [];
+    if (!entries || entries.length === 0) return null;
+    return entries
+      .slice()
+      .sort((a: any, b: any) => new Date(b.entry_time || 0).getTime() - new Date(a.entry_time || 0).getTime())[0];
+  };
 
   useEffect(() => {
     loadScheduled();
@@ -514,7 +522,7 @@ const ScheduledPage: React.FC = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center text-gray-600">
                             <FiUser className="mr-2 h-4 w-4 flex-shrink-0" />
-                            <span className="truncate">{item.technician.fullName}</span>
+                            <span className="truncate">{item.technician?.fullName || 'Unassigned'}</span>
                           </div>
                           {item.site_details?.Region && (
                             <div className="flex items-center text-gray-600">
@@ -691,7 +699,7 @@ const ScheduledPage: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Technician</p>
-                <p className="font-medium">{selectedItem.technician.fullName}</p>
+                <p className="font-medium">{selectedItem.technician?.fullName || 'Unassigned'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Visit Date</p>
@@ -717,6 +725,14 @@ const ScheduledPage: React.FC = () => {
                 <Badge variant={formatStatus(selectedItem.status).color as any}>
                   {formatStatus(selectedItem.status).label}
                 </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Entry Time</p>
+                <p className="font-medium">{formatDateTime(getLatestEntry(selectedItem)?.entry_time)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Exit Time</p>
+                <p className="font-medium">{formatDateTime(getLatestEntry(selectedItem)?.exit_time)}</p>
               </div>
               {selectedItem.estimated_duration && (
                 <div>

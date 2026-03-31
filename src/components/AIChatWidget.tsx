@@ -77,7 +77,7 @@ export const AIChatWidget: React.FC = () => {
             >
                 <div className="flex items-center space-x-2">
                     <FiMessageSquare />
-                    <span className="font-semibold">PowerGen AI Assistant</span>
+                    <span className="font-semibold">Grato AI Assistant</span>
                 </div>
                 <div className="flex items-center space-x-2">
                     <button onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }} className="hover:text-blue-200">

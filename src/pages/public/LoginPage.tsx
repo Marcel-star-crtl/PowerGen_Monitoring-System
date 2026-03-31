@@ -34,6 +34,9 @@ const LoginPage: React.FC = () => {
         case 'data_collector':
           navigate('/data-collector');
           break;
+        case 'operations':
+          navigate('/operations');
+          break;
         case 'admin':
           navigate('/admin');
           break;
@@ -49,7 +52,7 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center p-4">
       <Card className="w-full max-w-md" padding="lg">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Generator Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Grato Telecoms</h1>
           <p className="text-gray-600">Sign in to your account</p>
         </div>
 

@@ -14,7 +14,7 @@ import { Pagination } from '@/components/common/Pagination';
 import { FiPlus, FiEdit, FiTrash2, FiLock, FiToggleLeft, FiToggleRight, FiUsers } from 'react-icons/fi';
 import { TechnicianAssignmentModal } from '@/components/admin/TechnicianAssignmentModal';
 
-type UserRole = 'admin' | 'supervisor' | 'technician' | 'diesel_manager' | 'data_collector' | 'analyst';
+type UserRole = 'admin' | 'supervisor' | 'technician' | 'ac' | 'diesel_manager' | 'data_collector' | 'analyst' | 'operations' | 'fuel';
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -245,6 +245,23 @@ const UsersPage: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             fullWidth
           />
+          {/* <Select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            options={[
+              { value: '', label: 'All Roles' },
+              { value: 'admin', label: 'Admin' },
+              { value: 'supervisor', label: 'Supervisor' },
+              { value: 'technician', label: 'Technician' },
+              { value: 'ac', label: 'AC Technician' },
+              { value: 'diesel_manager', label: 'Diesel Manager' },
+              { value: 'data_collector', label: 'Data Collector' },
+              { value: 'analyst', label: 'Analyst' },
+              { value: 'operations', label: 'Operations' },
+            ]}
+            fullWidth
+          /> */}
+
           <Select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
@@ -253,9 +270,12 @@ const UsersPage: React.FC = () => {
               { value: 'admin', label: 'Admin' },
               { value: 'supervisor', label: 'Supervisor' },
               { value: 'technician', label: 'Technician' },
-              { value: 'diesel_manager', label: 'Diesel Manager' },
+              { value: 'ac', label: 'AC Technician' },
+              { value: 'fuel', label: 'Fuel Technician' },
+              { value: 'diesel_manager', label: 'Diesel Admin' },
               { value: 'data_collector', label: 'Data Collector' },
               { value: 'analyst', label: 'Analyst' },
+              { value: 'operations', label: 'Operations' },
             ]}
             fullWidth
           />
@@ -301,16 +321,36 @@ const UsersPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             fullWidth
           />
+          {/* <Select
+            label="Role"
+            value={formData.role}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+            options={[
+              { value: 'technician', label: 'Technician' },
+              { value: 'ac', label: 'AC Technician' },
+              { value: 'supervisor', label: 'Supervisor' },
+              { value: 'diesel_manager', label: 'Diesel Manager' },
+              { value: 'data_collector', label: 'Data Collector' },
+              { value: 'analyst', label: 'Analyst' },
+              { value: 'operations', label: 'Operations' },
+              { value: 'admin', label: 'Admin' },
+            ]}
+            required
+            fullWidth
+          /> */}
           <Select
             label="Role"
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
             options={[
               { value: 'technician', label: 'Technician' },
+              { value: 'ac', label: 'AC Technician' },
+              { value: 'fuel', label: 'Fuel Technician' },
               { value: 'supervisor', label: 'Supervisor' },
-              { value: 'diesel_manager', label: 'Diesel Manager' },
+              { value: 'diesel_manager', label: 'Diesel Admin' },
               { value: 'data_collector', label: 'Data Collector' },
               { value: 'analyst', label: 'Analyst' },
+              { value: 'operations', label: 'Operations' },
               { value: 'admin', label: 'Admin' },
             ]}
             required

@@ -126,4 +126,14 @@ export const technicianAPI = {
     });
     return response.data;
   },
+
+  listAudits: async () => {
+    const response = await apiClient.get('/technician/site-audits');
+    return response.data;
+  },
+
+  getTechnicianAuditById: async (id: string) => {
+    const response = await apiClient.get(`/technician/site-audits/${id}`);
+    return response.data;
+  },
 };

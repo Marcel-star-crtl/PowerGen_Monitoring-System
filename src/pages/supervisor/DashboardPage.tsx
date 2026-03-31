@@ -9,7 +9,7 @@ import { Spinner } from '@/components/common/Spinner';
 import { Modal } from '@/components/common/Modal';
 import { MaintenanceForm } from '@/components/forms/MaintenanceForm';
 import { useNotification } from '@/contexts/NotificationContext';
-import { formatDate, formatRelativeTime } from '@/utils/formatters';
+import { formatDate, formatDateTime, formatRelativeTime } from '@/utils/formatters';
 import { FiClock, FiCheckCircle, FiXCircle, FiTrendingUp, FiUsers, FiAlertCircle, FiPlus, FiCpu, FiMapPin, FiZap, FiSun, FiBattery, FiDroplet, FiServer } from 'react-icons/fi';
 import { intelligenceAPI } from '@/api/endpoints/intelligence';
 
@@ -21,13 +21,40 @@ const SupervisorDashboard: React.FC = () => {
   const [scheduling, setScheduling] = useState(false);
   const [aiInsights, setAiInsights] = useState<string | null>(null);
   const [generatingInsights, setGeneratingInsights] = useState(false);
+  const [technicianAudits, setTechnicianAudits] = useState<any[]>([]);
+  const [loadingAudits, setLoadingAudits] = useState(true);
 
   const navigate = useNavigate();
   const { success, error: showError } = useNotification();
 
+  const getLatestEntry = (item: any) => {
+    const entries = Array.isArray(item?.site_entries) ? item.site_entries : [];
+    if (entries.length === 0) return null;
+    return entries
+      .slice()
+      .sort((a: any, b: any) => new Date(b.entry_time || 0).getTime() - new Date(a.entry_time || 0).getTime())[0];
+  };
+
+
   useEffect(() => {
     loadDashboard();
+    loadTechnicianAudits();
   }, []);
+
+  const loadTechnicianAudits = async () => {
+    setLoadingAudits(true);
+    try {
+      // Import technicianAPI dynamically to avoid circular import
+      const { technicianAPI } = await import('@/api');
+      const result = await technicianAPI.listAudits();
+      // result.data or result depending on API response shape
+      setTechnicianAudits(result.data || result);
+    } catch (err) {
+      console.error('Failed to load technician audits:', err);
+    } finally {
+      setLoadingAudits(false);
+    }
+  };
 
   const loadDashboard = async () => {
     try {
@@ -164,6 +191,55 @@ const SupervisorDashboard: React.FC = () => {
 
 
 
+
+      {/* Technician Audits Card */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <FiCpu className="h-5 w-5 text-blue-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Recent Technician Site Audits</h2>
+          </div>
+        </div>
+        {loadingAudits ? (
+          <div className="flex items-center justify-center py-8">
+            <Spinner size="md" />
+          </div>
+        ) : technicianAudits.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <FiCheckCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+            <p>No technician audits submitted yet</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {technicianAudits.slice(0, 5).map((audit) => (
+              <div key={audit._id} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">
+                      {audit.name_site || audit.site_id_ihs || 'Unknown Site'}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Status: {audit.status || 'N/A'}
+                    </p>
+                  </div>
+                  <Badge variant={audit.status === 'submitted' ? 'green' : 'gray'} size="sm">
+                    {audit.status || 'N/A'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Submitted {audit.createdAt ? formatRelativeTime(audit.createdAt) : 'N/A'}
+                </p>
+                {audit.comments && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Comments: {audit.comments}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {/* AI Insights Card */}
       <Card>
         <div className="flex items-center justify-between mb-4">
@@ -237,6 +313,11 @@ const SupervisorDashboard: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     Submitted {formatRelativeTime(item.submitted_at)}
                   </p>
+                  {getLatestEntry(item) && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Entry {formatDateTime(getLatestEntry(item)?.entry_time)} · Exit {formatDateTime(getLatestEntry(item)?.exit_time)}
+                    </p>
+                  )}
                 </div>
               ))}
               <Button

@@ -110,6 +110,28 @@ export interface Maintenance {
   site_id: string;
   site_name?: string;
   visit_reference: string; // Generated when visit is submitted
+
+  site_entries?: Array<{
+    technician?: {
+      _id?: string;
+      fullName?: string;
+      email?: string;
+    } | string;
+    site_id?: string;
+    entry_time?: Date | string;
+    exit_time?: Date | string;
+    entry_location?: {
+      latitude?: number;
+      longitude?: number;
+      address?: string;
+    };
+    exit_location?: {
+      latitude?: number;
+      longitude?: number;
+      address?: string;
+    };
+    notes?: string;
+  }>;
   
   // Assignment Details (Task phase)
   scheduled_date?: Date; // When task is scheduled
@@ -199,6 +221,36 @@ export interface Maintenance {
     Site_Name: string;
     Region: string;
     GRATO_Cluster: string;
+  };
+  equipment_checks?: {
+    fuel_tank_checks?: {
+      status?: boolean;
+      fuel_level?: number;
+      fuel_added?: number;
+      check_status?: string;
+      checked_at?: Date | string;
+      checked_by?: string | { _id?: string; fullName?: string };
+      comments?: string;
+      fse_name?: string;
+      tank_length_cm?: number;
+      tank_height_cm?: number;
+      tank_width_cm?: number;
+      tank_observations?: string;
+      fuel_sensor_status?: string;
+      dip_stick_before_cm?: number;
+      dip_stick_after_cm?: number;
+      truck_flow_meter_before_l?: number;
+      truck_flow_meter_after_l?: number;
+      truck_plate_number?: string;
+      guard_name?: string;
+      guard_number?: string;
+      planifier?: string;
+      departure_time_min?: string | number;
+      arrival_time_station?: string;
+      arrival_time_site?: string;
+      transfer_time_min?: string | number;
+      quantity_transfer_l?: number;
+    };
   };
 }
 
