@@ -21,6 +21,12 @@ import {
   FiLayers,
   FiAlertCircle,
   FiClipboard,
+  FiUpload,
+  FiRefreshCw,
+  FiCreditCard,
+  FiCpu,
+  FiActivity,
+  FiBell,
 } from 'react-icons/fi';
 
 interface NavItem {
@@ -28,6 +34,7 @@ interface NavItem {
   path: string;
   icon: React.ReactNode;
   roles: string[];
+  dividerBefore?: boolean; // renders a visual section separator above this item
 }
 
 const navigationItems: NavItem[] = [
@@ -43,7 +50,8 @@ const navigationItems: NavItem[] = [
     icon: <FiClipboard className="h-5 w-5" />,
     roles: ['admin', 'supervisor'],
   },
-  // ========== ADMIN NAVIGATION ===========
+
+  // ========== ADMIN NAVIGATION ==========
   {
     name: 'Users',
     path: 'users',
@@ -80,7 +88,7 @@ const navigationItems: NavItem[] = [
     icon: <FiBarChart2 className="h-5 w-5" />,
     roles: ['admin'],
   },
-  
+
   // ========== TECHNICIAN NAVIGATION ==========
   {
     name: 'My Sites',
@@ -106,7 +114,7 @@ const navigationItems: NavItem[] = [
     icon: <FiCalendar className="h-5 w-5" />,
     roles: ['technician'],
   },
-  
+
   // ========== SUPERVISOR NAVIGATION ==========
   {
     name: 'Sites',
@@ -144,10 +152,11 @@ const navigationItems: NavItem[] = [
     icon: <FiBarChart2 className="h-5 w-5" />,
     roles: ['supervisor'],
   },
-  
+
   // ========== DIESEL MANAGER NAVIGATION ==========
+  // ── Existing fuel-request workflow (unchanged) ──
   {
-    name: 'Fuel Requests',
+    name: 'Refuel',
     path: 'fuel-requests',
     icon: <FiDroplet className="h-5 w-5" />,
     roles: ['diesel_manager'],
@@ -158,26 +167,90 @@ const navigationItems: NavItem[] = [
     icon: <FiBarChart2 className="h-5 w-5" />,
     roles: ['diesel_manager'],
   },
+  // {
+  //   name: 'Low Fuel Alerts',
+  //   path: 'alerts',
+  //   icon: <FiAlertCircle className="h-5 w-5" />,
+  //   roles: ['diesel_manager'],
+  // },
+  // {
+  //   name: 'Scheduled Fuel Tasks',
+  //   path: 'scheduled',
+  //   icon: <FiCalendar className="h-5 w-5" />,
+  //   roles: ['diesel_manager'],
+  // },
+  // {
+  //   name: 'Trends',
+  //   path: 'trends',
+  //   icon: <FiBarChart2 className="h-5 w-5" />,
+  //   roles: ['diesel_manager'],
+  // },
+
+  // ── New: reconciliation system ──
   {
-    name: 'Low Fuel Alerts',
-    path: 'alerts',
-    icon: <FiAlertCircle className="h-5 w-5" />,
+    name: 'Reconciliation',           // divider separates old workflow from new system
+    path: 'reconciliation-dashboard',
+    icon: <FiActivity className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+    dividerBefore: true,
+  },
+  {
+    name: 'Upload CMS Data',
+    path: 'cms-upload',
+    icon: <FiUpload className="h-5 w-5" />,
     roles: ['diesel_manager'],
   },
   {
-    name: 'Scheduled Fuel Tasks',
-    path: 'scheduled',
-    icon: <FiCalendar className="h-5 w-5" />,
+    name: 'Upload Daily Visits',
+    path: 'grato-upload',
+    icon: <FiUpload className="h-5 w-5" />,
     roles: ['diesel_manager'],
   },
   {
-    name: 'Trends',
-    path: 'trends',
-    icon: <FiBarChart2 className="h-5 w-5" />,
+    name: 'Site Reconciliation',
+    path: 'reconciliation',
+    icon: <FiRefreshCw className="h-5 w-5" />,
     roles: ['diesel_manager'],
   },
-  
+  {
+    name: 'Recon Alerts',
+    path: 'reconciliation-alerts',
+    icon: <FiBell className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+  {
+    name: 'Site Budget Upload',
+    path: 'site-budget',
+    icon: <FiBell className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+  {
+    name: 'Validation Upload',
+    path: 'validation',
+    icon: <FiBell className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+  {
+    name: 'Tom Card',
+    path: 'tomcard',
+    icon: <FiCreditCard className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+  {
+    name: 'Generator Ledger',
+    path: 'generators',
+    icon: <FiCpu className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+  {
+    name: 'Recon Reports',
+    path: 'recon-reports',
+    icon: <FiDownload className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+
   // ========== DATA COLLECTOR NAVIGATION ==========
+  // ── Existing data quality pages (unchanged) ──
   {
     name: 'Data Quality',
     path: 'data-quality',
@@ -209,6 +282,27 @@ const navigationItems: NavItem[] = [
     roles: ['data_collector'],
   },
 
+  // ── New: diesel data-entry access for data_collector ──
+  {
+    name: 'Upload CMS',
+    path: 'diesel/cms-upload',
+    icon: <FiUpload className="h-5 w-5" />,
+    roles: ['data_collector'],
+    dividerBefore: true,
+  },
+  {
+    name: 'Upload GRATO',
+    path: 'diesel/grato-upload',
+    icon: <FiUpload className="h-5 w-5" />,
+    roles: ['data_collector'],
+  },
+  {
+    name: 'Diesel Alerts',
+    path: 'diesel/alerts',
+    icon: <FiBell className="h-5 w-5" />,
+    roles: ['data_collector'],
+  },
+
   // ========== OPERATIONS NAVIGATION ==========
   {
     name: 'Site Audits',
@@ -234,13 +328,13 @@ export const Sidebar: React.FC = () => {
         {/* Role Badge */}
         <div className="mb-6">
           <h2 className="text-primary text-lg font-semibold mb-2">
-            {user?.role === 'admin' && 'Admin Portal'}
-            {user?.role === 'supervisor' && 'Supervisor Portal'}
-            {user?.role === 'technician' && 'Technician Portal'}
-            {user?.role === 'diesel_manager' && 'Diesel Manager'}
-            {user?.role === 'data_collector' && 'Data Collector'}
-            {user?.role === 'analyst' && 'Analyst Portal'}
-            {user?.role === 'operations' && 'Operations Portal'}
+            {user?.role === 'admin'           && 'Admin Portal'}
+            {user?.role === 'supervisor'      && 'Supervisor Portal'}
+            {user?.role === 'technician'      && 'Technician Portal'}
+            {user?.role === 'diesel_manager'  && 'Diesel Manager'}
+            {user?.role === 'data_collector'  && 'Data Collector'}
+            {user?.role === 'analyst'         && 'Analyst Portal'}
+            {user?.role === 'operations'      && 'Operations Portal'}
           </h2>
           <div className="text-xs text-primary-light uppercase tracking-wider">
             {user?.fullName}
@@ -249,30 +343,38 @@ export const Sidebar: React.FC = () => {
 
         <nav className="space-y-1">
           {filteredNav.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === ''}
-              className={({ isActive }) =>
-                classNames(
-                  'flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors',
-                  isActive
-                    ? 'bg-primary text-white'
-                    : 'text-primary-light hover:bg-danger hover:text-white'
-                )
-              }
-            >
-              {/* Icon color is always text-primary-light for consistency */}
-              {React.cloneElement(item.icon as React.ReactElement, {
-                className: classNames('h-5 w-5', 'text-primary-light'),
-              })}
-              <span>{item.name}</span>
-            </NavLink>
+            <React.Fragment key={`${item.roles.join('-')}-${item.path}`}>
+
+              {/* Section divider — only rendered when dividerBefore is true */}
+              {item.dividerBefore && (
+                <div className="pt-3 pb-1">
+                  <div className="border-t border-white/10" />
+                </div>
+              )}
+
+              <NavLink
+                to={item.path}
+                end={item.path === ''}
+                className={({ isActive }) =>
+                  classNames(
+                    'flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors',
+                    isActive
+                      ? 'bg-primary text-white'
+                      : 'text-primary-light hover:bg-danger hover:text-white'
+                  )
+                }
+              >
+                {React.cloneElement(item.icon as React.ReactElement, {
+                  className: classNames('h-5 w-5', 'text-primary-light'),
+                })}
+                <span>{item.name}</span>
+              </NavLink>
+
+            </React.Fragment>
           ))}
         </nav>
       </div>
     </aside>
   );
 };
-
 

@@ -41,12 +41,28 @@ import SupervisorScheduled from '@/pages/supervisor/ScheduledPage';
 import SupervisorTechnicians from '@/pages/supervisor/TechniciansPage';
 import SupervisorStatistics from '@/pages/supervisor/StatisticsPage';
 
-// ========== DIESEL MANAGER PAGES ==========
-import DieselDashboard from '@/pages/diesel/DashboardPage';
+// ========== DIESEL MANAGER PAGES (existing fuel-request workflow) ==========
+import DieselDashboard from '@/pages/diesel/DieselDashboardPage';
 import FuelRequests from '@/pages/diesel/FuelRequestsPage';
 import FuelConsumption from '@/pages/diesel/ConsumptionPage';
 import LowFuelAlerts from '@/pages/diesel/LowFuelAlertsPage';
 import FuelTrends from '@/pages/diesel/TrendsPage';
+
+// ========== DIESEL RECONCILIATION SYSTEM PAGES (new — CMS/GRATO/Tom Card/alerts) ==========
+// These are SEPARATE components from the existing diesel pages above.
+// Mounted as sibling routes under the same /diesel path so diesel_manager
+// and admin can reach both the existing fuel-request workflow and the
+// new reconciliation system from one role area.
+import DieselReconciliationDashboard from '@/pages/diesel/DieselDashboardPage';
+import CmsUploadPage from '@/pages/diesel/CmsUploadPage';
+import ValidationUploadPage from '@/pages/diesel/ValidationUploadPage';
+import SiteBudgetUploadPage from '@/pages/diesel/SiteBudgetUploadPage';
+import GratoUploadPage from '@/pages/diesel/GratoUploadPage';
+import ReconciliationPage from '@/pages/diesel/ReconciliationPage';
+import DieselReconAlertsPage from '@/pages/diesel/AlertsPage';
+import TomCardPage from '@/pages/diesel/TomCardPage';
+import GeneratorLedgerPage from '@/pages/diesel/GeneratorLedgerPage';
+import DieselReconReportsPage from '@/pages/diesel/ReportsPage';
 
 // ========== DATA COLLECTOR PAGES ==========
 import DataCollectorDashboard from '@/pages/data-collector/DashboardPage';
@@ -140,6 +156,8 @@ const App: React.FC = () => {
             </Route>
 
             {/* ========== DIESEL MANAGER ROUTES ========== */}
+            {/* Existing fuel-request workflow PLUS new reconciliation system, */}
+            {/* both living under /diesel since they serve the same roles. */}
             <Route
               path="/diesel"
               element={
@@ -149,15 +167,33 @@ const App: React.FC = () => {
               }
             >
               <Route index element={<DieselDashboard />} />
+
+              {/* ── Existing fuel-request workflow (unchanged) ── */}
               <Route path="fuel-requests" element={<FuelRequests />} />
               <Route path="consumption" element={<FuelConsumption />} />
               <Route path="alerts" element={<LowFuelAlerts />} />
               <Route path="trends" element={<FuelTrends />} />
+              <Route path="validation" element={<ValidationUploadPage />} />
+              <Route path="site-budget" element={<SiteBudgetUploadPage />} />
               <Route path="scheduled" element={React.createElement(require('@/pages/diesel/ScheduledPage').default)} />
+
+              {/* ── New: diesel reconciliation system (CMS/GRATO/Tom Card) ── */}
+              <Route path="reconciliation-dashboard" element={<DieselReconciliationDashboard />} />
+              <Route path="cms-upload" element={<CmsUploadPage />} />
+              <Route path="grato-upload" element={<GratoUploadPage />} />
+              <Route path="reconciliation" element={<ReconciliationPage />} />
+              <Route path="reconciliation-alerts" element={<DieselReconAlertsPage />} />
+              <Route path="tomcard" element={<TomCardPage />} />
+              <Route path="generators" element={<GeneratorLedgerPage />} />
+              <Route path="recon-reports" element={<DieselReconReportsPage />} />
+
               <Route path="*" element={<Navigate to="/diesel" replace />} />
             </Route>
 
             {/* ========== DATA COLLECTOR ROUTES ========== */}
+            {/* data_collector also needs CMS/GRATO upload + alerts visibility */}
+            {/* per the diesel system requirements — added as additional paths */}
+            {/* inside the existing /data-collector role area, nothing removed. */}
             <Route
               path="/data-collector"
               element={
@@ -173,6 +209,13 @@ const App: React.FC = () => {
               <Route path="reports" element={<DataReports />} />
               <Route path="maintenance" element={<SubmittedMaintenance />} />
               <Route path="maintenance/:maintenanceId" element={<MaintenanceDetail />} />
+
+              {/* ── New: diesel data-entry access for data_collector role ── */}
+              <Route path="diesel/cms-upload" element={<CmsUploadPage />} />
+              <Route path="diesel/validation" element={<ValidationUploadPage />} />
+              <Route path="diesel/grato-upload" element={<GratoUploadPage />} />
+              <Route path="diesel/alerts" element={<DieselReconAlertsPage />} />
+
               <Route path="*" element={<Navigate to="/data-collector" replace />} />
             </Route>
 
@@ -202,6 +245,12 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
+
+
 
 
 
