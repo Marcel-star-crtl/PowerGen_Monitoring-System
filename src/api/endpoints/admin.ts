@@ -156,5 +156,21 @@ export const adminAPI = {
 removeTechnicianFromCluster: (clusterId: string, technicianId: string) =>
   apiClient.delete(`/admin/clusters/${clusterId}/technicians/${technicianId}`),
 
+  // Fuel Request Approval Chain — the six named approvers + CEO threshold,
+  // previously hardcoded in the backend and only changeable via a code
+  // deploy. Now DB-backed and admin-editable through this endpoint.
+  getApprovalChain: async () => {
+    const response = await apiClient.get('/admin/approval-chain/fuel-request');
+    return response.data;
+  },
+
+  updateApprovalChain: async (data: {
+    steps: Array<{ level: number; name: string; email: string; role: string; department: string; conditional_ceo_step?: boolean }>;
+    ceo_liters_threshold: number;
+  }) => {
+    const response = await apiClient.put('/admin/approval-chain/fuel-request', data);
+    return response.data;
+  },
+
 };
 

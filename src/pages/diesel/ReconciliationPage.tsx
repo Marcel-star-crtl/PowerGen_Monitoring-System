@@ -4,6 +4,7 @@
  */
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { useCycles, useReconciliation } from '../../hooks/useDiesel';
 import { reconciliationApi, reportsApi } from '../../api/dieselApi';
 import {
@@ -26,11 +27,27 @@ const ALERT_FILTERS = [
 
 export default function ReconciliationPage() {
   const [params] = useSearchParams();
+  const { user } = useAuthContext();
   const { cycles, selectedKey, setSelectedKey, loading: cyclesLoading } = useCycles();
   const [clusterFilter, setClusterFilter] = useState(params.get('cluster') || '');
   const [alertFilter,   setAlertFilter]   = useState('');
   const [selected,      setSelected]      = useState<CycleReconciliation | null>(null);
   const [running,       setRunning]       = useState(false);
+
+  // Matches the backend's own guard (requireRole(['admin'])) on
+  // PATCH /:cycle_key/site/:site_id/override — only show the review form to
+  // someone who can actually use it.
+  const canReview = user?.role === 'admin';
+
+  async function handleSaveReview(notes: string) {
+    if (!selected) return;
+    const res = await reconciliationApi.override(selected.cycle_key, selected.site_id, notes);
+    const updated = (res as any)?.data || res;
+    // Update the open drawer immediately and patch the row in the table data
+    // so the "reviewed" state is visible without a full page refetch.
+    setSelected((prev) => (prev ? { ...prev, ...updated } : prev));
+    refetch();
+  }
 
   const queryParams = useMemo(() => ({
     cluster: clusterFilter || undefined,
@@ -41,6 +58,21 @@ export default function ReconciliationPage() {
   const { data, loading, error, refetch } = useReconciliation(selectedKey, queryParams);
   const sites   = (data as any)?.data || data || [];
   const summary = (data as any)?.summary || {};
+
+  // Auto-open the detail drawer for a site linked in via ?site_id= (used by
+  // the Live Site Map's "View Reconciliation" quick action) — only once,
+  // the first time that site's record becomes available, so it doesn't
+  // fight the user if they close the drawer and click elsewhere afterward.
+  const siteIdParam = params.get('site_id');
+  const [autoOpenedFor, setAutoOpenedFor] = useState<string | null>(null);
+  React.useEffect(() => {
+    if (!siteIdParam || autoOpenedFor === siteIdParam || sites.length === 0) return;
+    const match = sites.find((s: CycleReconciliation) => s.site_id === siteIdParam);
+    if (match) {
+      setSelected(match);
+      setAutoOpenedFor(siteIdParam);
+    }
+  }, [siteIdParam, sites, autoOpenedFor]);
 
   const clusters = useMemo(() => {
     const set = new Set<string>();
@@ -107,6 +139,7 @@ export default function ReconciliationPage() {
       {/* ── Filters ── */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <select value={clusterFilter} onChange={e => setClusterFilter(e.target.value)}
+          aria-label="Filter by cluster"
           style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 12px', fontSize: 13 }}>
           <option value="">All Clusters</option>
           {clusters.map(c => <option key={c} value={c}>{c}</option>)}
@@ -148,7 +181,12 @@ export default function ReconciliationPage() {
                     onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}>
                     <td style={{ padding: '10px 14px' }}>
-                      <p style={{ margin: 0, fontWeight: 600 }}>{s.site_id}</p>
+                      <p style={{ margin: 0, fontWeight: 600 }}>
+                        {s.site_id}
+                        {s.is_manually_reviewed && (
+                          <span title="Manually reviewed" style={{ marginLeft: 6, color: '#16a34a', fontSize: 11 }}>✓ reviewed</span>
+                        )}
+                      </p>
                       <p style={{ margin: 0, color: '#9ca3af', fontSize: 11 }}>{s.site_name}</p>
                     </td>
                     <td style={{ padding: '10px 14px' }}>{s.cluster}</td>
@@ -173,7 +211,12 @@ export default function ReconciliationPage() {
         )}
       </div>
 
-      <SiteDetailDrawer recon={selected} onClose={() => setSelected(null)} />
+      <SiteDetailDrawer
+        recon={selected}
+        onClose={() => setSelected(null)}
+        canReview={canReview}
+        onSaveReview={handleSaveReview}
+      />
     </div>
   );
 }

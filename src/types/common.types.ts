@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'admin' | 'supervisor' | 'technician' | 'ac' | 'diesel_manager' | 'data_collector' | 'analyst' | 'operations' | 'fuel';
+  role: 'admin' | 'supervisor' | 'technician' | 'ac' | 'diesel_manager' | 'data_collector' | 'analyst' | 'operations' | 'fuel' | 'finance' | 'head_of_business' | 'ceo';
   phone?: string;
   isActive: boolean;
   assignedTechnicians?: string[];
@@ -61,6 +61,3 @@ export interface Photo {
 export type StatusType = 'pending' | 'scheduled' | 'in_progress' | 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'completed';
 export type PriorityType = 'low' | 'medium' | 'high' | 'critical';
 export type VisitType = 'PM' | 'END' | 'RF' | 'PM+END' | 'PM+RF' | 'RF+END' | 'PM+RF+END';
-
-
-

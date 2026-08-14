@@ -3,6 +3,7 @@
  * Full alert management: filter, search, acknowledge, resolve.
  */
 import React, { useState, useMemo } from 'react';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useAlerts, useCycles } from '../../hooks/useDiesel';
 import { alertsApi } from '../../api/dieselApi';
 import { PageHeader, CycleSelector, AlertCard, SeverityBadge, Spinner, ErrorBox, EmptyState, Btn } from '../../components/diesel/DieselComponents';
@@ -23,6 +24,7 @@ const TYPES: { key: AlertType | ''; label: string }[] = [
 ];
 
 export default function AlertsPage() {
+  const { hasRole } = useAuthContext();
   const { cycles, selectedKey, setSelectedKey, loading: cyclesLoading } = useCycles();
   const [status,   setStatus]   = useState('open');
   const [severity, setSeverity] = useState<AlertSeverity | ''>('');
@@ -44,6 +46,7 @@ export default function AlertsPage() {
 
   async function handleAck(id: string)     { await alertsApi.acknowledge(id); refetch(); }
   async function handleResolve(id: string) { await alertsApi.resolve(id, 'Resolved from alerts page'); refetch(); }
+  async function handleDismiss(id: string) { await alertsApi.dismiss(id); refetch(); }
   async function handleReadAll()            { await alertsApi.readAll(); refetch(); }
 
   if (cyclesLoading) return <Spinner />;
@@ -76,18 +79,19 @@ export default function AlertsPage() {
       {/* ── Filters ── */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by site or title…"
+          aria-label="Search alerts by site or title"
           style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '7px 14px', fontSize: 13, flex: 1, minWidth: 200 }} />
-        <select value={status} onChange={e => setStatus(e.target.value)} style={selectStyle}>
+        <select value={status} onChange={e => setStatus(e.target.value)} aria-label="Filter by status" style={selectStyle}>
           <option value="open">Open</option>
           <option value="acknowledged">Acknowledged</option>
           <option value="resolved">Resolved</option>
           <option value="all">All Statuses</option>
         </select>
-        <select value={severity} onChange={e => setSeverity(e.target.value as AlertSeverity)} style={selectStyle}>
+        <select value={severity} onChange={e => setSeverity(e.target.value as AlertSeverity)} aria-label="Filter by severity" style={selectStyle}>
           <option value="">All Severities</option>
           {['critical', 'high', 'medium', 'low', 'info'].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={type} onChange={e => setType(e.target.value as AlertType)} style={selectStyle}>
+        <select value={type} onChange={e => setType(e.target.value as AlertType)} aria-label="Filter by alert type" style={selectStyle}>
           {TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
         </select>
       </div>
@@ -96,7 +100,7 @@ export default function AlertsPage() {
       {loading ? <Spinner /> : alerts.length === 0 ? (
         <EmptyState icon="✅" title="No alerts found" desc="Nothing matches the current filters" />
       ) : (
-        alerts.map((a: any) => <AlertCard key={a._id} alert={a} onAcknowledge={handleAck} onResolve={handleResolve} />)
+        alerts.map((a: any) => <AlertCard key={a._id} alert={a} onAcknowledge={handleAck} onResolve={handleResolve} onDismiss={handleDismiss} isAdmin={hasRole('admin')} />)
       )}
     </div>
   );

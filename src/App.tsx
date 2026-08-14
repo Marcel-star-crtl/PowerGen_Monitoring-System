@@ -21,6 +21,7 @@ import AdminMaintenance from '@/pages/admin/MaintenanceManagementPage';
 import AdminParts from '@/pages/admin/PartsManagementPage';
 import AdminClusters from '@/pages/admin/ClustersManagementPage';
 import AdminReports from '@/pages/admin/SystemReportsPage';
+import ApprovalChainPage from '@/pages/admin/ApprovalChainPage';
 
 // ========== TECHNICIAN PAGES ==========
 import TechnicianDashboard from '@/pages/technician/DashboardPage';
@@ -42,8 +43,10 @@ import SupervisorTechnicians from '@/pages/supervisor/TechniciansPage';
 import SupervisorStatistics from '@/pages/supervisor/StatisticsPage';
 
 // ========== DIESEL MANAGER PAGES (existing fuel-request workflow) ==========
-import DieselDashboard from '@/pages/diesel/DieselDashboardPage';
-import FuelRequests from '@/pages/diesel/FuelRequestsPage';
+import DieselDashboard    from '@/pages/diesel/DieselDashboardPage';
+import FuelRequests       from '@/pages/diesel/FuelRequestsPage';
+import ScheduledPage      from '@/pages/diesel/ScheduledPage';
+import FuelPlanningPage   from '@/pages/diesel/FuelPlanningPage';
 import FuelConsumption from '@/pages/diesel/ConsumptionPage';
 import LowFuelAlerts from '@/pages/diesel/LowFuelAlertsPage';
 import FuelTrends from '@/pages/diesel/TrendsPage';
@@ -53,10 +56,21 @@ import FuelTrends from '@/pages/diesel/TrendsPage';
 // Mounted as sibling routes under the same /diesel path so diesel_manager
 // and admin can reach both the existing fuel-request workflow and the
 // new reconciliation system from one role area.
-import DieselReconciliationDashboard from '@/pages/diesel/DieselDashboardPage';
+// DieselDashboard (imported above) covers all roles
 import CmsUploadPage from '@/pages/diesel/CmsUploadPage';
 import ValidationUploadPage from '@/pages/diesel/ValidationUploadPage';
 import SiteBudgetUploadPage from '@/pages/diesel/SiteBudgetUploadPage';
+import TankLevelUploadPage from '@/pages/diesel/TankLevelUploadPage';
+import SitesMapPage from '@/pages/diesel/SitesMapPage';
+import SiteDirectoryPage from '@/pages/diesel/SiteDirectoryPage';
+import TheftInvestigationPage from '@/pages/diesel/TheftInvestigationPage';
+import BudgetPlanningPage from '@/pages/diesel/BudgetPlanningPage';
+import AIFleetInsightsPage from '@/pages/diesel/AIFleetInsightsPage';
+import HistoricalDataPage from '@/pages/diesel/HistoricalDataPage';
+import SiteStockPage from '@/pages/diesel/SiteStockPage';
+import TankAuditPage from '@/pages/diesel/TankAuditPage';
+import DataSourceComparisonPage from '@/pages/diesel/DataSourceComparisonPage';
+import TomCardCycleBudgetUploadPage from '@/pages/diesel/TomCardCycleBudgetUploadPage';
 import GratoUploadPage from '@/pages/diesel/GratoUploadPage';
 import ReconciliationPage from '@/pages/diesel/ReconciliationPage';
 import DieselReconAlertsPage from '@/pages/diesel/AlertsPage';
@@ -77,6 +91,11 @@ import MaintenanceDetail from '@/pages/data-collector/MaintenanceDetailPage';
 import OperationsDashboard from '@/pages/operations/DashboardPage';
 import OperationsAudits from '@/pages/operations/AuditsPage';
 import OperationsAuditDetail from '@/pages/operations/AuditDetailPage';
+
+// ========== EXECUTIVE / LEADERSHIP PAGES (new) ==========
+import FinanceDashboard from '@/pages/finance/FinanceDashboard';
+import HOBDashboard from '@/pages/hob/HOBDashboard';
+import CEODashboard from '@/pages/ceo/CEODashboard';
 
 const App: React.FC = () => {
   return (
@@ -107,7 +126,7 @@ const App: React.FC = () => {
               <Route path="reports" element={<AdminReports />} />
               <Route path="technician-audits" element={<TechnicianAuditsPage />} />
               <Route path="technician-audits/:id" element={<TechnicianAuditDetailPage />} />
-              <Route path="technician-audits/:id" element={<TechnicianAuditDetailPage />} />
+              <Route path="approval-chain" element={<ApprovalChainPage />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
 
@@ -148,8 +167,6 @@ const App: React.FC = () => {
               <Route path="scheduled" element={<SupervisorScheduled />} />
               <Route path="technicians" element={<SupervisorTechnicians />} />
               <Route path="statistics" element={<SupervisorStatistics />} />
-              {/* <Route path="technician-audits" element={<TechnicianAuditsPage />} />
-              <Route path="*" element={<Navigate to="/supervisor" replace />} /> */}
               <Route path="technician-audits" element={<TechnicianAuditsPage />} />
               <Route path="technician-audits/:id" element={<TechnicianAuditDetailPage />} />
               <Route path="*" element={<Navigate to="/supervisor" replace />} />
@@ -161,7 +178,7 @@ const App: React.FC = () => {
             <Route
               path="/diesel"
               element={
-                <ProtectedRoute allowedRoles={['diesel_manager', 'admin']}>
+                <ProtectedRoute allowedRoles={['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo']}>
                   <Layout />
                 </ProtectedRoute>
               }
@@ -170,15 +187,27 @@ const App: React.FC = () => {
 
               {/* ── Existing fuel-request workflow (unchanged) ── */}
               <Route path="fuel-requests" element={<FuelRequests />} />
+              <Route path="fuel-planning" element={<FuelPlanningPage />} />
               <Route path="consumption" element={<FuelConsumption />} />
               <Route path="alerts" element={<LowFuelAlerts />} />
               <Route path="trends" element={<FuelTrends />} />
               <Route path="validation" element={<ValidationUploadPage />} />
               <Route path="site-budget" element={<SiteBudgetUploadPage />} />
-              <Route path="scheduled" element={React.createElement(require('@/pages/diesel/ScheduledPage').default)} />
+              <Route path="tank-level" element={<TankLevelUploadPage />} />
+              <Route path="sites-map" element={<SitesMapPage />} />
+              <Route path="site-directory" element={<SiteDirectoryPage />} />
+              <Route path="theft-investigation" element={<TheftInvestigationPage />} />
+              <Route path="budget-planning" element={<BudgetPlanningPage />} />
+              <Route path="ai-insights" element={<AIFleetInsightsPage />} />
+              <Route path="historical-data" element={<HistoricalDataPage />} />
+              <Route path="site-stock" element={<SiteStockPage />} />
+              <Route path="tank-audits" element={<TankAuditPage />} />
+              <Route path="data-sources" element={<DataSourceComparisonPage />} />
+              <Route path="tomcard-cycle-budget" element={<TomCardCycleBudgetUploadPage />} />
+              <Route path="scheduled" element={<ScheduledPage />} />
 
               {/* ── New: diesel reconciliation system (CMS/GRATO/Tom Card) ── */}
-              <Route path="reconciliation-dashboard" element={<DieselReconciliationDashboard />} />
+              <Route path="reconciliation-dashboard" element={<DieselDashboard />} />
               <Route path="cms-upload" element={<CmsUploadPage />} />
               <Route path="grato-upload" element={<GratoUploadPage />} />
               <Route path="reconciliation" element={<ReconciliationPage />} />
@@ -234,6 +263,45 @@ const App: React.FC = () => {
               <Route path="*" element={<Navigate to="/operations" replace />} />
             </Route>
 
+            {/* ========== FINANCE ROUTES (new) ========== */}
+            <Route
+              path="/finance"
+              element={
+                <ProtectedRoute allowedRoles={['finance', 'admin']}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<FinanceDashboard />} />
+              <Route path="*" element={<Navigate to="/finance" replace />} />
+            </Route>
+
+            {/* ========== HEAD OF BUSINESS ROUTES (new) ========== */}
+            <Route
+              path="/hob"
+              element={
+                <ProtectedRoute allowedRoles={['head_of_business', 'admin']}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<HOBDashboard />} />
+              <Route path="*" element={<Navigate to="/hob" replace />} />
+            </Route>
+
+            {/* ========== CEO ROUTES (new) ========== */}
+            <Route
+              path="/ceo"
+              element={
+                <ProtectedRoute allowedRoles={['ceo', 'admin']}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<CEODashboard />} />
+              <Route path="*" element={<Navigate to="/ceo" replace />} />
+            </Route>
+
             {/* ========== DEFAULT REDIRECTS ========== */}
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
@@ -245,13 +313,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-
-
-
-
-
-
-
-
-

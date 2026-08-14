@@ -21,7 +21,26 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const [fuelStats, setFuelStats] = React.useState<any>(null);
+
   useEffect(() => {
+    // Load fuel request stats for current cycle
+    import('@/api/client').then(({ default: apiClient }) => {
+      const d = new Date();
+      const cycleKey = d.getDate() >= 26
+        ? (() => { const nd = new Date(d.getFullYear(), d.getMonth()+1, 1); return `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}`; })()
+        : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      Promise.all([
+        apiClient.get('/fuel-requests', { params: { limit: 1 } }),
+        apiClient.get(`/site-budget/${cycleKey}/aggregate`).catch(() => ({ data: null })),
+      ]).then(([frRes, sbRes]) => {
+        setFuelStats({
+          cycle_key:    cycleKey,
+          fr_data:      frRes.data,
+          budget_data:  sbRes?.data?.data,
+        });
+      }).catch(() => {});
+    });
     loadDashboard();
   }, []);
 
@@ -171,6 +190,51 @@ const AdminDashboard: React.FC = () => {
           ))}
         </div>
       </Card>
+
+      {/* ── Fuel Request Stats ── */}
+      {fuelStats && (
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">⛽ Fuel Requests — {fuelStats.cycle_key}</h2>
+            <button onClick={() => window.location.href = '/diesel/fuel-requests'}
+              className="text-sm text-primary font-medium hover:underline">
+              View All →
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            {[
+              { label: 'Total Requests', value: fuelStats.fr_data?.total || fuelStats.fr_data?.pagination?.total || 0, color: 'text-gray-900' },
+              { label: 'Pending',        value: fuelStats.fr_data?.pending || 0,  color: 'text-amber-600' },
+              { label: 'Approved',       value: fuelStats.fr_data?.approved || 0, color: 'text-green-600' },
+              { label: 'Budget Used',
+                value: fuelStats.budget_data?.totals
+                  ? `${Math.round((fuelStats.budget_data.totals.total_liters_used / fuelStats.budget_data.totals.total_budget_liters) * 100) || 0}%`
+                  : '—',
+                color: 'text-blue-600' },
+            ].map(s => (
+              <div key={s.label} className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+              </div>
+            ))}
+          </div>
+          {fuelStats.budget_data?.by_cluster?.length > 0 && (
+            <div className="space-y-2">
+              {fuelStats.budget_data.by_cluster.slice(0, 4).map((c: any) => (
+                <div key={c._id} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-600 w-28 truncate">{c._id}</span>
+                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min(c.utilisation_pct||0, 100)}%`,
+                               background: (c.utilisation_pct||0) >= 90 ? '#dc2626' : (c.utilisation_pct||0) >= 75 ? '#f59e0b' : '#16a34a' }} />
+                  </div>
+                  <span className="text-xs font-semibold w-10 text-right">{(c.utilisation_pct||0).toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* System Health */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -10,9 +10,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   dashboardApi, cmsApi, gratoApi, tomCardApi,
   reconciliationApi, alertsApi, cyclesApi,
-  generatorLedgerApi, siteBudgetApi, validationApi
+  generatorLedgerApi, siteBudgetApi, validationApi,
+  tankLevelApi, tomCardCycleBudgetApi,
 } from '../api/dieselApi';
-import type { DieselCycle } from '../types/diesel.types';
+import type { DieselCycle, DashboardKPIs } from '../types/diesel.types';
 
 // ─── Generic fetch hook ───────────────────────────────────────────────────────
 // skip: when true the fetch is bypassed and loading stays false,
@@ -90,7 +91,7 @@ export function useCycles() {
 // }
 
 export function useDashboard(cycle_key: string) {
-  return useFetch(
+  return useFetch<DashboardKPIs>(
     () => dashboardApi.kpis(cycle_key),
     [cycle_key],
     { skip: !cycle_key }
@@ -130,6 +131,22 @@ export function useCmsUploads(cycle_key?: string) {
     () => cmsApi.uploads({ cycle_key }),
     [cycle_key]
   );
+}
+
+// ─── Tank Level ────────────────────────────────────────────────────────────────
+export function useTankLevelUploads(params?: any) {
+  return useFetch(() => tankLevelApi.uploads(params), [JSON.stringify(params)]);
+}
+export function useTankLevelReadings(params?: { reading_date?: string; cluster?: string; status?: string }) {
+  return useFetch(() => tankLevelApi.readings(params), [JSON.stringify(params)]);
+}
+
+// ─── Tom Card Cycle Budget ───────────────────────────────────────────────────────
+export function useTomCardCycleBudgetUploads(params?: any) {
+  return useFetch(() => tomCardCycleBudgetApi.uploads(params), [JSON.stringify(params)]);
+}
+export function useTomCardCycleBudget(cycle_key: string) {
+  return useFetch(() => tomCardCycleBudgetApi.byCycle(cycle_key), [cycle_key]);
 }
 
 export function useMissingDays(cycle_key: string) {
@@ -228,6 +245,12 @@ export function useTomCardTransactions(params?: any) {
 
 export function useTomCardMappings() {
   return useFetch(() => tomCardApi.mappings(), []);
+}
+
+/** Cards/stations still unmapped or weakly matched — ranked by liters, for
+ *  the "needs a mapping" panel on TomCardPage. */
+export function useTomCardUnmapped(cycle_key?: string) {
+  return useFetch(() => tomCardApi.unmapped(cycle_key), [cycle_key]);
 }
 
 // ─── Generator ledger hooks ───────────────────────────────────────────────────

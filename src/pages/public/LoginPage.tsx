@@ -40,6 +40,15 @@ const LoginPage: React.FC = () => {
         case 'admin':
           navigate('/admin');
           break;
+        case 'finance':
+          navigate('/finance');
+          break;
+        case 'head_of_business':
+          navigate('/hob');
+          break;
+        case 'ceo':
+          navigate('/ceo');
+          break;
         default:
           navigate('/');
       }

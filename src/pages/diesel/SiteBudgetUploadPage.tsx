@@ -18,6 +18,7 @@
  * GratoUploadPage.tsx / CmsUploadPage.tsx exactly.
  */
 import React, { useState, useMemo } from 'react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { siteBudgetApi } from '../../api/dieselApi';
 import {
   useCycles, useFileUpload, useSiteBudgets, useSiteBudgetUploads,
@@ -28,6 +29,7 @@ import {
 } from '../../components/diesel/DieselComponents';
 
 export default function SiteBudgetUploadPage() {
+  const { isNarrow } = useBreakpoint();
   const { cycles, selectedKey, setSelectedKey, loading: cyclesLoading } = useCycles();
   const { uploading, result, error, upload, reset } = useFileUpload();
   const { data: uploads, loading: uploadsLoading, refetch: refetchUploads } = useSiteBudgetUploads();
@@ -56,7 +58,17 @@ export default function SiteBudgetUploadPage() {
       alert('Please select a cycle before uploading — this file has no date the cycle can be detected from.');
       return;
     }
-    await upload(() => siteBudgetApi.upload(file, selectedKey));
+    await upload(() =>
+      import('@/api/dieselApi').then(({ default: api }) =>
+        api.post('/site-budget-upload', (() => {
+          const form = new FormData();
+          form.append('file', file);
+          form.append('cycle_key', selectedKey);
+          return form;
+        })(), { headers: { 'Content-Type': 'multipart/form-data' } })
+          .then(r => r.data)
+      )
+    );
     refetchUploads();
     refetchBudgets();
   }
@@ -100,7 +112,7 @@ export default function SiteBudgetUploadPage() {
         actions={<CycleSelector cycles={cycles} value={selectedKey} onChange={setSelectedKey} />}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 24, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : '420px 1fr', gap: 24, marginBottom: 28 }}>
         {/* ── Upload panel ── */}
         <div>
           {!selectedKey && (
@@ -144,6 +156,8 @@ export default function SiteBudgetUploadPage() {
                 <span>Updated sites:</span><strong>{importResult.rows_updated}</strong>
                 <span>Skipped:</span><strong>{importResult.rows_skipped}</strong>
                 <span>Cycle:</span><strong>{importResult.cycle_key}</strong>
+                <span>Total Budget (L):</span><strong>{(importResult.summary?.total_budget_liters || 0).toLocaleString()} L</strong>
+                <span>Total Budget (XAF):</span><strong>XAF {(importResult.summary?.total_budget_xaf || 0).toLocaleString()}</strong>
               </div>
 
               {importResult.warnings?.length > 0 && (
@@ -228,6 +242,7 @@ export default function SiteBudgetUploadPage() {
               placeholder="Search site ID or name…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search site budgets by ID or name"
               style={{ padding: '6px 10px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 6, width: 220 }}
             />
           </div>
@@ -259,6 +274,7 @@ export default function SiteBudgetUploadPage() {
                           {isEditing ? (
                             <input type="number" value={editValues.dg_kva}
                               onChange={(e) => setEditValues(v => ({ ...v, dg_kva: e.target.value }))}
+                              aria-label={`DG KVA for ${b.site_id}`}
                               style={{ width: 60, fontSize: 11, padding: '2px 4px', border: '1px solid #93c5fd', borderRadius: 4 }} />
                           ) : b.dg_kva}
                         </td>
@@ -266,6 +282,7 @@ export default function SiteBudgetUploadPage() {
                           {isEditing ? (
                             <input type="number" step="0.01" value={editValues.ccph}
                               onChange={(e) => setEditValues(v => ({ ...v, ccph: e.target.value }))}
+                              aria-label={`CCPH for ${b.site_id}`}
                               style={{ width: 60, fontSize: 11, padding: '2px 4px', border: '1px solid #93c5fd', borderRadius: 4 }} />
                           ) : b.ccph}
                         </td>
@@ -273,6 +290,7 @@ export default function SiteBudgetUploadPage() {
                           {isEditing ? (
                             <input type="number" value={editValues.budgeted_rh}
                               onChange={(e) => setEditValues(v => ({ ...v, budgeted_rh: e.target.value }))}
+                              aria-label={`Budgeted run-hours for ${b.site_id}`}
                               style={{ width: 70, fontSize: 11, padding: '2px 4px', border: '1px solid #93c5fd', borderRadius: 4 }} />
                           ) : fmtNum(b.budgeted_rh, 0)}
                         </td>
@@ -280,6 +298,7 @@ export default function SiteBudgetUploadPage() {
                           {isEditing ? (
                             <input type="number" value={editValues.budget_liters}
                               onChange={(e) => setEditValues(v => ({ ...v, budget_liters: e.target.value }))}
+                              aria-label={`Budget liters for ${b.site_id}`}
                               style={{ width: 70, fontSize: 11, padding: '2px 4px', border: '1px solid #93c5fd', borderRadius: 4 }} />
                           ) : fmtNum(b.budget_liters, 0)}
                         </td>

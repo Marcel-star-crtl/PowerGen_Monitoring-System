@@ -1,12 +1,20 @@
 /**
  * DieselDashboardPage.tsx
- * Main dashboard: cycle KPIs, cluster heatmap, daily trend chart, live alerts.
+ * Complete diesel operations dashboard — KPIs, budget utilisation,
+ * fuel request stats, cluster breakdown, daily trend, live alerts.
+ *
+ * Data sources (all cycle-aware):
+ *   /api/diesel/dashboard/kpis/:cycle_key     → KPIs + FuelRequest stats + SiteBudget totals
+ *   /api/diesel/dashboard/cluster-heatmap/:ck → cluster breakdown
+ *   /api/diesel/dashboard/daily-trend/:ck     → daily consumption chart
+ *   /api/alerts                               → open alerts
+ *   /api/site-budget/:ck/aggregate            → authoritative budget by cluster
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import {
   useCycles, useDashboard, useDailyTrend,
@@ -14,51 +22,166 @@ import {
 } from '../../hooks/useDiesel';
 import {
   CycleSelector, KpiCard, SeverityBadge, AlertCard,
-  fmtNum, fmtPct, fmtDate, Spinner, ErrorBox, PageHeader, Btn, StatusPill,
+  fmtNum, fmtPct, fmtDate, Spinner, ErrorBox, PageHeader, Btn,
 } from '../../components/diesel/DieselComponents';
-import { alertsApi, reconciliationApi } from '../../api/dieselApi';
+import { alertsApi, reconciliationApi, aiInsightsApi } from '../../api/dieselApi';
+import { useNotification } from '../../contexts/NotificationContext';
+import apiClient from '../../api/client';
+
+// ── Brand colours ────────────────────────────────────────────────────────────
+const PRIMARY = '#e53935';
+const DARK    = '#222222';
+const GREEN   = '#16a34a';
+const AMBER   = '#f59e0b';
+const BLUE    = '#2563eb';
+
+// ── RAG bar ──────────────────────────────────────────────────────────────────
+function UtilBar({ pct, label, sub }: { pct: number; label: string; sub?: string }) {
+  const color = pct >= 100 ? PRIMARY : pct >= 90 ? '#dc2626' : pct >= 75 ? AMBER : GREEN;
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+        <span style={{ fontWeight: 600 }}>{label}</span>
+        <span style={{ color, fontWeight: 700 }}>{pct.toFixed(1)}%{sub ? ` · ${sub}` : ''}</span>
+      </div>
+      <div style={{ background: '#e5e7eb', borderRadius: 4, height: 7, overflow: 'hidden' }}>
+        <div style={{ width: `${Math.min(pct, 100)}%`, height: 7, background: color, borderRadius: 4, transition: 'width 0.6s' }} />
+      </div>
+    </div>
+  );
+}
+
+// ── Stat strip card ───────────────────────────────────────────────────────────
+function StatBox({ label, value, sub, color = DARK, alert = false }: any) {
+  return (
+    <div style={{
+      background: '#fff', border: `1px solid ${alert ? PRIMARY : '#e5e7eb'}`,
+      borderTop: `3px solid ${color}`, borderRadius: 10, padding: '14px 18px', flex: 1, minWidth: 130,
+    }}>
+      <p style={{ fontSize: 11, color: '#9ca3af', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+      <p style={{ fontSize: 22, fontWeight: 800, color, margin: 0 }}>{value}</p>
+      {sub && <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>{sub}</p>}
+    </div>
+  );
+}
+
+const CLUSTER_COLORS = [BLUE, GREEN, AMBER, PRIMARY, '#7c3aed', '#0891b2', '#d97706'];
 
 export default function DieselDashboardPage() {
   const nav = useNavigate();
+  const { success: showSuccess, error: showError } = useNotification();
   const { cycles, selectedKey, setSelectedKey, loading: cyclesLoading } = useCycles();
+  const [aiBriefing, setAiBriefing] = useState<any>(null);
+  const [aiBriefingLoading, setAiBriefingLoading] = useState(true);
   const { data: kpiData,     loading: kpiLoading,     error: kpiError,     refetch: refetchKpis }  = useDashboard(selectedKey);
   const { data: trendData,   loading: trendLoading  } = useDailyTrend(selectedKey);
   const { data: clusterData, loading: clusterLoading } = useClusterHeatmap(selectedKey);
-  const { data: alertData,   loading: alertLoading,  refetch: refetchAlerts } = useAlerts({ status: 'open', limit: 8 });
+  const { data: alertData,   loading: alertLoading,   refetch: refetchAlerts } = useAlerts({ status: 'open', limit: 8 });
+  const [budgetAgg, setBudgetAgg]   = useState<any[]>([]);
+  const [budgetLoading, setBudgetLoading] = useState(false);
   const [running, setRunning] = useState(false);
 
-  const kpis    = kpiData?.kpis;
-  const alerts  = (alertData as any)?.data || alertData || [];
+  // Load authoritative budget aggregate from SiteBudget
+  useEffect(() => {
+    if (!selectedKey) return;
+    setBudgetLoading(true);
+    apiClient.get(`/site-budget/${selectedKey}/aggregate`)
+      .then(r => setBudgetAgg(r.data?.data?.by_cluster || []))
+      .catch(() => {})
+      .finally(() => setBudgetLoading(false));
+  }, [selectedKey]);
+
+  // Compact AI Fleet Insights preview — hits the same cached endpoint the
+  // dedicated page uses (services/aiFleetInsightsService.js), so this
+  // doesn't trigger an extra expensive Gemini call on every dashboard
+  // load, just the server-side cache most of the time.
+  useEffect(() => {
+    if (!selectedKey) return;
+    setAiBriefingLoading(true);
+    aiInsightsApi.briefing(selectedKey)
+      .then((res: any) => setAiBriefing((res as any)?.data || res))
+      .catch(() => {})
+      .finally(() => setAiBriefingLoading(false));
+  }, [selectedKey]);
+
+  const kpis     = kpiData?.kpis;
+  const fr: Partial<NonNullable<typeof kpis>['fuel_requests']> = kpis?.fuel_requests || {};
+  const alerts   = (alertData as any)?.data || alertData || [];
   const clusters = (clusterData as any)?.data || clusterData || [];
-  const trend    = (trendData  as any)?.data || trendData  || [];
+  const trend    = (trendData  as any)?.data  || trendData  || [];
+  const alertsBySev: Partial<Record<'critical'|'high'|'medium'|'low', number>> = kpiData?.alerts_by_severity || {};
 
   async function runReconciliation() {
     if (!selectedKey) return;
     setRunning(true);
-    try { await reconciliationApi.run(selectedKey); refetchKpis(); }
-    catch (_) {}
-    finally { setRunning(false); }
+    try {
+      const res: any = await reconciliationApi.run(selectedKey);
+      const result = res?.data || res;
+      if (result?.errors > 0) {
+        showError(`Reconciliation finished with errors: ${result.processed} site(s) OK, ${result.errors} failed. Check the server logs for details.`);
+      } else if (result?.processed === 0) {
+        showError(`Reconciliation ran but found no sites with budget, CMS, or field-visit data for ${selectedKey} — nothing to reconcile yet. Upload data for this cycle first.`);
+      } else {
+        showSuccess(`Reconciliation complete — ${result?.processed ?? 0} site(s) updated for ${selectedKey}.`);
+      }
+      refetchKpis();
+    } catch (e: any) {
+      // Previously: catch (_) {} — a failed run (e.g. no DieselCycle record
+      // exists for this cycle) looked identical to a successful run that
+      // simply found nothing to reconcile. Now surfaced explicitly.
+      showError(e?.response?.data?.error || e?.message || 'Reconciliation failed — please try again or contact support.');
+    } finally {
+      setRunning(false);
+    }
   }
 
-  async function handleAcknowledge(id: string) {
-    await alertsApi.acknowledge(id);
-    refetchAlerts();
-  }
-
-  async function handleResolve(id: string) {
-    await alertsApi.resolve(id, 'Resolved from dashboard');
-    refetchAlerts();
-  }
+  async function handleAcknowledge(id: string) { await alertsApi.acknowledge(id); refetchAlerts(); }
+  async function handleResolve(id: string) { await alertsApi.resolve(id, 'Resolved from dashboard'); refetchAlerts(); }
 
   if (cyclesLoading) return <Spinner />;
 
-  const alertsBySev = kpiData?.alerts_by_severity || {};
+  // Budget totals — prefer SiteBudget aggregate, fall back to KPI join
+  const totalBudgetL  = budgetAgg.reduce((s, c) => s + (c.budget_liters || 0), 0) || kpis?.total_budget_liters || 0;
+  const totalBudgetXAF = budgetAgg.reduce((s, c) => s + (c.budget_xaf || 0), 0);
+  const totalLitersUsed = budgetAgg.reduce((s, c) => s + (c.liters_used || 0), 0);
+  const cmsConsumed   = kpis?.total_cms_consumed || 0;
+  const budgetUtilPct = totalBudgetL > 0 ? (cmsConsumed / totalBudgetL) * 100 : 0;
+  const requestCommittedPct = totalBudgetL > 0 && fr.total_liters_approved
+    ? (fr.total_liters_approved / totalBudgetL) * 100 : 0;
+
+  // Pie chart data for fuel requests
+  const reqPieData = [
+    { name: 'Pending',  value: fr.pending  || 0, color: AMBER },
+    { name: 'Approved', value: fr.approved || 0, color: GREEN },
+    { name: 'Denied',   value: fr.denied   || 0, color: PRIMARY },
+  ].filter(d => d.value > 0);
+
+  // Merged cluster table (SiteBudget + reconciliation)
+  const mergedClusters = (() => {
+    const reconMap: Record<string, any> = {};
+    clusters.forEach((c: any) => { reconMap[c._id] = c; });
+    if (budgetAgg.length > 0) {
+      return budgetAgg.map(b => ({
+        _id:              b._id,
+        sites:            b.sites,
+        budget_liters:    b.budget_liters,
+        budget_xaf:       b.budget_xaf,
+        liters_used:      b.liters_used,
+        liters_remaining: b.liters_remaining,
+        utilisation_pct:  b.utilisation_pct,
+        total_contractual: reconMap[b._id]?.total_contractual || 0,
+        total_cms_consumed: reconMap[b._id]?.total_cms_consumed || 0,
+        total_alerts:     reconMap[b._id]?.total_alerts || 0,
+      }));
+    }
+    return clusters;
+  })();
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1500, margin: '0 auto' }}>
       <PageHeader
-        title="⛽ Diesel Dashboard"
-        subtitle={`Grato fuel management · ${kpis?.total_sites || 0} sites monitored`}
+        title="⛽ Diesel Operations Dashboard"
+        subtitle={`Cycle ${selectedKey || '—'} · ${kpis?.total_sites || 0} sites · ${totalBudgetL.toLocaleString()} L budget`}
         actions={
           <>
             <CycleSelector cycles={cycles} value={selectedKey} onChange={setSelectedKey} />
@@ -74,27 +197,265 @@ export default function DieselDashboardPage() {
 
       {kpiError && <ErrorBox message={kpiError} onRetry={refetchKpis} />}
 
-      {/* ── KPI Cards ── */}
-      {kpiLoading ? <Spinner /> : kpis && (
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 24 }}>
-          <KpiCard label="Budget (L)"          value={fmtNum(kpis.total_budget_liters)}     icon="📋" />
-          <KpiCard label="CMS Consumed (L)"    value={fmtNum(kpis.total_cms_consumed)}      icon="⛽"
-            sub={`${kpis.budget_utilisation_pct}% of budget`}
-            color={parseFloat(kpis.budget_utilisation_pct) > 100 ? '#dc2626' : '#1a1a2e'} />
-          <KpiCard label="Field Added (L)"     value={fmtNum(kpis.total_field_added)}       icon="🚛" />
-          <KpiCard label="Tom Card (L)"        value={fmtNum(kpis.total_tomcard)}           icon="💳" />
-          <KpiCard label="Total RH"            value={fmtNum(kpis.total_final_rh, 1)}       icon="⏱️" />
-          <KpiCard label="Sites Over CCPH"     value={kpis.sites_over_ccph}  icon="📈" alert={kpis.sites_over_ccph > 0} color={kpis.sites_over_ccph > 0 ? '#dc2626' : '#1a1a2e'} />
-          <KpiCard label="Low Fuel Sites"      value={kpis.sites_low_fuel}   icon="🪫" alert={kpis.sites_low_fuel > 0}  color={kpis.sites_low_fuel > 0 ? '#dc2626' : '#1a1a2e'} />
-          <KpiCard label="Zero Grid Sites"     value={kpis.sites_zero_grid}  icon="⚡" alert={kpis.sites_zero_grid > 0} color={kpis.sites_zero_grid > 0 ? '#dc2626' : '#1a1a2e'} />
-          <KpiCard label="Missing GRATO"       value={kpis.sites_missing_grato} icon="📋" alert={kpis.sites_missing_grato > 0} />
-          <KpiCard label="Theft Suspected"     value={kpis.sites_theft_suspected} icon="🚨" alert={kpis.sites_theft_suspected > 0} color={kpis.sites_theft_suspected > 0 ? '#dc2626' : '#1a1a2e'} />
+      {/* ── ROW 1: Core KPI strip ── */}
+      {kpiLoading ? <Spinner /> : (
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+          <StatBox label="Budget (L)"          value={fmtNum(totalBudgetL)}             color={DARK} />
+          <StatBox label="Budget (XAF)"        value={`${(totalBudgetXAF/1e6).toFixed(1)}M`} color={DARK}
+            sub={`IHS Approved: ${((kpis?.budget_liters_approved_ihs||0)).toLocaleString()} L`} />
+          <StatBox label="CMS Consumed (L)"    value={fmtNum(cmsConsumed)}
+            sub={`${budgetUtilPct.toFixed(1)}% of budget`}
+            color={budgetUtilPct > 90 ? PRIMARY : budgetUtilPct > 75 ? AMBER : GREEN}
+            alert={budgetUtilPct > 90} />
+          <StatBox label="Field Added (L)"     value={fmtNum(kpis?.total_field_added)}  color={BLUE}
+            sub={!kpis?.total_sites ? '📡 Live (reconciliation not yet run)' : undefined} />
+          <StatBox label="Tom Card (L)"        value={fmtNum(kpis?.total_tomcard)}      color="#7c3aed" />
+          <StatBox label="Total RH"            value={fmtNum(kpis?.total_final_rh, 1)}  color={DARK} />
+          <StatBox label="Over CCPH"           value={kpis?.sites_over_ccph || 0}
+            color={(kpis?.sites_over_ccph || 0) > 0 ? PRIMARY : GREEN} alert={(kpis?.sites_over_ccph || 0) > 0} />
+          <StatBox label="Low Fuel"            value={kpis?.sites_low_fuel || 0}
+            color={(kpis?.sites_low_fuel || 0) > 0 ? PRIMARY : GREEN}  alert={(kpis?.sites_low_fuel || 0) > 0} />
+          <StatBox label="Theft Suspected"     value={kpis?.sites_theft_suspected || 0}
+            color={(kpis?.sites_theft_suspected || 0) > 0 ? PRIMARY : GREEN} alert={(kpis?.sites_theft_suspected || 0) > 0} />
         </div>
       )}
 
-      {/* ── Alert severity pills ── */}
+      {/* ── AI Fleet Insights preview — the full briefing lives at
+          /diesel/ai-insights; this is a compact, always-visible preview
+          right on the main dashboard, not tucked away on a page someone
+          has to think to visit. ── */}
+      {(aiBriefingLoading || aiBriefing) && (
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>🧠 Fleet Intelligence Briefing</h3>
+            <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/ai-insights')}>Full Briefing →</Btn>
+          </div>
+          {aiBriefingLoading ? (
+            <div style={{ fontSize: 13, color: '#9ca3af' }}>Loading…</div>
+          ) : !aiBriefing?.ai_enabled ? (
+            <div style={{ fontSize: 13, color: '#6b7280' }}>
+              {aiBriefing?.evidence?.alerts?.total_open ?? 0} open alert(s), {aiBriefing?.evidence?.budget_planning?.total_flagged ?? 0} budget-plan flag(s) this cycle.
+              Set <code>GEMINI_API_KEY</code> for an AI-written summary — view the full briefing for the complete picture.
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+              {(aiBriefing.narrative || '').split('\n').find((l: string) => l.trim() && !l.startsWith('#')) || 'See full briefing for details.'}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── ROW 2: Fuel Request Stats + Budget Utilisation ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 20, marginBottom: 24 }}>
+
+        {/* Fuel Request stats */}
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>⛽ Fuel Requests</h3>
+            <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/fuel-requests')}>View →</Btn>
+          </div>
+          {kpiLoading ? <Spinner size={24} /> : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                {[
+                  { label: 'Pending Approval', value: fr.pending  || 0, color: AMBER },
+                  { label: 'Fully Approved',   value: fr.approved || 0, color: GREEN },
+                  { label: 'Disbursed',         value: fr.disbursed || 0, color: BLUE },
+                  { label: 'Denied',            value: fr.denied   || 0, color: '#9ca3af' },
+                ].map(s => (
+                  <div key={s.label} style={{ background: '#f9fafb', borderRadius: 8, padding: '10px 12px', borderLeft: `3px solid ${s.color}` }}>
+                    <p style={{ fontSize: 10, color: '#9ca3af', margin: '0 0 4px', textTransform: 'uppercase' }}>{s.label}</p>
+                    <p style={{ fontSize: 20, fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
+                  </div>
+                ))}
+              </div>
+              {(fr.total_liters_approved || 0) > 0 && (
+                <>
+                  <div style={{ fontSize: 12, marginBottom: 6 }}>
+                    <span style={{ color: '#6b7280' }}>Total Approved: </span>
+                    <strong>{fmtNum(fr.total_liters_approved)} L</strong>
+                    <span style={{ color: '#9ca3af', marginLeft: 8 }}>
+                      = XAF {Math.round(fr.total_xaf_approved || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  {(fr.total_xaf_disbursed || 0) > 0 && (
+                    <div style={{ fontSize: 12, marginBottom: 10 }}>
+                      <span style={{ color: '#6b7280' }}>Total Disbursed: </span>
+                      <strong style={{ color: GREEN }}>XAF {Math.round(fr.total_xaf_disbursed || 0).toLocaleString()}</strong>
+                    </div>
+                  )}
+                  <UtilBar
+                    pct={requestCommittedPct}
+                    label="Committed vs Budget"
+                    sub={`${fmtNum(fr.total_liters_approved)} / ${fmtNum(totalBudgetL)} L`}
+                  />
+                </>
+              )}
+              {reqPieData.length > 0 && (
+                <ResponsiveContainer width="100%" height={100}>
+                  <PieChart>
+                    <Pie data={reqPieData} dataKey="value" cx="50%" cy="50%" outerRadius={40} innerRadius={24}>
+                      {reqPieData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: any, n: string) => [v, n]} />
+                    <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Budget utilisation by cluster */}
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>📊 Budget Utilisation by Cluster</h3>
+            <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/site-budget-upload')}>Manage →</Btn>
+          </div>
+          {budgetLoading ? <Spinner size={24} /> : budgetAgg.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af', fontSize: 13 }}>
+              No budget data for {selectedKey} — upload the Book11 file on the Site Budget page
+            </div>
+          ) : (
+            <>
+              {budgetAgg.map((c, i) => (
+                <UtilBar
+                  key={c._id}
+                  pct={c.utilisation_pct || 0}
+                  label={c._id}
+                  sub={`${fmtNum(c.liters_used)} / ${fmtNum(c.budget_liters)} L used · ${fmtNum(c.liters_remaining)} L left`}
+                />
+              ))}
+              <div style={{ marginTop: 10, padding: '8px 12px', background: '#f9fafb', borderRadius: 8, fontSize: 12, display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 700 }}>TOTAL</span>
+                <span>
+                  <strong style={{ color: budgetUtilPct > 90 ? PRIMARY : DARK }}>{budgetUtilPct.toFixed(1)}%</strong>
+                  {' · '}{fmtNum(cmsConsumed)} / {fmtNum(totalBudgetL)} L
+                  {' · '}<span style={{ color: '#9ca3af' }}>XAF {(totalBudgetXAF/1e6).toFixed(2)}M budget</span>
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── ROW 3: Daily trend + Cluster table ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+
+        {/* Daily trend chart */}
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>📈 Daily Consumption Trend (L)</h3>
+          {trendLoading ? <Spinner size={28} /> : trend.length === 0 ? (
+            <p style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: 20 }}>No CMS data uploaded yet for {selectedKey}</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={trend}>
+                <defs>
+                  <linearGradient id="gCons" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor={BLUE}  stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={BLUE}  stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gRef" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor={GREEN} stopOpacity={0.2} />
+                    <stop offset="95%" stopColor={GREEN} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }}
+                  tickFormatter={d => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip formatter={(v: any, n: string) => [fmtNum(v, 0) + ' L', n]} labelFormatter={d => fmtDate(d)} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Area type="monotone" dataKey="total_consumed" stroke={BLUE}  fill="url(#gCons)" name="Consumed (L)"  strokeWidth={2} />
+                <Area type="monotone" dataKey="total_refuel"   stroke={GREEN} fill="url(#gRef)"  name="Refuel (L)"   strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Cluster breakdown table */}
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>🗂️ Cluster Breakdown</h3>
+            <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/reconciliation')}>Detail →</Btn>
+          </div>
+          {clusterLoading || budgetLoading ? <Spinner size={28} /> : (
+            <div style={{ overflowX: 'auto', maxHeight: 230, overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb' }}>
+                    {['Cluster', 'Sites', 'Budget (L)', 'CMS Cons', 'Used%', 'Alerts'].map(h => (
+                      <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 10, borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {mergedClusters.map((c: any, i: number) => {
+                    const pct = c.utilisation_pct ?? (c.budget_liters > 0 ? Math.round((c.total_cms_consumed / c.budget_liters) * 100) : 0);
+                    const color = pct >= 90 ? PRIMARY : pct >= 75 ? AMBER : GREEN;
+                    return (
+                      <tr key={c._id}
+                        onClick={() => nav(`/diesel/reconciliation?cluster=${c._id}`)}
+                        style={{ cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                        onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                        <td style={{ padding: '8px 10px', fontWeight: 700 }}>
+                          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: CLUSTER_COLORS[i % CLUSTER_COLORS.length], marginRight: 6 }} />
+                          {c._id}
+                        </td>
+                        <td style={{ padding: '8px 10px' }}>{c.sites}</td>
+                        <td style={{ padding: '8px 10px', fontWeight: 600 }}>{fmtNum(c.budget_liters)}</td>
+                        <td style={{ padding: '8px 10px' }}>{fmtNum(c.total_cms_consumed || 0)}</td>
+                        <td style={{ padding: '8px 10px' }}>
+                          <span style={{ color, fontWeight: 700 }}>{pct}%</span>
+                          <div style={{ background: '#e5e7eb', borderRadius: 3, height: 4, width: 50, display: 'inline-block', marginLeft: 6, verticalAlign: 'middle' }}>
+                            <div style={{ width: `${Math.min(pct, 100)}%`, height: 4, background: color, borderRadius: 3 }} />
+                          </div>
+                        </td>
+                        <td style={{ padding: '8px 10px' }}>
+                          {c.total_alerts > 0
+                            ? <span style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 10, padding: '2px 8px', fontWeight: 700, fontSize: 10 }}>{c.total_alerts}</span>
+                            : <span style={{ color: GREEN, fontSize: 12 }}>✓</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── ROW 4: Budget bar chart (SiteBudget aggregate) ── */}
+      {budgetAgg.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>
+            💰 Budget vs Approved Requests vs CMS Consumed — by Cluster
+          </h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={budgetAgg.map(c => ({
+              cluster: c._id,
+              'Budget (L)':   Math.round(c.budget_liters    || 0),
+              'CMS Consumed': Math.round(c.budget_liters ? (c.utilisation_pct / 100) * c.budget_liters : 0),
+              'Requests Used': Math.round(c.liters_used      || 0),
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="cluster" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v: any) => fmtNum(v) + ' L'} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="Budget (L)"    fill="#e5e7eb" radius={[3,3,0,0]} />
+              <Bar dataKey="CMS Consumed"  fill={BLUE}    radius={[3,3,0,0]} />
+              <Bar dataKey="Requests Used" fill={GREEN}   radius={[3,3,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* ── ROW 5: Alert severity pills + alert cards ── */}
       {Object.keys(alertsBySev).length > 0 && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           {(['critical','high','medium','low'] as const).map(s =>
             alertsBySev[s] ? (
               <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -106,86 +467,13 @@ export default function DieselDashboardPage() {
           <span style={{ fontSize: 13, color: '#6b7280', alignSelf: 'center' }}>open alerts</span>
         </div>
       )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-        {/* ── Daily Trend Chart ── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>Daily Consumption Trend (L)</h3>
-          {trendLoading ? <Spinner size={28} /> : trend.length === 0 ? (
-            <p style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: 20 }}>No CMS data uploaded yet</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={trend}>
-                <defs>
-                  <linearGradient id="gCons" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gRef" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#16a34a" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v: any, n: string) => [fmtNum(v, 0) + ' L', n]} labelFormatter={d => fmtDate(d)} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Area type="monotone" dataKey="total_consumed" stroke="#2563eb" fill="url(#gCons)" name="Consumed (L)" strokeWidth={2} />
-                <Area type="monotone" dataKey="total_refuel"   stroke="#16a34a" fill="url(#gRef)"  name="Refuel (L)"   strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* ── Cluster Heatmap ── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Cluster Overview</h3>
-            <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/reconciliation')}>View All →</Btn>
-          </div>
-          {clusterLoading ? <Spinner size={28} /> : (
-            <div style={{ overflowY: 'auto', maxHeight: 230 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr style={{ background: '#f9fafb' }}>
-                    {['Cluster','Sites','Contractual (L)','CMS Cons (L)','Alerts'].map(h => (
-                      <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 11, borderBottom: '1px solid #e5e7eb' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {clusters.map((c: any) => (
-                    <tr key={c._id} onClick={() => nav(`/diesel/reconciliation?cluster=${c._id}`)}
-                      style={{ cursor: 'pointer', borderBottom: '1px solid #f9fafb' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                      <td style={{ padding: '8px 10px', fontWeight: 600 }}>{c._id}</td>
-                      <td style={{ padding: '8px 10px' }}>{c.sites}</td>
-                      <td style={{ padding: '8px 10px' }}>{fmtNum(c.total_contractual)}</td>
-                      <td style={{ padding: '8px 10px' }}>{fmtNum(c.total_cms_consumed)}</td>
-                      <td style={{ padding: '8px 10px' }}>
-                        {c.total_alerts > 0
-                          ? <span style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 10, padding: '2px 8px', fontWeight: 600 }}>{c.total_alerts}</span>
-                          : <span style={{ color: '#16a34a' }}>✓</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Open Alerts ── */}
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Recent Open Alerts</h3>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>🔔 Open Alerts</h3>
           <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/alerts')}>View All →</Btn>
         </div>
         {alertLoading ? <Spinner size={28} /> : alerts.length === 0 ? (
-          <p style={{ color: '#16a34a', textAlign: 'center', padding: 20, fontSize: 13 }}>✅ No open alerts</p>
+          <p style={{ color: GREEN, textAlign: 'center', padding: 20, fontSize: 13 }}>✅ No open alerts</p>
         ) : (
           alerts.map((a: any) => (
             <AlertCard key={a._id} alert={a} compact onAcknowledge={handleAcknowledge} onResolve={handleResolve} />

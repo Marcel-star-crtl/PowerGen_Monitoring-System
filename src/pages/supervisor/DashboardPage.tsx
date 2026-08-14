@@ -36,7 +36,26 @@ const SupervisorDashboard: React.FC = () => {
   };
 
 
+  const [fuelStats, setFuelStats] = React.useState<any>(null);
+
   useEffect(() => {
+    // Load fuel request stats for current cycle
+    import('@/api/client').then(({ default: apiClient }) => {
+      const d = new Date();
+      const cycleKey = d.getDate() >= 26
+        ? (() => { const nd = new Date(d.getFullYear(), d.getMonth()+1, 1); return `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}`; })()
+        : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      Promise.all([
+        apiClient.get('/fuel-requests', { params: { limit: 1 } }),
+        apiClient.get(`/site-budget/${cycleKey}/aggregate`).catch(() => ({ data: null })),
+      ]).then(([frRes, sbRes]) => {
+        setFuelStats({
+          cycle_key:    cycleKey,
+          fr_data:      frRes.data,
+          budget_data:  sbRes?.data?.data,
+        });
+      }).catch(() => {});
+    });
     loadDashboard();
     loadTechnicianAudits();
   }, []);

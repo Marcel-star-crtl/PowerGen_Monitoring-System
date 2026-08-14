@@ -11,6 +11,7 @@
  *   3. Missing GRATO sites for the selected cycle
  */
 import React, { useState } from 'react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   LineChart, Line, ResponsiveContainer, Legend,
@@ -25,6 +26,7 @@ import {
 } from '../../components/diesel/DieselComponents';
 
 export default function GratoUploadPage() {
+  const { isNarrow } = useBreakpoint();
   const { cycles, selectedKey, setSelectedKey, loading: cyclesLoading } = useCycles();
   const { data: missingData, loading: missingLoading } = useMissingGrato(selectedKey);
   const { uploading, result, error, upload, reset } = useFileUpload();
@@ -80,7 +82,7 @@ export default function GratoUploadPage() {
         }
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 24, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : '420px 1fr', gap: 24, marginBottom: 28 }}>
         {/* ── Upload panel ── */}
         <div>
           {/* File type selector */}

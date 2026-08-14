@@ -14,7 +14,11 @@ import { Pagination } from '@/components/common/Pagination';
 import { FiPlus, FiEdit, FiTrash2, FiLock, FiToggleLeft, FiToggleRight, FiUsers } from 'react-icons/fi';
 import { TechnicianAssignmentModal } from '@/components/admin/TechnicianAssignmentModal';
 
-type UserRole = 'admin' | 'supervisor' | 'technician' | 'ac' | 'diesel_manager' | 'data_collector' | 'analyst' | 'operations' | 'fuel';
+// Was a locally-duplicated, narrower type missing 3 real system roles
+// (finance, head_of_business, ceo) — an admin literally could not assign
+// those roles through this page's UI. Now derived from the canonical
+// User['role'] type so it can't drift out of sync again.
+type UserRole = User['role'];
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -276,6 +280,9 @@ const UsersPage: React.FC = () => {
               { value: 'data_collector', label: 'Data Collector' },
               { value: 'analyst', label: 'Analyst' },
               { value: 'operations', label: 'Operations' },
+              { value: 'finance', label: 'Finance' },
+              { value: 'head_of_business', label: 'Head of Business' },
+              { value: 'ceo', label: 'CEO' },
             ]}
             fullWidth
           />
@@ -351,6 +358,9 @@ const UsersPage: React.FC = () => {
               { value: 'data_collector', label: 'Data Collector' },
               { value: 'analyst', label: 'Analyst' },
               { value: 'operations', label: 'Operations' },
+              { value: 'finance', label: 'Finance' },
+              { value: 'head_of_business', label: 'Head of Business' },
+              { value: 'ceo', label: 'CEO' },
               { value: 'admin', label: 'Admin' },
             ]}
             required

@@ -142,11 +142,33 @@ const post  = <T>(url: string, data?: any)   => api.post<ApiResponse<T>>(url, da
 const patch = <T>(url: string, data?: any)   => api.patch<ApiResponse<T>>(url, data).then(r => r.data);
 const del   = <T>(url: string)               => api.delete<ApiResponse<T>>(url).then(r => r.data);
 
-async function uploadFile<T>(url: string, file: File, extraFields?: Record<string, string>) {
+// async function uploadFile<T>(url: string, file: File, extraFields?: Record<string, string>) {
+//   const form = new FormData();
+//   form.append('file', file);
+//   if (extraFields) Object.entries(extraFields).forEach(([k, v]) => form.append(k, v));
+//   const r = await api.post<ApiResponse<T>>(url, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+//   return r.data;
+// }
+
+async function uploadFile<T>(
+  url: string,
+  file: File,
+  extraFields?: Record<string, string>,
+  onProgress?: (percent: number) => void
+) {
   const form = new FormData();
   form.append('file', file);
   if (extraFields) Object.entries(extraFields).forEach(([k, v]) => form.append(k, v));
-  const r = await api.post<ApiResponse<T>>(url, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+  const r = await api.post<ApiResponse<T>>(url, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000, // 2 minutes — uploads/parsing take longer than normal API calls
+    onUploadProgress: onProgress
+      ? (e) => {
+          if (e.total) onProgress(Math.round((e.loaded * 100) / e.total));
+        }
+      : undefined,
+  });
   return r.data;
 }
 
@@ -159,6 +181,99 @@ export const cyclesApi = {
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── Sites Directory (flexible filter/export, not cycle-gated) ────────────────
+export const sitesDirectoryApi = {
+  list: (params: Record<string, string | undefined>) => {
+    const clean: Record<string, string> = {};
+    Object.entries(params).forEach(([k, v]) => { if (v) clean[k] = v; });
+    return get<any[]>('/sites', clean);
+  },
+};
+
+// ─── CMS vs Field Data Source Comparison ────────────────────────────────────
+export const dataSourceComparisonApi = {
+  get: (cycle_key: string) => get<any>(`/data-sources/${cycle_key}`),
+};
+
+// ─── AI Fleet Insights ───────────────────────────────────────────────────────
+// ─── Recovered Historical Email Data ────────────────────────────────────────
+// Live-system stock reporting — genuinely distinct from
+// historicalDataApi below, which serves the recovered email archive.
+export const stockApi = {
+  live: () => get<any>('/stock/live'),
+  cycleSnapshots: () => get<any>('/stock/cycle-snapshots'),
+  cycleSnapshot: (cycle_key: string) => get<any>(`/stock/cycle-snapshots/${cycle_key}`),
+  snapshotNow: () => post<any>('/stock/snapshot-now'),
+  carryover: (cycle_key: string) => get<any>(`/stock/carryover/${cycle_key}`),
+};
+
+// ─── Tank Audit — see SITE TANK AUDIT PLAN ──────────────────────────────────
+// Reads the same /api/technician/tank-audits routes the mobile app
+// submits to; this dashboard view is read-only (list, single record,
+// and the summary rollup), not a second write path.
+export const tankAuditApi = {
+  list: (params?: { status?: string; siteId?: string; severity?: string; logsCollected?: string; page?: number; limit?: number }) =>
+    get<any>('/technician/tank-audits', params),
+  get: (id: string) => get<any>(`/technician/tank-audits/${id}`),
+  summary: () => get<any>('/technician/tank-audits/summary'),
+};
+
+export const historicalDataApi = {
+  summary: () => get<any>('/historical/summary'),
+  reserves: (month_key: string) => get<any>(`/historical/reserves/${month_key}`),
+  siteHistory: (site_id: string) => get<any>(`/historical/site/${site_id}`),
+  adhocRequests: () => get<any>('/historical/adhoc-requests'),
+  midCycleRelease: (release_cycle_key: string) => get<any>(`/historical/mid-cycle-release/${release_cycle_key}`),
+  tomCardAllocations: () => get<any>('/historical/tomcard-allocations'),
+  requestApproval: (cycle_key: string) => get<any>(`/historical/request-approval/${cycle_key}`),
+  debitSummary: () => get<any>('/historical/debit-summary'),
+  fieldVisits: (site_id: string) => get<any>(`/historical/field-visits/${site_id}`),
+  fieldVisitsSummary: (month_key: string) => get<any>(`/historical/field-visits-summary/${month_key}`),
+  fuelPurchases: (month_key: string) => get<any>(`/historical/fuel-purchases/${month_key}`),
+  siteStockSnapshots: () => get<any>('/historical/site-stock-snapshots'),
+  fullSummary: (month_key: string) => get<any>(`/historical/full-summary/${month_key}`),
+  midCycleEstimate: (month_key: string) => get<any>(`/historical/mid-cycle-estimate/${month_key}`),
+  plannedVsSupplied: (month_key: string) => get<any>(`/historical/planned-vs-supplied/${month_key}`),
+};
+
+export const aiInsightsApi = {
+  briefing: (cycle_key: string, refresh = false) =>
+    get<any>(`/ai-insights/briefing/${cycle_key}`, refresh ? { refresh: 'true' } : undefined),
+};
+
+// ─── Automated Budget Planning ───────────────────────────────────────────────
+export const budgetPlanningApi = {
+  preview: (cycle_key: string, days?: number) =>
+    get<any>(`/budget-plan/${cycle_key}`, days ? { days } : undefined),
+  siteDetail: (cycle_key: string, site_id: string, days?: number) =>
+    get<any>(`/budget-plan/${cycle_key}/site/${site_id}`, days ? { days } : undefined),
+  commit: (cycle_key: string, sites: any[]) =>
+    post<any>(`/budget-plan/${cycle_key}/commit`, { sites }),
+  history: (site_id: string) => get<any>(`/budget-plan/history/${site_id}`),
+  fleetTrend: () => get<any>('/budget-plan/fleet-trend'),
+};
+
+// ─── Theft/Anomaly Investigation ────────────────────────────────────────────
+export const theftInvestigationApi = {
+  get: (site_id: string, cycle_key: string) => get<any>(`/theft-investigation/${site_id}/${cycle_key}`),
+};
+
+// ─── Route Optimization ─────────────────────────────────────────────────────
+export const routeOptimizationApi = {
+  optimize: (site_ids: string[], start_lat: number, start_lng: number) =>
+    post<any>('/route-optimize', { site_ids, start_lat, start_lng }),
+};
+
+// ─── Technician Tracking (privacy-limited: active jobs only, no history) ───────
+export const technicianTrackingApi = {
+  active: () => get<any[]>('/technician-tracking/active'),
+};
+
+// ─── Sites Map (live map) ──────────────────────────────────────────────────────
+export const sitesMapApi = {
+  forCycle: (cycle_key: string) => get<any[]>(`/sites-map/${cycle_key}`),
+};
+
 export const dashboardApi = {
   kpis:       (cycle_key: string)       => get<DashboardKPIs>(`/dashboard/kpis/${cycle_key}`),
   clusterMap: (cycle_key: string)       => get<ClusterSummary[]>(`/dashboard/cluster-heatmap/${cycle_key}`),
@@ -169,6 +284,32 @@ export const dashboardApi = {
 };
 
 // ─── CMS ─────────────────────────────────────────────────────────────────────
+// ─── Tank Level (daily telemetry) ──────────────────────────────────────────────
+// Distinct from cmsApi — different source/format (RMS/telemetry export with
+// Value=current fuel level in liters, not the CMS/ERS daily record). See
+// models/TankLevelReading.js for the full explanation.
+export const tankLevelApi = {
+  upload: (file: File, reading_date: string) =>
+    uploadFile('/tank-level/upload', file, { reading_date }),
+  uploads:  (params?: any) => get<any[]>('/tank-level/uploads', params),
+  readings: (params?: { reading_date?: string; cluster?: string; status?: string }) =>
+    get<any[]>('/tank-level/readings', params),
+  siteLatest: (site_id: string) => get<any>(`/tank-level/site/${site_id}/latest`),
+};
+
+// ─── Tom Card Cycle Budget (cycle-opening card budget/limit upload) ────────────
+// Distinct from tomCardApi — that's the vendor STATEMENT (transactions
+// already spent). This is the cycle-OPENING budget/limit aggregate,
+// uploaded once per cycle, that feeds the mobile fuel-purchase card picker
+// (GET .../for-purchase-form matches the shape new-fuel-purchase.tsx
+// already expects). See models/TomCardCycleBudget.js.
+export const tomCardCycleBudgetApi = {
+  upload: (file: File, cycle_key: string) =>
+    uploadFile('/tomcard-cycle-budget/upload', file, { cycle_key }),
+  uploads: (params?: any) => get<any[]>('/tomcard-cycle-budget/uploads', params),
+  byCycle: (cycle_key: string) => get<any[]>(`/tomcard-cycle-budget/${cycle_key}`),
+};
+
 export const cmsApi = {
   upload: (file: File, cycle_key?: string) =>
     uploadFile('/cms/upload', file, cycle_key ? { cycle_key } : undefined),
@@ -213,6 +354,20 @@ export const tomCardApi = {
   saveMapping:   (data: any)            => post<TomCardMapping>('/tomcard/mappings', data),
   deleteMapping: (card_num: string)     => del(`/tomcard/mappings/${card_num}`),
   uploads:       ()                     => get('/tomcard/uploads'),
+  /**
+   * Cards/stations still unmapped or only weakly matched (station-name
+   * guess), ranked by liters purchased. Used to prioritize which mappings
+   * to add — previously these transactions were invisible once imported.
+   */
+  unmapped:      (cycle_key?: string)   => get<{
+    card_num: string;
+    station_name: string;
+    mapping_confidence: 'station_match' | 'unlinked';
+    total_liters: number;
+    total_cfa: number;
+    transactions: number;
+    last_seen: string;
+  }[]>('/tomcard/unmapped', cycle_key ? { cycle_key } : undefined),
 };
 
 // ─── Reconciliation ───────────────────────────────────────────────────────────
@@ -238,7 +393,7 @@ export const alertsApi = {
     patch<DieselAlert>(`/alerts/${id}/resolve`, { resolution_note: note }),
   readAll:     ()                       => patch('/alerts/read-all'),
   markRead:    (id: string)             => patch(`/alerts/${id}/read`),
-  dismiss:     (id: string)             => del(`/notifications/${id}`),
+  dismiss:     (id: string)             => del(`/diesel-notifications/${id}`),
 };
 
 // // ─── Reports ──────────────────────────────────────────────────────────────────
@@ -325,9 +480,12 @@ export const siteBudgetApi = {
    * Upload the Book11 Budget file. cycle_key is REQUIRED — this file has
    * no per-row date column the backend can derive a cycle from (unlike
    * CMS/Validation), so the person uploading must pick the cycle explicitly.
+   *
+   * NOTE: path is '/site-budget-upload' (its own mount), not
+   * '/site-budget/upload' — the latter has no matching backend route.
    */
   upload:  (file: File, cycle_key: string) =>
-    uploadFile('/site-budget/upload', file, { cycle_key }),
+    uploadFile('/site-budget-upload', file, { cycle_key }),
   uploads: (params?: any) => get<any[]>('/site-budget/uploads', params),
 };
 
@@ -349,6 +507,38 @@ export const validationApi = {
   uploads: (params?: any) => get<ValidationUpload[]>('/validation/uploads', params),
   records: (cycle_key: string) => get<ValidationRecord[]>(`/validation/records/${cycle_key}`),
   stats:   (cycle_key: string) => get<any>(`/validation/stats/${cycle_key}`),
+};
+
+
+// ── Fuel Request Approval Chain API ──────────────────────────────────────────
+// New 6-level approval system (Coordinator → Operations → Technical → Finance → HOB → CEO)
+export const fuelRequestApi = {
+  create:         (data: any)                  => api.post('/fuel-requests', data).then(r => r.data),
+  list:           (params?: any)               => api.get('/fuel-requests', { params }).then(r => r.data),
+  get:            (id: string)                 => api.get(`/fuel-requests/${id}`).then(r => r.data),
+  pendingForMe:   ()                           => api.get('/fuel-requests/pending-for-me').then(r => r.data),
+  scheduledForMe: ()                           => api.get('/fuel-requests/scheduled-for-me').then(r => r.data),
+  sites:          (params?: any)               => api.get('/fuel-requests/sites', { params }).then(r => r.data),
+  siteCycle:      (siteId: string, key: string) => api.get(`/fuel-requests/site/${siteId}/cycle/${key}`).then(r => r.data),
+  budgetAlerts:   (threshold = 50)             => api.get('/fuel-requests/budget-alerts', { params: { threshold_liters: threshold } }).then(r => r.data),
+  financeReport:  (cycle: string)              => api.get(`/fuel-requests/finance-report/${cycle}`).then(r => r.data),
+  approve:        (id: string, data?: any)     => api.patch(`/fuel-requests/${id}/approve`, data || {}).then(r => r.data),
+  reject:         (id: string, comments: string) => api.patch(`/fuel-requests/${id}/reject`, { comments }).then(r => r.data),
+  assign:         (id: string, data: any)      => api.patch(`/fuel-requests/${id}/assign`, data).then(r => r.data),
+  disburse:       (id: string, data: any)      => api.patch(`/fuel-requests/${id}/disburse`, data).then(r => r.data),
+  linkRefuel:       (id: string, data: any)    => api.patch(`/fuel-requests/${id}/link-refuel`, data).then(r => r.data),
+  cancel:           (id: string, data?: { reason?: string }) => api.patch(`/fuel-requests/${id}/cancel`, data).then(r => r.data),
+  emergencyApprove: (id: string, data: { override_reason: string; liters_approved?: number; comments?: string }) =>
+    api.patch(`/fuel-requests/${id}/emergency-approve`, data).then(r => r.data),
+};
+
+export const fuelPlanningApi = {
+  predict:     (cycle: string, params?: any)      => api.get(`/fuel-planning/predict/${cycle}`, { params }).then(r => r.data),
+  predictSite: (cycle: string, siteId: string, gemini = false) =>
+    api.get(`/fuel-planning/predict/${cycle}/site/${siteId}`, { params: { gemini: gemini ? 1 : 0 } }).then(r => r.data),
+  schedule:    (cycle: string)                   => api.get(`/fuel-planning/schedule/${cycle}`).then(r => r.data),
+  summary:     (cycle: string)                   => api.get(`/fuel-planning/summary/${cycle}`).then(r => r.data),
+  autoRequest: (cycle: string)                   => api.post(`/fuel-planning/auto-request/${cycle}`).then(r => r.data),
 };
 
 export default api;

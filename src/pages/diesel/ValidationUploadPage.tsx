@@ -25,6 +25,7 @@
  * sibling page in the existing diesel app rather than a new design.
  */
 import React, { useState } from 'react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -39,6 +40,7 @@ import {
 } from '../../components/diesel/DieselComponents';
 
 export default function ValidationUploadPage() {
+  const { isNarrow } = useBreakpoint();
   const { uploading, result, error, upload, reset } = useFileUpload();
   const { data: uploads, loading: uploadsLoading, refetch: refetchUploads } = useValidationUploads();
 
@@ -69,7 +71,7 @@ export default function ValidationUploadPage() {
         subtitle="Upload the monthly Validation Template — updates each site's contractual CPH and KVA from the validated figures, and imports the visit-level Main sheet."
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 24, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : '420px 1fr', gap: 24, marginBottom: 28 }}>
         {/* ── Upload panel ── */}
         <div>
           <UploadZone

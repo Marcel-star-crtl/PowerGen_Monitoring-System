@@ -5,7 +5,8 @@
  * FIX: All downloads now use programmatic fetch with auth header instead of
  * bare <a href> links that bypass authentication.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import apiClient from '@/api/client';
 import { useCycles, useClusterSummary, useSiteBudgets } from '../../hooks/useDiesel';
 import { reportsApi } from '../../api/dieselApi';
 import {
@@ -18,7 +19,9 @@ export default function ReportsPage() {
   const { data: clusterData, loading: clusterLoading } = useClusterSummary(selectedKey);
   const { data: sites } = useSiteBudgets(selectedKey);
   const [siteId, setSiteId] = useState('');
-  const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloading,   setDownloading]   = useState<string | null>(null);
+  const [compareData,   setCompareData]   = useState<any[]>([]);
+  const [compareLoading,setCompareLoading]= useState(false);
 
   /** Programmatic authenticated download — avoids browser navigation stripping auth header */
   async function handleDownload(url: string, filename: string, key: string) {
@@ -31,6 +34,29 @@ export default function ReportsPage() {
       setDownloading(null);
     }
   }
+
+  // Load multi-cycle budget vs consumed data for last 6 cycles
+  const loadComparison = useCallback(async () => {
+    const last6 = cycles.slice(0, 6);
+    if (!last6.length) return;
+    setCompareLoading(true);
+    try {
+      const results = await Promise.allSettled(
+        last6.map(c => apiClient.get('/site-budget/' + c.cycle_key + '/aggregate')
+          .then(r => ({ cycle: c.cycle_key, label: c.label || c.cycle_key, ...r.data?.data?.totals })))
+      );
+      setCompareData(
+        results
+          .filter(r => r.status === 'fulfilled')
+          .map(r => (r as PromiseFulfilledResult<any>).value)
+          .filter(d => d.total_budget_liters > 0)
+          .reverse()
+      );
+    } catch { /* no-op */ }
+    finally { setCompareLoading(false); }
+  }, [cycles]);
+
+  useEffect(() => { if (cycles.length) loadComparison(); }, [cycles, loadComparison]);
 
   if (cyclesLoading) return <Spinner />;
   const clusters = (clusterData as any)?.data || clusterData || [];
@@ -111,6 +137,7 @@ export default function ReportsPage() {
               <select
                 value={siteId}
                 onChange={e => setSiteId(e.target.value)}
+                aria-label="Select site for deep-dive report"
                 style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: 6, padding: '6px 8px', fontSize: 12 }}
               >
                 <option value="">Select site…</option>
@@ -170,6 +197,98 @@ export default function ReportsPage() {
           </ResponsiveContainer>
         )}
       </div>
+      {/* ── Multi-cycle comparison chart ── */}
+      <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:12, padding:24, marginTop:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+          <div>
+            <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:'#111827' }}>📈 Cycle Comparison — Budget vs Consumed</h3>
+            <p style={{ margin:'4px 0 0', fontSize:12, color:'#6b7280' }}>Last {compareData.length} cycles · from /site-budget aggregate</p>
+          </div>
+          <button onClick={loadComparison} disabled={compareLoading}
+            style={{ border:'1px solid #e5e7eb', background:'#f9fafb', borderRadius:8, padding:'6px 14px', cursor:'pointer', fontSize:12 }}>
+            {compareLoading ? '⏳ Loading…' : '🔄 Refresh'}
+          </button>
+        </div>
+        {compareLoading ? <Spinner size={28} /> : compareData.length === 0 ? (
+          <p style={{ color:'#9ca3af', textAlign:'center', padding:24, fontSize:13 }}>
+            No multi-cycle budget data available — upload Book11 files for past cycles to enable comparison.
+          </p>
+        ) : (
+          <>
+            {/* Summary stat strip */}
+            <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap' }}>
+              {compareData.slice(-1).map((d: any) => (
+                <React.Fragment key={d.cycle}>
+                  {[
+                    { label:'Budget (L)',   value: (d.total_budget_liters||0).toLocaleString() },
+                    { label:'Used (L)',     value: (d.total_liters_used||0).toLocaleString() },
+                    { label:'Remaining (L)',value: Math.max(0,(d.total_budget_liters||0)-(d.total_liters_used||0)).toLocaleString() },
+                    { label:'Utilisation', value: d.total_budget_liters > 0
+                        ? Math.round(((d.total_liters_used||0)/d.total_budget_liters)*100)+'%' : '—' },
+                  ].map(s => (
+                    <div key={s.label} style={{ background:'#f9fafb', borderRadius:8, padding:'10px 16px', flex:1, minWidth:120 }}>
+                      <div style={{ fontSize:10, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label} (latest)</div>
+                      <div style={{ fontSize:22, fontWeight:800, color:'#111827', marginTop:2 }}>{s.value}</div>
+                    </div>
+                  ))}
+                </React.Fragment>
+              ))}
+            </div>
+
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={compareData} margin={{ top:4, right:16, left:0, bottom:4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="label" tick={{ fontSize:11 }} />
+                <YAxis tick={{ fontSize:11 }} tickFormatter={(v: number) => (v/1000).toFixed(0)+'k'} />
+                <Tooltip
+                  formatter={(value: any, name: string) => [Number(value).toLocaleString() + ' L', name]}
+                  labelStyle={{ fontWeight:700, marginBottom:4 }}
+                />
+                <Legend wrapperStyle={{ fontSize:12 }} />
+                <Bar dataKey="total_budget_liters"   name="Budget (L)"    fill="#e5e7eb" radius={[3,3,0,0]} />
+                <Bar dataKey="total_liters_used"      name="Used (L)"      fill="#2a78d6" radius={[3,3,0,0]} />
+                <Bar dataKey="total_liters_remaining" name="Remaining (L)" fill="#1baf7a" radius={[3,3,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+
+            {/* Cycle-by-cycle table */}
+            <div style={{ overflowX:'auto', marginTop:20 }}>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                <thead>
+                  <tr style={{ background:'#f9fafb' }}>
+                    {['Cycle','Budget (L)','Used (L)','Remaining (L)','Utilisation','Sites'].map(h => (
+                      <th key={h} style={{ padding:'8px 12px', textAlign:'left', fontWeight:600, color:'#6b7280', fontSize:11, borderBottom:'1px solid #e5e7eb' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...compareData].reverse().map((d: any) => {
+                    const rem  = Math.max(0,(d.total_budget_liters||0)-(d.total_liters_used||0));
+                    const pct  = d.total_budget_liters > 0 ? Math.round(((d.total_liters_used||0)/d.total_budget_liters)*100) : 0;
+                    const color= pct>=90 ? '#dc2626' : pct>=75 ? '#d97706' : '#16a34a';
+                    return (
+                      <tr key={d.cycle} style={{ borderBottom:'0.5px solid #f3f4f6' }}>
+                        <td style={{ padding:'8px 12px', fontWeight:700 }}>{d.label}</td>
+                        <td style={{ padding:'8px 12px' }}>{(d.total_budget_liters||0).toLocaleString()}</td>
+                        <td style={{ padding:'8px 12px' }}>{(d.total_liters_used||0).toLocaleString()}</td>
+                        <td style={{ padding:'8px 12px' }}>{rem.toLocaleString()}</td>
+                        <td style={{ padding:'8px 12px' }}>
+                          <span style={{ color, fontWeight:700 }}>{pct}%</span>
+                          <div style={{ background:'#e5e7eb', height:4, width:60, borderRadius:2, display:'inline-block', marginLeft:8, verticalAlign:'middle' }}>
+                            <div style={{ background:color, height:4, width:`${Math.min(pct,100)}%`, borderRadius:2 }} />
+                          </div>
+                        </td>
+                        <td style={{ padding:'8px 12px', color:'#6b7280' }}>{d.total_sites||'—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+
     </div>
   );
 }

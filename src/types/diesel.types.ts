@@ -149,6 +149,8 @@ export interface CycleReconciliation {
   last_reconciled_at: string;
   is_manually_reviewed: boolean;
   override_notes?: string;
+  reviewed_by?: { fullName?: string; email?: string } | string;
+  reviewed_at?: string;
 }
 
 export interface ClusterSummary {
@@ -292,26 +294,64 @@ export interface GeneratorLedgerEntry {
 export interface DashboardKPIs {
   cycle: DieselCycle;
   kpis: {
-    total_sites: number;
+    // From CycleReconciliation aggregation — genuinely optional: the
+    // backend does `kpis = agg[0] || {}`, so a cycle with zero
+    // CycleReconciliation records (nothing reconciled yet) has NONE of
+    // these fields at all, not zeros.
+    total_sites?: number;
+    total_contractual?: number;
+    total_cms_consumed?: number;
+    total_field_added?: number;
+    // Always the live source figure (FieldVisitRecord + FuelConsumption),
+    // independent of whether CycleReconciliation has run — see Phase 37.
+    // total_field_added itself prefers the reconciled figure when
+    // available, falling back to this. Exposed separately so the UI can
+    // indicate when the two diverge, or when the shown figure is the
+    // live one because reconciliation hasn't run yet.
+    total_field_added_live?: number;
+    total_final_rh?: number;
+    total_tomcard?: number;
+    total_theft?: number;
+    sites_over_ccph?: number;
+    sites_low_fuel?: number;
+    sites_zero_grid?: number;
+    sites_missing_grato?: number;
+    sites_missing_cms?: number;
+    sites_theft_suspected?: number;
+    total_alerts?: number;
+    avg_cons_var_pct?: number;
+    contractual_vs_cms_var?: number;
+    budget_utilisation_pct: string | null;
+
+    // From SiteBudget aggregation — always present (defaulted via `|| 0`
+    // in the backend regardless of whether any CycleReconciliation exists).
     total_budget_liters: number;
-    total_contractual: number;
-    total_cms_consumed: number;
-    total_field_added: number;
-    total_final_rh: number;
-    total_tomcard: number;
-    total_theft: number;
-    sites_over_ccph: number;
-    sites_low_fuel: number;
-    sites_zero_grid: number;
-    sites_missing_grato: number;
-    sites_missing_cms: number;
-    sites_theft_suspected: number;
-    total_alerts: number;
-    avg_cons_var_pct: number;
-    budget_utilisation_pct: string;
-    contractual_vs_cms_var: number;
+    total_budget_xaf: number;
+    total_liters_used_requests: number;
+    budget_liters_approved_ihs: number;
+    budget_by_cluster: Array<{
+      _id: string; // cluster name
+      sites: number;
+      budget_liters: number;
+      budget_xaf: number;
+      liters_used: number;
+      budget_liters_approved_ihs: number;
+    }>;
+
+    // From FuelRequest aggregation — always present (defaulted via `|| 0`).
+    fuel_request_committed_pct: string | null;
+    fuel_requests: {
+      total: number;
+      pending: number;
+      approved: number;
+      disbursed: number;
+      denied: number;
+      total_liters_approved: number;
+      total_xaf_approved: number;
+      total_xaf_disbursed: number;
+    };
   };
-  alerts_by_severity: Record<AlertSeverity, number>;
+  alerts_by_severity: Partial<Record<AlertSeverity, number>>;
   open_alerts_total: number;
 }
 
@@ -340,4 +380,79 @@ export interface ApiResponse<T> {
   pagination?: Pagination;
   summary?: Record<string, any>;
   count?: number;
+}
+
+// ─── Validation (GRATO Validation Template upload) ──────────────────────────────
+export interface ValidationRecord {
+  _id: string;
+  site_id: string;
+  cycle_key: string;
+  access_ticket?: string;
+  state?: string;
+  site_name?: string;
+  customer_id?: string;
+  sbc?: string;
+  sbc_region?: string;
+  cluster?: string;
+  topology?: string;
+  site_supervisor?: string;
+  prev_date?: string;
+  current_date?: string;
+  prev_meter?: number | null;
+  current_meter?: number | null;
+  prev_meter_raw?: string;
+  current_meter_raw?: string;
+  sbc_dg_kva?: number;
+  final_dg_kva?: number;
+  dg_check?: boolean;
+  dg_comment?: string;
+  sbc_rh?: number;
+  final_rh?: number;
+  cms_rh?: number | null;
+  cms_vs_field?: number;
+  cms_vs_field_comment?: string;
+  total_fuel_added_reported?: number;
+  service_desk_recording?: number;
+  fuel_added_var?: number;
+  qty_fuel_previously?: number;
+  qty_fuel_found?: number;
+  qty_fuel_added?: number;
+  qty_fuel_left?: number;
+  final_dg_cph: number;
+  sbc_cons?: number;
+  final_cons?: number;
+  cons_var?: number;
+  all_comment?: string;
+  sbc_comment?: string;
+  final_comment?: string;
+  cost_per_liter?: number;
+  management_fee_rate?: number;
+  management_amount?: number;
+  upload_id?: string;
+  uploaded_by?: string;
+  source_filename?: string;
+  source_row?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ValidationUpload {
+  _id: string;
+  filename: string;
+  uploaded_by: string | { fullName?: string; email?: string };
+  main_rows_total: number;
+  main_rows_imported: number;
+  main_rows_skipped: number;
+  main_technician_links: number;
+  main_generator_swaps: number;
+  validation_rows_total: number;
+  validation_rows_imported: number;
+  validation_rows_skipped: number;
+  validation_cycles_touched: string[];
+  site_budgets_updated: number;
+  error_count: number;
+  errors: string[];
+  status: 'success' | 'partial' | 'failed';
+  createdAt?: string;
+  updatedAt?: string;
 }

@@ -44,14 +44,14 @@ export default function GeneratorLedgerPage() {
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 24 }}>
           <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>Log a Generator Swap</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <input placeholder="Site ID *" value={form.site_id} onChange={e => setForm({ ...form, site_id: e.target.value })} style={inputStyle} />
-            <input placeholder="Site Name" value={form.site_name} onChange={e => setForm({ ...form, site_name: e.target.value })} style={inputStyle} />
-            <input placeholder="Cluster" value={form.cluster} onChange={e => setForm({ ...form, cluster: e.target.value })} style={inputStyle} />
-            <input placeholder="Old Generator ID" value={form.old_generator_id} onChange={e => setForm({ ...form, old_generator_id: e.target.value })} style={inputStyle} />
-            <input placeholder="New Generator ID *" value={form.new_generator_id} onChange={e => setForm({ ...form, new_generator_id: e.target.value })} style={inputStyle} />
-            <input placeholder="New Generator Brand" value={form.new_generator_brand} onChange={e => setForm({ ...form, new_generator_brand: e.target.value })} style={inputStyle} />
-            <input placeholder="New KVA" type="number" value={form.new_dg_kva} onChange={e => setForm({ ...form, new_dg_kva: e.target.value })} style={inputStyle} />
-            <input placeholder="Swap Reason" value={form.swap_reason} onChange={e => setForm({ ...form, swap_reason: e.target.value })} style={{ ...inputStyle, gridColumn: 'span 2' }} />
+            <input aria-label="Site ID" placeholder="Site ID *" value={form.site_id} onChange={e => setForm({ ...form, site_id: e.target.value })} style={inputStyle} />
+            <input aria-label="Site Name" placeholder="Site Name" value={form.site_name} onChange={e => setForm({ ...form, site_name: e.target.value })} style={inputStyle} />
+            <input aria-label="Cluster" placeholder="Cluster" value={form.cluster} onChange={e => setForm({ ...form, cluster: e.target.value })} style={inputStyle} />
+            <input aria-label="Old Generator ID" placeholder="Old Generator ID" value={form.old_generator_id} onChange={e => setForm({ ...form, old_generator_id: e.target.value })} style={inputStyle} />
+            <input aria-label="New Generator ID" placeholder="New Generator ID *" value={form.new_generator_id} onChange={e => setForm({ ...form, new_generator_id: e.target.value })} style={inputStyle} />
+            <input aria-label="New Generator Brand" placeholder="New Generator Brand" value={form.new_generator_brand} onChange={e => setForm({ ...form, new_generator_brand: e.target.value })} style={inputStyle} />
+            <input aria-label="New Generator KVA" placeholder="New KVA" type="number" value={form.new_dg_kva} onChange={e => setForm({ ...form, new_dg_kva: e.target.value })} style={inputStyle} />
+            <input aria-label="Swap Reason" placeholder="Swap Reason" value={form.swap_reason} onChange={e => setForm({ ...form, swap_reason: e.target.value })} style={{ ...inputStyle, gridColumn: 'span 2' }} />
           </div>
           <p style={{ fontSize: 11, color: '#9ca3af', margin: '10px 0' }}>This will close the current assignment, open a new one, and trigger re-reconciliation for the affected cycle automatically.</p>
           <Btn onClick={handleSwap} disabled={saving || !form.site_id || !form.new_generator_id}>{saving ? 'Saving…' : 'Confirm Swap'}</Btn>
@@ -59,7 +59,7 @@ export default function GeneratorLedgerPage() {
       )}
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
-        <input placeholder="Filter by Site ID…" value={siteFilter} onChange={e => setSiteFilter(e.target.value)} style={{ ...inputStyle, maxWidth: 240 }} />
+        <input aria-label="Filter by site ID" placeholder="Filter by Site ID…" value={siteFilter} onChange={e => setSiteFilter(e.target.value)} style={{ ...inputStyle, maxWidth: 240 }} />
         <label style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, color: '#374151' }}>
           <input type="checkbox" checked={showActive} onChange={e => setShowActive(e.target.checked)} /> Active assignments only
         </label>

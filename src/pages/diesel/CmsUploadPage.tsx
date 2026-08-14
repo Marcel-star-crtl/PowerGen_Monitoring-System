@@ -13,9 +13,11 @@
  *  5. Import result panel updated to show rows_total / rows_imported / rows_skipped
  *     / error_count to match the new backend response shape.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useNavigate } from 'react-router-dom';
-import { cmsApi } from '../../api/dieselApi';
+import { Modal } from '@/components/common/Modal';
+import { cmsApi, fuelPlanningApi } from '../../api/dieselApi';
 import { useCycles, useCmsUploads, useMissingDays, useFileUpload } from '../../hooks/useDiesel';
 import {
   PageHeader, CycleSelector, UploadZone, StatusPill, Btn,
@@ -24,12 +26,17 @@ import {
 
 export default function CmsUploadPage() {
   const navigate = useNavigate();
+  const { isNarrow } = useBreakpoint();
   const { cycles, selectedKey, setSelectedKey, loading: cyclesLoading } = useCycles();
   const { data: uploads, loading: uploadsLoading, error: uploadsError, refetch: refetchUploads } = useCmsUploads(selectedKey);
   const { data: missing, loading: missingLoading, refetch: refetchMissing } = useMissingDays(selectedKey);
   const { uploading, result, error, upload, reset } = useFileUpload();
-  const [reprocessing, setReprocessing] = useState<string | null>(null);
-  const [wrongFile, setWrongFile] = useState(false);
+  const [reprocessing,    setReprocessing]    = useState<string | null>(null);
+  const [viewingUpload,   setViewingUpload]   = useState<any>(null);
+  const [viewingLoading,  setViewingLoading]  = useState(false);
+  const [wrongFile,       setWrongFile]        = useState(false);
+  const [planSummary,     setPlanSummary]      = useState<any>(null);
+  const [planLoading,     setPlanLoading]      = useState(false);
 
   async function handleFile(file: File) {
     reset();
@@ -49,12 +56,42 @@ export default function CmsUploadPage() {
     await upload(() => cmsApi.upload(file, selectedKey));
     refetchUploads();
     refetchMissing();
+    // After CMS data lands, refresh fuel planning predictions
+    if (selectedKey) {
+      setPlanLoading(true);
+      fuelPlanningApi.summary(selectedKey)
+        .then(r => setPlanSummary(r?.data || null))
+        .catch(() => {})
+        .finally(() => setPlanLoading(false));
+    }
   }
 
   async function handleReprocess(uploadId: string) {
     setReprocessing(uploadId);
     try { await cmsApi.reprocess(uploadId); } finally { setReprocessing(null); }
   }
+
+  async function handleViewDetail(uploadId: string) {
+    setViewingLoading(true);
+    try {
+      const res = await cmsApi.uploadDetail(uploadId);
+      setViewingUpload((res as any)?.data || res);
+    } catch {
+      setViewingUpload({ _error: true });
+    } finally {
+      setViewingLoading(false);
+    }
+  }
+
+  // Reload fuel planning summary when cycle changes
+  useEffect(() => {
+    if (!selectedKey) return;
+    setPlanLoading(true);
+    fuelPlanningApi.summary(selectedKey)
+      .then(r => setPlanSummary(r?.data || null))
+      .catch(() => {})
+      .finally(() => setPlanLoading(false));
+  }, [selectedKey]);
 
   if (cyclesLoading) return <Spinner />;
 
@@ -127,7 +164,7 @@ export default function CmsUploadPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : '1fr 320px', gap: 24, marginBottom: 24 }}>
         {/* ── Upload zone ── */}
         <div>
           <UploadZone
@@ -192,6 +229,37 @@ export default function CmsUploadPage() {
           </div>
         </div>
 
+        {/* ── Fuel Planning Status ── */}
+        {(planSummary || planLoading) && (
+          <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:12, padding:18, marginBottom:18 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+              <h3 style={{ margin:0, fontSize:14, fontWeight:600 }}>⛽ Fuel Status After Upload</h3>
+              <a href="/diesel/fuel-planning" style={{ fontSize:12, color:'#e53935', fontWeight:600, textDecoration:'none' }}>Fuel Planning →</a>
+            </div>
+            {planLoading ? <Spinner /> : planSummary ? (
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                {([
+                  { label:'🚨 Critical', value:planSummary.critical, color:'#dc2626' },
+                  { label:'⚠️ High',     value:planSummary.high,     color:'#d97706' },
+                  { label:'🔵 Medium',   value:planSummary.medium,   color:'#2563eb' },
+                  { label:'✅ OK',        value:planSummary.ok,       color:'#16a34a' },
+                ] as any[]).map((s:any) => (
+                  <div key={s.label} style={{ flex:1, minWidth:90, textAlign:'center', padding:'8px 12px',
+                    borderRadius:8, border:'1px solid #e5e7eb', borderTop:`3px solid ${s.color}` }}>
+                    <div style={{ fontSize:22, fontWeight:800, color:s.color }}>{s.value ?? 0}</div>
+                    <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {planSummary?.critical > 0 && (
+              <div style={{ marginTop:10, padding:'8px 12px', background:'#fff5f5', borderRadius:8, border:'1px solid #fca5a5', fontSize:12, color:'#dc2626' }}>
+                ⚠️ <strong>{planSummary.critical} site(s)</strong> critically low — open Fuel Planning to schedule refueling.
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Missing days panel ── */}
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
           <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>Missing Days This Cycle</h3>
@@ -249,7 +317,14 @@ export default function CmsUploadPage() {
                   <td style={{ padding: '9px 12px' }}>{u.sites_skipped || 0}</td>
                   <td style={{ padding: '9px 12px', color: '#6b7280' }}>{u.uploaded_by?.fullName || '—'}</td>
                   <td style={{ padding: '9px 12px', color: '#9ca3af', fontSize: 12 }}>{fmtDate(u.createdAt)}</td>
-                  <td style={{ padding: '9px 12px' }}>
+                  <td style={{ padding: '9px 12px', display: 'flex', gap: 6 }}>
+                    <Btn
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleViewDetail(u._id)}
+                    >
+                      🔍 Details
+                    </Btn>
                     <Btn
                       variant="ghost"
                       size="sm"
@@ -265,6 +340,55 @@ export default function CmsUploadPage() {
           </table>
         )}
       </div>
+
+      {/* Upload detail modal — surfaces routes/cmsUploadRoutes.js's
+          GET /uploads/:id, which previously had no UI calling it at all
+          despite returning genuinely useful per-upload error/warning
+          detail that the summary table row doesn't show. */}
+      <Modal isOpen={!!viewingUpload || viewingLoading} onClose={() => setViewingUpload(null)} title="Upload Detail" size="md">
+        {viewingLoading ? (
+          <Spinner />
+        ) : viewingUpload?._error ? (
+          <ErrorBox message="Failed to load upload detail." />
+        ) : viewingUpload ? (
+          <div style={{ fontSize: 13 }}>
+            <div style={{ marginBottom: 10 }}>
+              <strong>{viewingUpload.filename}</strong>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>
+                {fmtDate(viewingUpload.data_date)} · Uploaded by {viewingUpload.uploaded_by?.fullName || '—'} on {fmtDate(viewingUpload.createdAt)}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 14, fontSize: 12 }}>
+              <div>Sites in file: <strong>{viewingUpload.sites_in_file ?? '—'}</strong></div>
+              <div>Processed: <strong>{viewingUpload.sites_processed ?? '—'}</strong></div>
+              <div>Skipped: <strong>{viewingUpload.sites_skipped ?? 0}</strong></div>
+            </div>
+            {viewingUpload.errors?.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>
+                  {viewingUpload.errors.length} Error(s)
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, maxHeight: 180, overflowY: 'auto' }}>
+                  {viewingUpload.errors.map((e: string, i: number) => <li key={i} style={{ color: '#991b1b', marginBottom: 2 }}>{e}</li>)}
+                </ul>
+              </div>
+            )}
+            {viewingUpload.warnings?.length > 0 && (
+              <div>
+                <div style={{ fontWeight: 700, color: '#d97706', marginBottom: 4 }}>
+                  {viewingUpload.warnings.length} Warning(s)
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, maxHeight: 180, overflowY: 'auto' }}>
+                  {viewingUpload.warnings.map((w: string, i: number) => <li key={i} style={{ color: '#92400e', marginBottom: 2 }}>{w}</li>)}
+                </ul>
+              </div>
+            )}
+            {!viewingUpload.errors?.length && !viewingUpload.warnings?.length && (
+              <div style={{ color: '#16a34a' }}>✓ No errors or warnings — clean upload.</div>
+            )}
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }

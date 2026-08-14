@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import SupervisorFuelApprovalsTab from './SupervisorFuelApprovalsTab';
+import apiClient from '@/api/client';
 import { useNavigate } from 'react-router-dom';
 import { supervisorAPI } from '@/api';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -24,9 +26,15 @@ const ApprovalsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   // Show final reports (pending_approval) by default
   const [statusFilter, setStatusFilter] = useState<string>('pending_approval');
+  const [activeTab, setActiveTab]         = useState<'maintenance' | 'fuel'>('maintenance');
+  const [fuelPendingCount, setFuelPendingCount] = useState(0);
 
   useEffect(() => {
     loadVisits();
+    // Load fuel approval badge count
+    apiClient.get('/fuel-requests/pending-for-me')
+      .then(r => setFuelPendingCount((r.data?.data || []).length))
+      .catch(() => {});
   }, [user]);
 
   const getLatestEntry = (item: any) => {
@@ -151,9 +159,44 @@ const ApprovalsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Site Visit Approvals</h1>
-          <p className="text-sm text-gray-500 mt-1">Review and approve completed site visits from your technicians</p>
+          <h1 className="text-2xl font-bold text-gray-900">Approvals</h1>
+          <p className="text-sm text-gray-500 mt-1">Review maintenance visits and fuel refueling requests</p>
         </div>
+      </div>
+
+      {/* ── Tab bar ── */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid #e5e7eb', marginBottom: 0 }}>
+        {([
+          { key: 'maintenance', label: `Site Visits` },
+          { key: 'fuel',        label: `Fuel Requests`, badge: fuelPendingCount },
+        ] as const).map(t => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '10px 18px', border: 'none', cursor: 'pointer',
+              fontSize: 14, fontWeight: 600, background: 'none', marginBottom: -2,
+              borderBottom: activeTab === t.key ? '3px solid #e53935' : '3px solid transparent',
+              color: activeTab === t.key ? '#e53935' : '#6b7280',
+            }}
+          >
+            {t.label}
+            {(t as any).badge > 0 && (
+              <span style={{
+                background: '#e53935', color: '#fff', borderRadius: 10,
+                fontSize: 10, fontWeight: 800, padding: '1px 6px',
+              }}>{(t as any).badge}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Fuel Requests tab ── */}
+      {activeTab === 'fuel' && <SupervisorFuelApprovalsTab />}
+
+      {/* ── Maintenance Visits tab ── */}
+      {activeTab === 'maintenance' && <div className="space-y-6">
         <div className="flex items-center space-x-4">
           <Select
             value={statusFilter}
@@ -178,7 +221,6 @@ const ApprovalsPage: React.FC = () => {
           </Button>
           <Badge variant="blue">{filteredList.length} Visit{filteredList.length !== 1 ? 's' : ''}</Badge>
         </div>
-      </div>
 
       {filteredList.length === 0 ? (
         <EmptyState
@@ -282,6 +324,7 @@ const ApprovalsPage: React.FC = () => {
           })}
         </div>
       )}
+      </div>}
     </div>
   );
 };
