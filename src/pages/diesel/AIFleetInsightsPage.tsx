@@ -14,7 +14,7 @@ import React, { useEffect, useState } from 'react';
 import { useCycles } from '../../hooks/useDiesel';
 import { aiInsightsApi } from '../../api/dieselApi';
 import { PageHeader, Spinner, ErrorBox, Btn, CycleSelector } from '../../components/diesel/DieselComponents';
-import { neutral, ink, urgency } from '../../styles/dieselTokens';
+import { neutral, ink, urgency, font } from '../../styles/dieselTokens';
 
 function renderNarrative(text: string) {
   // Gemini's response uses simple "## Heading" markdown — rendered here
@@ -54,7 +54,7 @@ export default function AIFleetInsightsPage() {
   const ev = briefing?.evidence;
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1100, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="🧠 Fleet Intelligence Briefing"
         subtitle="One prioritized picture of the whole fleet — alerts, budget variances, reconciliation gaps, and pending approvals — synthesized, not scattered across five pages."

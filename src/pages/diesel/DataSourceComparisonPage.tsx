@@ -13,8 +13,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useCycles } from '../../hooks/useDiesel';
 import { dataSourceComparisonApi } from '../../api/dieselApi';
-import { PageHeader, Spinner, ErrorBox, EmptyState, CycleSelector } from '../../components/diesel/DieselComponents';
-import { neutral, ink, urgency } from '../../styles/dieselTokens';
+import { PageHeader, Spinner, ErrorBox, EmptyState, CycleSelector, Card, KpiCard } from '../../components/diesel/DieselComponents';
+import { neutral, ink, urgency, font } from '../../styles/dieselTokens';
 
 const SOURCE_LABEL: Record<string, string> = {
   field_grato: 'Field (GRATO)', field_mobile: 'Field (Mobile)', field_combined: 'Field (Combined)',
@@ -90,7 +90,7 @@ export default function DataSourceComparisonPage() {
   }, [rows, clusterFilter, search, disagreementOnly, metric]);
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="⚖️ CMS vs Field Data"
         subtitle="Field data is the trusted source of truth — CMS is the fallback when field data isn't available. See both, their disagreement, and exactly which one the system used."
@@ -103,21 +103,14 @@ export default function DataSourceComparisonPage() {
       {!loading && summary && (
         <>
           {/* ── Summary ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12, marginBottom: 20 }}>
-            {[
-              { label: 'Total Sites', value: summary.total_sites },
-              { label: 'Both Sources', value: summary.both_sources_available, color: urgency.ok.fg },
-              { label: 'CMS Only', value: summary.cms_only, color: urgency.medium.fg },
-              { label: 'Field Only', value: summary.field_only, color: urgency.ok.fg },
-              { label: 'Neither', value: summary.neither, color: urgency.critical.fg },
-              { label: 'Significant Gaps', value: summary.significant_rh_disagreement + summary.significant_fuel_disagreement, color: urgency.high.fg },
-              { label: 'Over Budget', value: summary.over_budget_count ?? 0, color: urgency.high.fg },
-            ].map(box => (
-              <div key={box.label} style={{ border: `1px solid ${neutral[200]}`, borderRadius: 10, padding: 12 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: neutral[400], textTransform: 'uppercase', marginBottom: 4 }}>{box.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: box.color || ink }}>{box.value}</div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+            <KpiCard label="Total Sites" value={summary.total_sites} />
+            <KpiCard label="Both Sources" value={summary.both_sources_available} color={urgency.ok.fg} />
+            <KpiCard label="CMS Only" value={summary.cms_only} color={urgency.medium.fg} />
+            <KpiCard label="Field Only" value={summary.field_only} color={urgency.ok.fg} />
+            <KpiCard label="Neither" value={summary.neither} color={urgency.critical.fg} />
+            <KpiCard label="Significant Gaps" value={summary.significant_rh_disagreement + summary.significant_fuel_disagreement} color={urgency.high.fg} />
+            <KpiCard label="Over Budget" value={summary.over_budget_count ?? 0} color={urgency.high.fg} />
           </div>
 
           {/* ── Legend / priority explanation ── */}
@@ -155,7 +148,7 @@ export default function DataSourceComparisonPage() {
           {filtered.length === 0 ? (
             <EmptyState icon="⚖️" title="No sites match" desc="Try widening your filters." />
           ) : (
-            <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, overflow: 'auto', maxHeight: 600 }}>
+            <Card padded={false} style={{ overflow: 'auto', maxHeight: 600 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead style={{ position: 'sticky', top: 0, background: neutral[50], zIndex: 1 }}>
                   <tr>
@@ -199,7 +192,7 @@ export default function DataSourceComparisonPage() {
                   })}
                 </tbody>
               </table>
-            </div>
+            </Card>
           )}
 
           <div style={{ marginTop: 12, fontSize: 12, color: neutral[500] }}>
@@ -225,7 +218,7 @@ export default function DataSourceComparisonPage() {
               { label: 'Run Hours', cms: detailSite.cms.rh, cmsUnit: 'hrs', field: detailSite.field.rh, fieldUnit: 'hrs', fieldExtra: detailSite.field.rh_from_mobile ? `(${fmt(detailSite.field.rh_from_mobile, 1)} hrs from mobile refuels)` : null, variance: detailSite.variance.rh_pct },
               { label: 'Consumption', cms: detailSite.cms.consumption_l, cmsUnit: 'L', field: detailSite.field.consumption_l, fieldUnit: 'L', variance: detailSite.variance.consumption_pct },
             ].map(block => (
-              <div key={block.label} style={{ marginBottom: 16, border: `1px solid ${neutral[200]}`, borderRadius: 10, padding: 12 }}>
+              <Card key={block.label} style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>{block.label}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                   <span style={{ color: SOURCE_COLOR.cms_telemetry }}>CMS: <strong>{block.cms != null ? `${fmt(block.cms, 1)} ${block.cmsUnit}` : 'No data'}</strong></span>
@@ -239,7 +232,7 @@ export default function DataSourceComparisonPage() {
                   {block.fieldDate && <span style={{ color: neutral[400] }}>{fmtDate(block.fieldDate)}{block.fieldWho ? ` · ${block.fieldWho}` : ''}</span>}
                 </div>
                 <div style={{ fontSize: 12, marginTop: 6 }}>Variance: <VarianceTag pctVal={block.variance} /></div>
-              </div>
+              </Card>
             ))}
 
             <div style={{ fontSize: 11, color: neutral[400] }}>
@@ -247,7 +240,7 @@ export default function DataSourceComparisonPage() {
             </div>
 
             {detailSite.budget?.budget_liters != null && (
-              <div style={{ marginTop: 12, border: `1px solid ${neutral[200]}`, borderRadius: 10, padding: 12 }}>
+              <Card style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Budget</div>
                 <div style={{ fontSize: 12, marginBottom: 4 }}>
                   Combined consumption ({fmt(detailSite.combined.consumption_l)} L) vs. budget ({fmt(detailSite.budget.budget_liters)} L)
@@ -256,7 +249,7 @@ export default function DataSourceComparisonPage() {
                   Variance: <VarianceTag pctVal={detailSite.budget.variance_pct} />
                   {detailSite.budget.over_budget && <span style={{ color: urgency.high.fg, marginLeft: 8 }}>⚠ Over budget</span>}
                 </div>
-              </div>
+              </Card>
             )}
           </div>
         </div>

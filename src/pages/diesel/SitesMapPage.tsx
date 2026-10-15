@@ -21,9 +21,9 @@ import { useCycles } from '../../hooks/useDiesel';
 import { sitesMapApi, technicianTrackingApi, routeOptimizationApi } from '../../api/dieselApi';
 import { useFetch } from '../../hooks/useDiesel';
 import {
-  PageHeader, CycleSelector, Spinner, ErrorBox, EmptyState, StatusPill, Btn, fmtDate,
+  PageHeader, CycleSelector, Spinner, ErrorBox, EmptyState, StatusPill, Btn, fmtDate, Card,
 } from '../../components/diesel/DieselComponents';
-import { urgency as urgencyTokens, neutral, ink } from '../../styles/dieselTokens';
+import { urgency as urgencyTokens, neutral, ink, status as statusTokens, font } from '../../styles/dieselTokens';
 
 // Default center: Douala, Cameroon — this fleet's operating region.
 // Only used before any sites have loaded / as a fallback if no site has
@@ -32,7 +32,7 @@ const DEFAULT_CENTER: [number, number] = [4.0511, 9.7679];
 const DEFAULT_ZOOM = 8;
 
 const labelStyleSmall: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase',
+  fontSize: 11, fontWeight: 700, color: neutral[400], textTransform: 'uppercase',
   letterSpacing: '0.03em', marginBottom: 4,
 };
 
@@ -231,10 +231,17 @@ export default function SitesMapPage() {
   const [routeMode, setRouteMode] = useState(false);
   const [routeStops, setRouteStops] = useState<MapSite[]>([]);
   const [routeStart, setRouteStart] = useState<{ lat: number; lng: number } | null>(null);
+  const [locatingUser, setLocatingUser] = useState(false);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [manualLat, setManualLat] = useState('');
   const [manualLng, setManualLng] = useState('');
-  const [routeResult, setRouteResult] = useState<{ order: any[]; total_distance_km: number } | null>(null);
+  const [routeResult, setRouteResult] = useState<{
+    order: any[];
+    total_distance_km: number;
+    total_duration_min: number | null;
+    used_road_distance: boolean;
+    route_geometry: [number, number][] | null;
+  } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
 
@@ -343,7 +350,7 @@ export default function SitesMapPage() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="🗺️ Live Site Map"
         subtitle="All sites with GPS coordinates on file, colored by this cycle's fuel urgency. Click a pin for site details."
@@ -481,20 +488,31 @@ export default function SitesMapPage() {
                     <div style={{ minWidth: 160, fontSize: 13 }}>
                       <div style={{ fontWeight: 700, marginBottom: 2 }}>🧑‍🔧 {t.technician_name}</div>
                       {t.site_name && (
-                        <div style={{ color: '#6b7280', fontSize: 11, marginBottom: 4 }}>
+                        <div style={{ color: neutral[500], fontSize: 11, marginBottom: 4 }}>
                           On site: {t.site_name}{t.site_id ? ` (${t.site_id})` : ''}
                         </div>
                       )}
-                      <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                      <div style={{ fontSize: 11, color: neutral[400] }}>
                         Updated {minutesAgo(t.last_updated)}m ago
                       </div>
                     </div>
                   </Popup>
                 </Marker>
               ))}
-              {/* Route polyline — drawn once optimization has run, tracing
-                  start → each stop in the computed order. */}
-              {routeResult && routeStart && (
+              {/* Route polyline — real road path when OSRM succeeded
+                  (solid line, actual roads), or a straight-line
+                  fallback between pins when it didn't (dashed —
+                  visually distinct on purpose, since a straight line
+                  through a river or a building is not a route to
+                  actually drive, and looking identical to a real one
+                  would be actively misleading). */}
+              {routeResult && routeStart && routeResult.route_geometry && (
+                <Polyline
+                  positions={routeResult.route_geometry}
+                  pathOptions={{ color: '#2563EB', weight: 4 }}
+                />
+              )}
+              {routeResult && routeStart && !routeResult.route_geometry && (
                 <Polyline
                   positions={[
                     [routeStart.lat, routeStart.lng],
@@ -504,7 +522,7 @@ export default function SitesMapPage() {
                 />
               )}
               {routeStart && (
-                <Marker position={[routeStart.lat, routeStart.lng]} icon={buildPinIcon('#111827')}>
+                <Marker position={[routeStart.lat, routeStart.lng]} icon={buildPinIcon(ink)}>
                   <Popup>Route start</Popup>
                 </Marker>
               )}
@@ -518,10 +536,9 @@ export default function SitesMapPage() {
               plugin, which can't bind a declarative React <Popup>, and a
               persistent side panel is a better home for quick actions
               (like "Create Fuel Request") than a small map bubble anyway. */}
-          <div style={{
+          <Card style={{
             width: isNarrow ? '100%' : 300, flexShrink: 0,
-            border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16,
-            background: '#fff', maxHeight: isNarrow ? undefined : 620, overflowY: 'auto',
+            maxHeight: isNarrow ? undefined : 620, overflowY: 'auto',
           }}>
             {routeMode ? (
               <>
@@ -539,6 +556,37 @@ export default function SitesMapPage() {
                   ) : (
                     <div style={{ fontSize: 12, color: neutral[400], marginBottom: 8 }}>Not set</div>
                   )}
+                  <Btn
+                    variant="primary"
+                    size="sm"
+                    style={{ width: '100%', marginBottom: 8 }}
+                    loading={locatingUser}
+                    onClick={() => {
+                      if (!navigator.geolocation) {
+                        setRouteError('Your browser doesn\'t support location access — use "Use Map Center" or enter coordinates instead.');
+                        return;
+                      }
+                      setLocatingUser(true);
+                      setRouteError(null);
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          setRouteStart({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                          setLocatingUser(false);
+                        },
+                        (err) => {
+                          setRouteError(
+                            err.code === err.PERMISSION_DENIED
+                              ? 'Location access was denied — allow it in your browser settings, or use "Use Map Center" instead.'
+                              : 'Could not get your current location — use "Use Map Center" or enter coordinates instead.'
+                          );
+                          setLocatingUser(false);
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                      );
+                    }}
+                  >
+                    📡 Use My Current Location
+                  </Btn>
                   <Btn
                     variant="secondary"
                     size="sm"
@@ -586,14 +634,14 @@ export default function SitesMapPage() {
                     routeStops.map(s => (
                       <div key={s.site_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '4px 0' }}>
                         <span>{s.name}</span>
-                        <button onClick={() => toggleRouteStop(s)} style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12 }}>✕</button>
+                        <button onClick={() => toggleRouteStop(s)} style={{ border: 'none', background: 'none', color: urgencyTokens.critical.fg, cursor: 'pointer', fontSize: 12 }}>✕</button>
                       </div>
                     ))
                   )}
                 </div>
 
                 {routeError && (
-                  <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>{routeError}</div>
+                  <div style={{ fontSize: 12, color: urgencyTokens.critical.fg, marginBottom: 10 }}>{routeError}</div>
                 )}
 
                 <Btn variant="primary" size="sm" style={{ width: '100%', marginBottom: 8 }} onClick={runRouteOptimization} loading={routeLoading}>
@@ -605,8 +653,16 @@ export default function SitesMapPage() {
 
                 {routeResult && (
                   <div style={{ marginTop: 16, borderTop: `1px solid ${neutral[100]}`, paddingTop: 12 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
-                      Suggested order · {routeResult.total_distance_km} km total
+                    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                      Suggested order · {routeResult.total_distance_km} km
+                      {routeResult.total_duration_min != null && ` · ~${routeResult.total_duration_min} min driving`}
+                    </div>
+                    <div style={{
+                      fontSize: 10, fontWeight: 700, marginBottom: 8, padding: '3px 8px', borderRadius: 6, display: 'inline-block',
+                      background: routeResult.used_road_distance ? statusTokens.success.bg : statusTokens.warning.bg,
+                      color: routeResult.used_road_distance ? statusTokens.success.text : statusTokens.warning.text,
+                    }}>
+                      {routeResult.used_road_distance ? '🚗 Real road route' : '⚠ Straight-line estimate — road data unavailable, distances/order may not reflect actual driving conditions'}
                     </div>
                     {routeResult.order.map((s: any, i: number) => (
                       <div key={s.site_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, padding: '4px 0' }}>
@@ -615,7 +671,7 @@ export default function SitesMapPage() {
                           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0,
                         }}>{i + 1}</span>
                         <span>{s.site_name}</span>
-                        <span style={{ color: '#dc2626', marginLeft: 'auto', fontSize: 10 }}>{s.urgency.toUpperCase()}</span>
+                        <span style={{ color: urgencyTokens[s.urgency as keyof typeof urgencyTokens]?.fg || urgencyTokens.unknown.fg, marginLeft: 'auto', fontSize: 10 }}>{s.urgency.toUpperCase()}</span>
                       </div>
                     ))}
                   </div>
@@ -679,7 +735,7 @@ export default function SitesMapPage() {
                 </Btn>
               </>
             )}
-          </div>
+          </Card>
         </div>
       )}
 

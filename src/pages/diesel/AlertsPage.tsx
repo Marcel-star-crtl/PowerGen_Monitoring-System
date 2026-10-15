@@ -7,6 +7,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useAlerts, useCycles } from '../../hooks/useDiesel';
 import { alertsApi } from '../../api/dieselApi';
 import { PageHeader, CycleSelector, AlertCard, SeverityBadge, Spinner, ErrorBox, EmptyState, Btn } from '../../components/diesel/DieselComponents';
+import { neutral, font } from '../../styles/dieselTokens';
 import type { AlertSeverity, AlertType } from '../../types/diesel.types';
 
 const TYPES: { key: AlertType | ''; label: string }[] = [
@@ -55,7 +56,7 @@ export default function AlertsPage() {
   alerts.forEach((a: any) => { bySeverity[a.severity] = (bySeverity[a.severity] || 0) + 1; });
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1100, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="🔔 Alerts"
         subtitle={`${alerts.length} alert(s) matching current filters`}
@@ -80,7 +81,7 @@ export default function AlertsPage() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by site or title…"
           aria-label="Search alerts by site or title"
-          style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '7px 14px', fontSize: 13, flex: 1, minWidth: 200 }} />
+          style={{ border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '7px 14px', fontSize: 13, flex: 1, minWidth: 200 }} />
         <select value={status} onChange={e => setStatus(e.target.value)} aria-label="Filter by status" style={selectStyle}>
           <option value="open">Open</option>
           <option value="acknowledged">Acknowledged</option>
@@ -106,4 +107,4 @@ export default function AlertsPage() {
   );
 }
 
-const selectStyle: React.CSSProperties = { border: '1px solid #e5e7eb', borderRadius: 8, padding: '7px 12px', fontSize: 13, background: '#fff' };
+const selectStyle: React.CSSProperties = { border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '7px 12px', fontSize: 13, background: '#fff' };

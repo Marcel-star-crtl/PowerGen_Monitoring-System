@@ -11,8 +11,9 @@ import { tankLevelApi } from '../../api/dieselApi';
 import { useTankLevelUploads, useTankLevelReadings, useFileUpload } from '../../hooks/useDiesel';
 import {
   PageHeader, UploadZone, StatusPill, Btn,
-  fmtDate, fmtNum, Spinner, ErrorBox, EmptyState,
+  fmtDate, fmtNum, Spinner, ErrorBox, EmptyState, Card, SectionLabel,
 } from '../../components/diesel/DieselComponents';
+import { neutral, status as statusTokens, font } from '../../styles/dieselTokens';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -49,13 +50,13 @@ export default function TankLevelUploadPage() {
   const errCount = ((readings as any) || []).filter((r: any) => r.status === 'sensor_error').length;
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1200, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="🛢️ Daily Tank Level Upload"
         subtitle="Upload the daily tank-telemetry export. The 'Value' column is read as each site's current fuel level in liters — this becomes the live current level used across fuel planning, requests, and the mobile app."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label htmlFor="tank-level-reading-date" style={{ fontSize: 13, color: '#6b7280', fontWeight: 500 }}>
+            <label htmlFor="tank-level-reading-date" style={{ fontSize: 13, color: neutral[500], fontWeight: 500 }}>
               Reading date:
             </label>
             <input
@@ -64,7 +65,7 @@ export default function TankLevelUploadPage() {
               value={readingDate}
               max={todayISO()}
               onChange={e => setReadingDate(e.target.value)}
-              style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 12px', fontSize: 13 }}
+              style={{ border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '6px 12px', fontSize: 13 }}
             />
           </div>
         }
@@ -88,21 +89,21 @@ export default function TankLevelUploadPage() {
           {importResult && (
             <div style={{
               marginTop: 16,
-              background: importResult.sites_sensor_error > 0 ? '#fffbeb' : '#dcfce7',
-              border: `1px solid ${importResult.sites_sensor_error > 0 ? '#fde68a' : '#bbf7d0'}`,
+              background: importResult.sites_sensor_error > 0 ? statusTokens.warning.bg : statusTokens.success.bg,
+              border: `1px solid ${importResult.sites_sensor_error > 0 ? statusTokens.warning.border : statusTokens.success.border}`,
               borderRadius: 10, padding: '14px 18px',
             }}>
-              <p style={{ fontWeight: 600, color: '#166534', margin: '0 0 6px' }}>
+              <p style={{ fontWeight: 600, color: statusTokens.success.text, margin: '0 0 6px' }}>
                 ✅ Import complete
               </p>
               <div style={{
-                fontSize: 13, color: '#166534',
+                fontSize: 13, color: statusTokens.success.text,
                 display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
               }}>
                 <span>Rows processed:</span><strong>{importResult.rows_total}</strong>
                 <span>Sites updated:</span><strong>{importResult.sites_ok}</strong>
                 <span>Sensor errors:</span>
-                <strong style={{ color: importResult.sites_sensor_error > 0 ? '#dc2626' : '#166534' }}>
+                <strong style={{ color: importResult.sites_sensor_error > 0 ? statusTokens.danger.text : statusTokens.success.text }}>
                   {importResult.sites_sensor_error}
                 </strong>
                 <span>Skipped (unknown site):</span><strong>{importResult.sites_skipped}</strong>
@@ -110,10 +111,10 @@ export default function TankLevelUploadPage() {
               </div>
               {importResult.warnings?.length > 0 && (
                 <details style={{ marginTop: 8, fontSize: 12 }}>
-                  <summary style={{ cursor: 'pointer', color: '#166534' }}>
+                  <summary style={{ cursor: 'pointer', color: statusTokens.success.text }}>
                     {importResult.warnings.length} warning(s)
                   </summary>
-                  <ul style={{ margin: '6px 0 0 18px', color: '#166534' }}>
+                  <ul style={{ margin: '6px 0 0 18px', color: statusTokens.success.text }}>
                     {importResult.warnings.slice(0, 30).map((w: string, i: number) => <li key={i}>{w}</li>)}
                   </ul>
                 </details>
@@ -123,10 +124,10 @@ export default function TankLevelUploadPage() {
 
           {/* Format guide */}
           <div style={{
-            marginTop: 16, background: '#f9fafb', border: '1px solid #e5e7eb',
-            borderRadius: 8, padding: '12px 14px', fontSize: 12, color: '#6b7280',
+            marginTop: 16, background: neutral[50], border: `1px solid ${neutral[200]}`,
+            borderRadius: 8, padding: '12px 14px', fontSize: 12, color: neutral[500],
           }}>
-            <strong style={{ color: '#374151' }}>Expected columns:</strong>
+            <strong style={{ color: neutral[700] }}>Expected columns:</strong>
             <ul style={{ margin: '6px 0 0', paddingLeft: 16, lineHeight: 1.8 }}>
               <li>SiteName (IHS site ID)</li>
               <li>Component = "Fuel Tank"</li>
@@ -142,27 +143,27 @@ export default function TankLevelUploadPage() {
         </div>
 
         {/* ── Day summary ── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>{fmtDate(readingDate)} Summary</h3>
+        <Card>
+          <SectionLabel>{fmtDate(readingDate)} Summary</SectionLabel>
           {readingsLoading ? <Spinner size={24} /> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span style={{ color: '#6b7280' }}>Sites with a reading</span>
+                <span style={{ color: neutral[500] }}>Sites with a reading</span>
                 <strong>{okCount}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span style={{ color: '#6b7280' }}>Sensor errors</span>
-                <strong style={{ color: errCount > 0 ? '#dc2626' : undefined }}>{errCount}</strong>
+                <span style={{ color: neutral[500] }}>Sensor errors</span>
+                <strong style={{ color: errCount > 0 ? statusTokens.danger.text : undefined }}>{errCount}</strong>
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── Readings table for the selected day ── */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Readings — {fmtDate(readingDate)}</h3>
+      <Card padded={false} style={{ marginBottom: 24, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px 0' }}>
+          <SectionLabel style={{ marginBottom: 0 }}>Readings — {fmtDate(readingDate)}</SectionLabel>
           <div style={{ display: 'flex', gap: 6 }}>
             {(['all', 'ok', 'sensor_error'] as const).map(s => (
               <Btn key={s} size="sm" variant={statusFilter === s ? 'primary' : 'secondary'} onClick={() => setStatusFilter(s)}>
@@ -171,32 +172,32 @@ export default function TankLevelUploadPage() {
             ))}
           </div>
         </div>
-        {readingsError && <ErrorBox message={readingsError} onRetry={refetchReadings} />}
-        {readingsLoading ? <Spinner /> : readingList.length === 0 ? (
-          <EmptyState icon="📭" title="No readings for this day" desc="Upload a file above, or pick a different date" />
+        {readingsError && <div style={{ padding: '0 20px' }}><ErrorBox message={readingsError} onRetry={refetchReadings} /></div>}
+        {readingsLoading ? <div style={{ padding: 20 }}><Spinner /></div> : readingList.length === 0 ? (
+          <div style={{ padding: 20 }}><EmptyState icon="📭" title="No readings for this day" desc="Upload a file above, or pick a different date" /></div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 14 }}>
             <thead>
-              <tr style={{ background: '#f9fafb' }}>
+              <tr style={{ background: neutral[50] }}>
                 {['Site', 'Cluster', 'Fuel Level (L)', 'Tanks', 'Reading Time', 'Status'].map(h => (
                   <th key={h} style={{
                     padding: '8px 12px', textAlign: 'left',
-                    fontSize: 11, fontWeight: 600, color: '#6b7280',
-                    borderBottom: '1px solid #e5e7eb',
+                    fontSize: 11, fontWeight: 600, color: neutral[500],
+                    borderBottom: `1px solid ${neutral[200]}`,
                   }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {readingList.map((r: any) => (
-                <tr key={r._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <tr key={r._id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
                   <td style={{ padding: '9px 12px', fontWeight: 600 }}>{r.site_id}</td>
-                  <td style={{ padding: '9px 12px', color: '#6b7280' }}>{r.cluster || '—'}</td>
+                  <td style={{ padding: '9px 12px', color: neutral[500] }}>{r.cluster || '—'}</td>
                   <td style={{ padding: '9px 12px' }}>
                     {r.status === 'ok' ? `${fmtNum(r.fuel_level_l)} L` : '—'}
                   </td>
-                  <td style={{ padding: '9px 12px', color: '#6b7280' }}>{r.tank_count}</td>
-                  <td style={{ padding: '9px 12px', color: '#9ca3af', fontSize: 12 }}>
+                  <td style={{ padding: '9px 12px', color: neutral[500] }}>{r.tank_count}</td>
+                  <td style={{ padding: '9px 12px', color: neutral[400], fontSize: 12 }}>
                     {r.reading_time ? new Date(r.reading_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'}
                   </td>
                   <td style={{ padding: '9px 12px' }}>
@@ -207,47 +208,49 @@ export default function TankLevelUploadPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
 
       {/* ── Upload history ── */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-        <h3 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 600 }}>Upload History</h3>
-        {uploadsError && <ErrorBox message={uploadsError} onRetry={refetchUploads} />}
-        {uploadsLoading ? <Spinner /> : uploadList.length === 0 ? (
-          <EmptyState icon="📭" title="No uploads yet" desc="Upload today's tank-level file above" />
+      <Card padded={false} style={{ overflow: 'hidden' }}>
+        <div style={{ padding: '18px 20px 0' }}>
+          <SectionLabel>Upload History</SectionLabel>
+        </div>
+        {uploadsError && <div style={{ padding: '0 20px' }}><ErrorBox message={uploadsError} onRetry={refetchUploads} /></div>}
+        {uploadsLoading ? <div style={{ padding: 20 }}><Spinner /></div> : uploadList.length === 0 ? (
+          <div style={{ padding: 20 }}><EmptyState icon="📭" title="No uploads yet" desc="Upload today's tank-level file above" /></div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f9fafb' }}>
+              <tr style={{ background: neutral[50] }}>
                 {['Reading Date', 'Filename', 'Status', 'OK', 'Sensor Errors', 'Skipped', 'Uploaded By', 'When'].map(h => (
                   <th key={h} style={{
                     padding: '8px 12px', textAlign: 'left',
-                    fontSize: 11, fontWeight: 600, color: '#6b7280',
-                    borderBottom: '1px solid #e5e7eb',
+                    fontSize: 11, fontWeight: 600, color: neutral[500],
+                    borderBottom: `1px solid ${neutral[200]}`,
                   }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {uploadList.map((u: any) => (
-                <tr key={u._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <tr key={u._id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
                   <td style={{ padding: '9px 12px', fontWeight: 600 }}>{fmtDate(u.reading_date)}</td>
                   <td style={{
-                    padding: '9px 12px', color: '#6b7280',
+                    padding: '9px 12px', color: neutral[500],
                     maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>{u.filename}</td>
                   <td style={{ padding: '9px 12px' }}><StatusPill status={u.status} /></td>
                   <td style={{ padding: '9px 12px' }}>{u.sites_ok}</td>
-                  <td style={{ padding: '9px 12px', color: u.sites_sensor_error > 0 ? '#dc2626' : undefined }}>{u.sites_sensor_error || 0}</td>
+                  <td style={{ padding: '9px 12px', color: u.sites_sensor_error > 0 ? statusTokens.danger.text : undefined }}>{u.sites_sensor_error || 0}</td>
                   <td style={{ padding: '9px 12px' }}>{u.sites_skipped || 0}</td>
-                  <td style={{ padding: '9px 12px', color: '#6b7280' }}>{u.uploaded_by?.fullName || '—'}</td>
-                  <td style={{ padding: '9px 12px', color: '#9ca3af', fontSize: 12 }}>{fmtDate(u.createdAt)}</td>
+                  <td style={{ padding: '9px 12px', color: neutral[500] }}>{u.uploaded_by?.fullName || '—'}</td>
+                  <td style={{ padding: '9px 12px', color: neutral[400], fontSize: 12 }}>{fmtDate(u.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

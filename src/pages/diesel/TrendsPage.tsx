@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { dieselManagerAPI } from '@/api';
 import { useNotification } from '@/contexts/NotificationContext';
-import { Card } from '@/components/common/Card';
-import { Select } from '@/components/common/Select';
-import { Spinner } from '@/components/common/Spinner';
+import { PageHeader, Card, SectionLabel, KpiCard, Spinner } from '../../components/diesel/DieselComponents';
+import { neutral, status as statusTokens, font } from '../../styles/dieselTokens';
 import { formatNumber } from '@/utils/formatters';
-import { FiTrendingUp, FiTrendingDown, FiActivity } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const TrendsPage: React.FC = () => {
@@ -44,73 +42,41 @@ const TrendsPage: React.FC = () => {
     ? trends.reduce((sum, item) => sum + item.avg_efficiency, 0) / trends.length
     : 0;
 
+  const selectStyle: React.CSSProperties = {
+    border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '7px 12px', fontSize: 13, width: 180, boxSizing: 'border-box',
+  };
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <Spinner />;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Consumption Trends</h1>
-        <Select
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-          options={[
-            { value: '7', label: 'Last 7 Days' },
-            { value: '30', label: 'Last 30 Days' },
-            { value: '90', label: 'Last 90 Days' },
-          ]}
-          className="w-48"
-        />
-      </div>
+    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto', fontFamily: font.ui }}>
+      <PageHeader
+        title="📈 Consumption Trends"
+        subtitle="Daily consumption, runtime, and efficiency over the selected period."
+        actions={
+          <select aria-label="Period" value={period} onChange={(e) => setPeriod(e.target.value)} style={selectStyle}>
+            <option value="7">Last 7 Days</option>
+            <option value="30">Last 30 Days</option>
+            <option value="90">Last 90 Days</option>
+          </select>
+        }
+      />
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Consumption</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatNumber(totalConsumed, 1)} L
-              </p>
-            </div>
-            <FiTrendingUp className="h-8 w-8 text-blue-500" />
-          </div>
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Runtime</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatNumber(totalRuntime, 1)} h
-              </p>
-            </div>
-            <FiActivity className="h-8 w-8 text-green-500" />
-          </div>
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Avg Efficiency</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatNumber(avgEfficiency, 2)} L/h
-              </p>
-            </div>
-            <FiTrendingDown className="h-8 w-8 text-orange-500" />
-          </div>
-        </Card>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+        <KpiCard label="Total Consumption" value={`${formatNumber(totalConsumed, 1)} L`} icon="⛽" />
+        <KpiCard label="Total Runtime" value={`${formatNumber(totalRuntime, 1)} h`} icon="⏱️" />
+        <KpiCard label="Avg Efficiency" value={`${formatNumber(avgEfficiency, 2)} L/h`} icon="📊" />
       </div>
 
       {/* Consumption Trend Chart */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-4">Daily Consumption</h2>
+      <Card style={{ marginBottom: 20 }}>
+        <SectionLabel>Daily Consumption</SectionLabel>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" stroke={neutral[200]} />
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip />
@@ -127,11 +93,11 @@ const TrendsPage: React.FC = () => {
       </Card>
 
       {/* Runtime vs Consumption */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-4">Runtime vs Consumption</h2>
+      <Card style={{ marginBottom: 20 }}>
+        <SectionLabel>Runtime vs Consumption</SectionLabel>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" stroke={neutral[200]} />
             <XAxis dataKey="date" />
             <YAxis yAxisId="left" />
             <YAxis yAxisId="right" orientation="right" />
@@ -144,11 +110,11 @@ const TrendsPage: React.FC = () => {
       </Card>
 
       {/* Efficiency Trend */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-4">Efficiency Trend (L/h)</h2>
+      <Card style={{ marginBottom: 20 }}>
+        <SectionLabel>Efficiency Trend (L/h)</SectionLabel>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" stroke={neutral[200]} />
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip />
@@ -166,26 +132,26 @@ const TrendsPage: React.FC = () => {
 
       {/* Insights */}
       <Card>
-        <h2 className="text-lg font-semibold mb-4">Key Insights</h2>
-        <div className="space-y-3">
+        <SectionLabel>Key Insights</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {avgEfficiency > 0.35 && (
-            <div className="p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-              <p className="text-sm text-yellow-900">
+            <div style={{ padding: '10px 14px', background: statusTokens.warning.bg, borderLeft: `4px solid ${statusTokens.warning.border}`, borderRadius: 6 }}>
+              <p style={{ fontSize: 13, color: statusTokens.warning.text, margin: 0 }}>
                 <strong>High consumption rate detected:</strong> Average efficiency is{' '}
                 {formatNumber(avgEfficiency, 2)} L/h. Consider investigating potential issues.
               </p>
             </div>
           )}
           {avgEfficiency < 0.25 && (
-            <div className="p-3 bg-green-50 border-l-4 border-green-500 rounded">
-              <p className="text-sm text-green-900">
+            <div style={{ padding: '10px 14px', background: statusTokens.success.bg, borderLeft: `4px solid ${statusTokens.success.border}`, borderRadius: 6 }}>
+              <p style={{ fontSize: 13, color: statusTokens.success.text, margin: 0 }}>
                 <strong>Excellent efficiency:</strong> Average consumption rate is{' '}
                 {formatNumber(avgEfficiency, 2)} L/h. Generators are operating efficiently.
               </p>
             </div>
           )}
-          <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
-            <p className="text-sm text-blue-900">
+          <div style={{ padding: '10px 14px', background: statusTokens.info.bg, borderLeft: `4px solid ${statusTokens.info.border}`, borderRadius: 6 }}>
+            <p style={{ fontSize: 13, color: statusTokens.info.text, margin: 0 }}>
               <strong>Period Summary:</strong> {formatNumber(totalConsumed, 1)}L consumed over{' '}
               {formatNumber(totalRuntime, 1)} hours across {trends.length} days.
             </p>

@@ -10,8 +10,8 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { theftInvestigationApi } from '../../api/dieselApi';
-import { PageHeader, Spinner, ErrorBox, EmptyState, Btn } from '../../components/diesel/DieselComponents';
-import { neutral, ink } from '../../styles/dieselTokens';
+import { PageHeader, Spinner, ErrorBox, EmptyState, Btn, Card, SectionLabel } from '../../components/diesel/DieselComponents';
+import { neutral, ink, urgency as urgencyTokens, font } from '../../styles/dieselTokens';
 
 const TIMELINE_ICONS: Record<string, string> = {
   tank_reading: '📡',
@@ -32,7 +32,7 @@ function StatRow({ label, value, highlight }: { label: string; value: React.Reac
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${neutral[100]}` }}>
       <span style={{ fontSize: 13, color: neutral[500] }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 700, color: highlight ? '#dc2626' : ink }}>{value}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: highlight ? urgencyTokens.critical.fg : ink }}>{value}</span>
     </div>
   );
 }
@@ -62,7 +62,7 @@ export default function TheftInvestigationPage() {
   }, [site_id, cycle_key]);
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1100, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="🔍 Theft / Anomaly Investigation"
         subtitle="Every reading, refuel, and purchase for this site and cycle, in one timeline — the evidence behind the flag, not just the flag itself."
@@ -83,8 +83,8 @@ export default function TheftInvestigationPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 20, marginBottom: 24 }}>
             {/* Reconciliation figures — the numbers that triggered the flag */}
-            <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Reconciliation Figures</div>
+            <Card>
+              <SectionLabel style={{ marginBottom: 8, fontSize: 13, textTransform: 'none', letterSpacing: 0, color: ink, fontWeight: 700 }}>Reconciliation Figures</SectionLabel>
               <StatRow label="Theft (liters)" value={`${data.reconciliation.theft_liters} L`} highlight={data.reconciliation.theft_liters > 0} />
               <StatRow label="CMS Consumption" value={data.reconciliation.cms_consumption != null ? `${data.reconciliation.cms_consumption} L` : '—'} />
               <StatRow label="Contractual Consumption" value={data.reconciliation.contractual_consumption != null ? `${data.reconciliation.contractual_consumption} L` : '—'} />
@@ -101,11 +101,11 @@ export default function TheftInvestigationPage() {
                 {data.counts.mobile_refuels} mobile refuel(s) · {data.counts.tomcard_purchases} card purchase(s) ·{' '}
                 {data.counts.generator_swaps} generator change(s)
               </div>
-            </div>
+            </Card>
 
             {/* Timeline — the actual story, chronologically */}
-            <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16, maxHeight: 520, overflowY: 'auto' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Timeline</div>
+            <Card style={{ maxHeight: 520, overflowY: 'auto' }}>
+              <SectionLabel style={{ marginBottom: 8, fontSize: 13, textTransform: 'none', letterSpacing: 0, color: ink, fontWeight: 700 }}>Timeline</SectionLabel>
               {data.timeline.length === 0 ? (
                 <EmptyState icon="📭" title="No dated events found" desc="No tank readings, field visits, refuels, or purchases have dates recorded for this site in this cycle." />
               ) : (
@@ -121,7 +121,7 @@ export default function TheftInvestigationPage() {
                   </div>
                 ))
               )}
-            </div>
+            </Card>
           </div>
         </>
       )}

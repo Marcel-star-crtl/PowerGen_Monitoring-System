@@ -26,14 +26,11 @@ import { useAuthContext }   from '@/contexts/AuthContext';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { dieselManagerAPI } from '@/api/endpoints/dieselManager';
 import apiClient from '@/api/client';
-import { Card }    from '@/components/common/Card';
-import { Badge }   from '@/components/common/Badge';
-import { Button }  from '@/components/common/Button';
 import { Modal }   from '@/components/common/Modal';
-import { Spinner } from '@/components/common/Spinner';
-import { Input }   from '@/components/common/Input';
-import { Textarea } from '@/components/common/Textarea';
-import { EmptyState } from '@/components/common/EmptyState';
+import {
+  PageHeader, CycleSelector, Btn, Card, SectionLabel, KpiCard, Spinner, EmptyState,
+} from '@/components/diesel/DieselComponents';
+import { status as statusTokens, urgency as urgencyTokens, neutral, brand, font } from '@/styles/dieselTokens';
 import {
   FiCalendar, FiUser, FiMapPin, FiEye, FiPlus, FiRefreshCw,
   FiCheckCircle, FiClock, FiDroplet, FiXCircle, FiChevronDown,
@@ -82,36 +79,62 @@ interface FuelRequestDoc {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const LITER_TO_XAF = 828;
 
+// Bg/fg pairs sourced from the shared status tokens wherever a matching tone
+// exists (pending→warning, approved/refueled→success, scheduled→info,
+// completed/cancelled→neutral, denied→danger). Finance/HOB/CEO/purchase-made
+// are legitimately distinct approval-chain stages beyond that 5-tone scale —
+// matching FuelRequestsPage.tsx's own STATUS_CONFIG — so they keep their own
+// literal colors rather than being forced onto a token that doesn't carry
+// the same meaning.
 const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string; stage: number }> = {
   // Real backend statuses
-  pending_diesel_coordinator: { label: 'Awaiting Minka',   bg: '#fef3c7', fg: '#92400e', stage: 1 },
-  pending_operations_manager: { label: 'Awaiting Pascal',  bg: '#fef3c7', fg: '#92400e', stage: 1 },
-  pending_technical_director: { label: 'Awaiting Didier',  bg: '#fef3c7', fg: '#92400e', stage: 1 },
+  pending_diesel_coordinator: { label: 'Awaiting Minka',   bg: statusTokens.warning.bg, fg: statusTokens.warning.text, stage: 1 },
+  pending_operations_manager: { label: 'Awaiting Pascal',  bg: statusTokens.warning.bg, fg: statusTokens.warning.text, stage: 1 },
+  pending_technical_director: { label: 'Awaiting Didier',  bg: statusTokens.warning.bg, fg: statusTokens.warning.text, stage: 1 },
   pending_finance:            { label: 'Awaiting Finance',  bg: '#ede9fe', fg: '#5b21b6', stage: 1 },
   pending_head_of_business:   { label: 'Awaiting HOB',     bg: '#e0e7ff', fg: '#3730a3', stage: 1 },
   pending_ceo:                { label: 'Awaiting CEO',      bg: '#fae8ff', fg: '#86198f', stage: 1 },
   // New chain statuses (pending_l1 … pending_l6)
-  pending_l1:                 { label: 'Awaiting Minka',   bg: '#fef3c7', fg: '#92400e', stage: 1 },
-  pending_l2:                 { label: 'Awaiting Pascal',  bg: '#fef3c7', fg: '#92400e', stage: 1 },
-  pending_l3:                 { label: 'Awaiting Didier',  bg: '#fef3c7', fg: '#92400e', stage: 1 },
+  pending_l1:                 { label: 'Awaiting Minka',   bg: statusTokens.warning.bg, fg: statusTokens.warning.text, stage: 1 },
+  pending_l2:                 { label: 'Awaiting Pascal',  bg: statusTokens.warning.bg, fg: statusTokens.warning.text, stage: 1 },
+  pending_l3:                 { label: 'Awaiting Didier',  bg: statusTokens.warning.bg, fg: statusTokens.warning.text, stage: 1 },
   pending_l4:                 { label: 'Awaiting Finance',  bg: '#ede9fe', fg: '#5b21b6', stage: 1 },
   pending_l5:                 { label: 'Awaiting HOB',     bg: '#e0e7ff', fg: '#3730a3', stage: 1 },
   pending_l6:                 { label: 'Awaiting CEO',      bg: '#fae8ff', fg: '#86198f', stage: 1 },
   // Post-approval statuses
-  approved:                   { label: 'Approved — Ready to Schedule', bg: '#dcfce7', fg: '#166534', stage: 2 },
-  scheduled:                  { label: 'Scheduled',         bg: '#dbeafe', fg: '#1e40af', stage: 3 },
+  approved:                   { label: 'Approved — Ready to Schedule', bg: statusTokens.success.bg, fg: statusTokens.success.text, stage: 2 },
+  scheduled:                  { label: 'Scheduled',         bg: statusTokens.info.bg, fg: statusTokens.info.text, stage: 3 },
   purchase_made:              { label: 'Fuel Bought',       bg: '#ccfbf1', fg: '#134e4a', stage: 3 },
-  refueled:                   { label: 'Refueled ✓',        bg: '#dcfce7', fg: '#166534', stage: 3 },
-  completed:                  { label: 'Completed',         bg: '#f3f4f6', fg: '#374151', stage: 3 },
-  denied:                     { label: 'Denied',            bg: '#fee2e2', fg: '#991b1b', stage: 0 },
-  cancelled:                  { label: 'Cancelled',         bg: '#f3f4f6', fg: '#6b7280', stage: 0 },
+  refueled:                   { label: 'Refueled ✓',        bg: statusTokens.success.bg, fg: statusTokens.success.text, stage: 3 },
+  completed:                  { label: 'Completed',         bg: statusTokens.neutral.bg, fg: statusTokens.neutral.text, stage: 3 },
+  denied:                     { label: 'Denied',            bg: statusTokens.danger.bg, fg: statusTokens.danger.text, stage: 0 },
+  cancelled:                  { label: 'Cancelled',         bg: statusTokens.neutral.bg, fg: neutral[500], stage: 0 },
+};
+
+// Urgency badge tones reuse the same four status tones, keyed by urgency
+// instead of outcome (low→neutral, medium→info, high→warning, critical→
+// danger) — matching FuelRequestsPage.tsx's URGENCY_CONFIG exactly.
+const URGENCY_CONFIG: Record<string, { bg: string; fg: string }> = {
+  low:      { bg: statusTokens.neutral.bg, fg: statusTokens.neutral.text },
+  medium:   { bg: statusTokens.info.bg,    fg: statusTokens.info.text },
+  high:     { bg: statusTokens.warning.bg, fg: statusTokens.warning.text },
+  critical: { bg: statusTokens.danger.bg,  fg: statusTokens.danger.text },
 };
 
 const fmtDate = (d?: string) => !d ? '—' : new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 
 function StatusPill({ status }: { status: string }) {
-  const c = STATUS_CONFIG[status] || { label: status, bg: '#f3f4f6', fg: '#374151' };
+  const c = STATUS_CONFIG[status] || { label: status, bg: statusTokens.neutral.bg, fg: statusTokens.neutral.text };
   return <span style={{ display:'inline-block', fontSize:11, fontWeight:700, background:c.bg, color:c.fg, borderRadius:6, padding:'2px 8px' }}>{c.label}</span>;
+}
+
+function UrgencyPill({ urgency }: { urgency: string }) {
+  const c = URGENCY_CONFIG[urgency] || URGENCY_CONFIG.medium;
+  return (
+    <span style={{ display:'inline-block', fontSize:11, fontWeight:700, background:c.bg, color:c.fg, borderRadius:6, padding:'2px 8px' }}>
+      {urgency.toUpperCase()}
+    </span>
+  );
 }
 
 function ApprovalDots({ chain }: { chain: ApprovalStep[] }) {
@@ -120,39 +143,39 @@ function ApprovalDots({ chain }: { chain: ApprovalStep[] }) {
       {chain.map(s => (
         <div key={s.level} title={`L${s.level}: ${s.approver.name}`} style={{
           width:7, height:7, borderRadius:'50%',
-          background: s.status==='approved' ? '#16a34a' : s.status==='rejected' ? '#dc2626' : '#d1d5db',
+          background: s.status==='approved' ? urgencyTokens.ok.fg : s.status==='rejected' ? urgencyTokens.critical.fg : neutral[300],
         }} />
       ))}
-      <span style={{ fontSize:10, color:'#9ca3af', marginLeft:3 }}>
+      <span style={{ fontSize:10, color:neutral[400], marginLeft:3 }}>
         {chain.filter(s => s.status==='approved').length}/{chain.length}
       </span>
     </div>
   );
 }
 
-function ProgressBar({ pct, color='#2563eb', height=5 }: { pct:number; color?:string; height?:number }) {
+function ProgressBar({ pct, color=urgencyTokens.medium.fg, height=5 }: { pct:number; color?:string; height?:number }) {
   return (
-    <div style={{ background:'#e5e7eb', borderRadius:3, height, overflow:'hidden' }}>
+    <div style={{ background:neutral[200], borderRadius:3, height, overflow:'hidden' }}>
       <div style={{ width:`${Math.min(pct,100)}%`, background:color, height, borderRadius:3 }} />
     </div>
   );
 }
 
 const btnBase: React.CSSProperties = { border:'none', borderRadius:6, padding:'5px 8px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' };
-const sectionLabel: React.CSSProperties = { fontSize:11, fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 8px' };
+const sectionLabel: React.CSSProperties = { fontSize:11, fontWeight:700, color:neutral[500], textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 8px' };
 const detailGrid: React.CSSProperties  = { display:'grid', gridTemplateColumns:'auto 1fr', gap:'4px 12px' };
-const detailKey: React.CSSProperties   = { fontSize:12, color:'#9ca3af', whiteSpace:'nowrap' };
-const detailVal: React.CSSProperties   = { fontSize:12, color:'#374151', fontWeight:500 };
+const detailKey: React.CSSProperties   = { fontSize:12, color:neutral[400], whiteSpace:'nowrap' };
+const detailVal: React.CSSProperties   = { fontSize:12, color:neutral[700], fontWeight:500 };
 
 // ── Form field styles (matches existing "Schedule Fuel Task" modal aesthetic) ─
-const fieldLabel: React.CSSProperties  = { display:'block', fontSize:13, fontWeight:600, color:'#374151', marginBottom:5 };
+const fieldLabel: React.CSSProperties  = { display:'block', fontSize:13, fontWeight:600, color:neutral[700], marginBottom:5 };
 const selectStyle: React.CSSProperties = {
-  width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'9px 12px',
-  fontSize:14, color:'#111827', background:'#fff', outline:'none', boxSizing:'border-box' as const,
+  width:'100%', border:`1px solid ${neutral[200]}`, borderRadius:8, padding:'9px 12px',
+  fontSize:14, color:neutral[900], background:'#fff', outline:'none', boxSizing:'border-box' as const,
 };
 const inputStyle: React.CSSProperties  = {
-  width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'9px 12px',
-  fontSize:14, color:'#111827', background:'#fff', outline:'none', boxSizing:'border-box' as const,
+  width:'100%', border:`1px solid ${neutral[200]}`, borderRadius:8, padding:'9px 12px',
+  fontSize:14, color:neutral[900], background:'#fff', outline:'none', boxSizing:'border-box' as const,
 };
 
 // ── ApprovalTrail mini ────────────────────────────────────────────────────────
@@ -162,16 +185,16 @@ function ApprovalTrail({ chain }: { chain: ApprovalStep[] }) {
       {chain.map(s => (
         <div key={s.level} style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
           <div style={{ marginTop:2, flexShrink:0 }}>
-            {s.status==='approved' ? <FiCheckCircle size={13} color="#16a34a" /> :
-             s.status==='rejected' ? <FiXCircle     size={13} color="#dc2626" /> :
-                                     <FiClock        size={13} color="#9ca3af" />}
+            {s.status==='approved' ? <FiCheckCircle size={13} color={urgencyTokens.ok.fg} /> :
+             s.status==='rejected' ? <FiXCircle     size={13} color={urgencyTokens.critical.fg} /> :
+                                     <FiClock        size={13} color={neutral[400]} />}
           </div>
           <div>
-            <span style={{ fontSize:12, fontWeight:600, color:s.status==='pending'?'#9ca3af':'#374151' }}>
+            <span style={{ fontSize:12, fontWeight:600, color:s.status==='pending'?neutral[400]:neutral[700] }}>
               L{s.level}: {s.approver.name}
             </span>
-            {s.actionDate && <span style={{ fontSize:11, color:'#9ca3af', marginLeft:6 }}>{fmtDate(s.actionDate)}</span>}
-            {s.comments && <p style={{ fontSize:11, color:'#6b7280', margin:'1px 0 0', fontStyle:'italic' }}>"{s.comments}"</p>}
+            {s.actionDate && <span style={{ fontSize:11, color:neutral[400], marginLeft:6 }}>{fmtDate(s.actionDate)}</span>}
+            {s.comments && <p style={{ fontSize:11, color:neutral[500], margin:'1px 0 0', fontStyle:'italic' }}>"{s.comments}"</p>}
           </div>
         </div>
       ))}
@@ -207,36 +230,24 @@ function RequestCard({
     ? Math.round((req.approvalChain.filter(s => s.status==='approved').length / req.approvalChain.length) * 100) : 0;
 
   return (
-    <div style={{
-      background: '#fff', borderRadius: 10, marginBottom: 10,
-      border: canAct ? '2px solid #f59e0b' : `1px solid ${cfg?.bg || '#e5e7eb'}`,
-      overflow: 'hidden',
-    }}>
+    <Card padded={false} style={{ marginBottom: 10, overflow: 'hidden', ...(canAct ? { border: `2px solid ${urgencyTokens.high.fg}` } : {}) }}>
       {/* Status bar at top */}
-      <div style={{ height: 3, background: cfg?.fg || '#e5e7eb', opacity: 0.5 }} />
+      <div style={{ height: 3, background: cfg?.fg || neutral[200], opacity: 0.5 }} />
 
       <div style={{ padding: '12px 14px' }}>
         {/* Row 1: site + status + quantity */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>
+              <span style={{ fontWeight: 700, fontSize: 14, color: neutral[900] }}>
                 {req.site_name || req.site_id}
               </span>
-              <span style={{
-                fontSize: 11, fontWeight: 700, background: (
-                  { low:'#f3f4f6', medium:'#dbeafe', high:'#fef3c7', critical:'#fee2e2' } as any
-                )[req.urgency] || '#f3f4f6',
-                color: (
-                  { low:'#374151', medium:'#1e40af', high:'#92400e', critical:'#991b1b' } as any
-                )[req.urgency] || '#374151',
-                borderRadius: 5, padding: '1px 7px',
-              }}>{req.urgency.toUpperCase()}</span>
+              <UrgencyPill urgency={req.urgency} />
               <StatusPill status={req.status} />
-              {canAct && <span style={{ fontSize:10, fontWeight:800, background:'#fef3c7', color:'#92400e', borderRadius:4, padding:'1px 6px' }}>↑ YOUR TURN</span>}
-              {(req.cycle_refuel_count || 0) > 3 && <span style={{ fontSize:10, fontWeight:800, background:'#fee2e2', color:'#991b1b', borderRadius:4, padding:'1px 6px' }}>⚠ {req.cycle_refuel_count}× refueled</span>}
+              {canAct && <span style={{ fontSize:10, fontWeight:800, background:statusTokens.warning.bg, color:statusTokens.warning.text, borderRadius:4, padding:'1px 6px' }}>↑ YOUR TURN</span>}
+              {(req.cycle_refuel_count || 0) > 3 && <span style={{ fontSize:10, fontWeight:800, background:statusTokens.danger.bg, color:statusTokens.danger.text, borderRadius:4, padding:'1px 6px' }}>⚠ {req.cycle_refuel_count}× refueled</span>}
             </div>
-            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>
+            <div style={{ fontSize: 11, color: neutral[400], marginTop: 3 }}>
               {req.site_id}
               {req.cluster && ` · ${req.cluster}`}
               {` · FUEL-${req._id.slice(-6).toUpperCase()}`}
@@ -248,13 +259,13 @@ function RequestCard({
           <div style={{ textAlign: 'right', minWidth: 90, flexShrink: 0 }}>
             {isFullyApproved ? (
               <>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>{approvedLiters} L</div>
-                <div style={{ fontSize: 10, color: '#9ca3af' }}>XAF {(approvedLiters * LITER_TO_XAF).toLocaleString()}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: neutral[900] }}>{approvedLiters} L</div>
+                <div style={{ fontSize: 10, color: neutral[400] }}>XAF {(approvedLiters * LITER_TO_XAF).toLocaleString()}</div>
               </>
             ) : (
               <>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#9ca3af' }}>{req.liters_requested} L</div>
-                <div style={{ fontSize: 10, color: '#d1d5db' }}>awaiting approval</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: neutral[400] }}>{req.liters_requested} L</div>
+                <div style={{ fontSize: 10, color: neutral[300] }}>awaiting approval</div>
               </>
             )}
           </div>
@@ -263,31 +274,31 @@ function RequestCard({
         {/* Row 2: approval dots + actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
           <div style={{ flex: 1, marginRight: 12 }}>
-            <ProgressBar pct={approvalPct} color="#16a34a" />
+            <ProgressBar pct={approvalPct} color={urgencyTokens.ok.fg} />
             <div style={{ marginTop: 4 }}>
               <ApprovalDots chain={req.approvalChain || []} />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button onClick={() => onView(req)} style={{ ...btnBase, background:'#f3f4f6', color:'#374151', fontSize:12, padding:'5px 10px' }}>
+            <button onClick={() => onView(req)} style={{ ...btnBase, background:neutral[100], color:neutral[700], fontSize:12, padding:'5px 10px' }}>
               <FiEye size={13} style={{ marginRight:4 }} />View
             </button>
             {canAct && (
               <>
-                <button onClick={() => onApprove(req._id)} style={{ ...btnBase, background:'#dcfce7', color:'#166534', fontSize:12, padding:'5px 10px' }}>
+                <button onClick={() => onApprove(req._id)} style={{ ...btnBase, background:statusTokens.success.bg, color:statusTokens.success.text, fontSize:12, padding:'5px 10px' }}>
                   <FiCheckCircle size={13} style={{ marginRight:4 }} />Approve
                 </button>
-                <button onClick={() => onReject(req._id)} style={{ ...btnBase, background:'#fee2e2', color:'#991b1b', fontSize:12, padding:'5px 10px' }}>
+                <button onClick={() => onReject(req._id)} style={{ ...btnBase, background:statusTokens.danger.bg, color:statusTokens.danger.text, fontSize:12, padding:'5px 10px' }}>
                   <FiXCircle size={13} style={{ marginRight:4 }} />Reject
                 </button>
               </>
             )}
             {canAssign && (
-              <button onClick={() => onAssign?.(req)} style={{ ...btnBase, background:'#1e3a5f', color:'#fff', fontSize:12, padding:'5px 12px', fontWeight:700 }}>
+              <button onClick={() => onAssign?.(req)} style={{ ...btnBase, background:brand.primary, color:'#fff', fontSize:12, padding:'5px 12px', fontWeight:700 }}>
                 <FiUser size={13} style={{ marginRight:4 }} />Assign Refueler
               </button>
             )}
-            <button onClick={() => setExpanded(e => !e)} style={{ ...btnBase, background:'#f3f4f6', color:'#374151' }}>
+            <button onClick={() => setExpanded(e => !e)} style={{ ...btnBase, background:neutral[100], color:neutral[700] }}>
               {expanded ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
             </button>
           </div>
@@ -295,9 +306,9 @@ function RequestCard({
 
         {/* Assignment badge */}
         {req.assigned_to && (
-          <div style={{ marginTop: 8, background:'#eff6ff', borderRadius:6, padding:'5px 10px', fontSize:12, color:'#1e40af', display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{ marginTop: 8, background:statusTokens.info.bg, borderRadius:6, padding:'5px 10px', fontSize:12, color:statusTokens.info.text, display:'flex', alignItems:'center', gap:6 }}>
             <FiUser size={12} />
-            <span style={{ color:'#1e40af', fontWeight:700 }}>👷 Refueler: {(req.assigned_to as any)?.fullName || (req.assigned_to as any)?.email}</span>
+            <span style={{ color:statusTokens.info.text, fontWeight:700 }}>👷 Refueler: {(req.assigned_to as any)?.fullName || (req.assigned_to as any)?.email}</span>
             {req.scheduled_date && ` · Scheduled ${fmtDate(req.scheduled_date)}`}
           </div>
         )}
@@ -305,10 +316,10 @@ function RequestCard({
 
       {/* Expanded detail */}
       {expanded && (
-        <div style={{ borderTop:'1px solid #f3f4f6', padding:'12px 14px', background:'#fafafa' }}>
+        <div style={{ borderTop:`1px solid ${neutral[100]}`, padding:'12px 14px', background:neutral[50] }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
             <div>
-              <p style={sectionLabel}>Details</p>
+              <SectionLabel style={{ margin: '0 0 8px' }}>Details</SectionLabel>
               <div style={detailGrid}>
                 <span style={detailKey}>Reason</span>
                 <span style={detailVal}>{req.request_reason}</span>
@@ -318,20 +329,20 @@ function RequestCard({
                   <span style={detailKey}>Cycle budget</span>
                   <span style={detailVal}>{req.budget_snapshot.budget_liters_total} L</span>
                   <span style={detailKey}>Budget remaining</span>
-                  <span style={{ ...detailVal, color: req.budget_snapshot.budget_liters_remaining < 50 ? '#dc2626' : '#059669', fontWeight:700 }}>
+                  <span style={{ ...detailVal, color: req.budget_snapshot.budget_liters_remaining < 50 ? urgencyTokens.critical.fg : statusTokens.success.text, fontWeight:700 }}>
                     {req.budget_snapshot.budget_liters_remaining} L
                   </span>
                 </>}
               </div>
             </div>
             <div>
-              <p style={sectionLabel}>Approval Trail</p>
+              <SectionLabel style={{ margin: '0 0 8px' }}>Approval Trail</SectionLabel>
               <ApprovalTrail chain={req.approvalChain || []} />
             </div>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -346,26 +357,30 @@ function StageHeader({ number, label, count, color, icon }: {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:8, flex:1 }}>
         {icon}
-        <span style={{ fontWeight:700, fontSize:16, color:'#111827' }}>{label}</span>
+        <span style={{ fontWeight:700, fontSize:16, color:neutral[900] }}>{label}</span>
         <span style={{ background:color, color:'#fff', fontSize:11, fontWeight:800, borderRadius:10, padding:'2px 8px' }}>{count}</span>
       </div>
-      <div style={{ flex:1, height:1, background:'#e5e7eb' }} />
+      <div style={{ flex:1, height:1, background:neutral[200] }} />
     </div>
   );
 }
 
 // ── Fuel level preview bar ────────────────────────────────────────────────────
+// The bright red/orange/green fill colors are a deliberate traffic-light
+// preview distinct from the severity palette used everywhere else on this
+// page — kept literal rather than forced onto urgencyTokens, whose closest
+// shades (critical/high/ok) are visibly duller than this preview needs.
 function FuelLevelPreview({ current, capacity, requested }: { current: number; capacity: number; requested: number }) {
   if (!capacity || !current) return null;
   const currentPct = Math.min((current / capacity) * 100, 100);
   const afterPct   = Math.min(((current + requested) / capacity) * 100, 100);
   return (
-    <div style={{ marginTop: 8, padding: '8px 10px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280', marginBottom: 4 }}>
+    <div style={{ marginTop: 8, padding: '8px 10px', background: neutral[50], borderRadius: 8, border: `1px solid ${neutral[200]}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: neutral[500], marginBottom: 4 }}>
         <span>Current: {current} L ({Math.round(currentPct)}%)</span>
         <span>After refuel: {current + requested} L ({Math.round(afterPct)}%)</span>
       </div>
-      <div style={{ position: 'relative', background: '#e5e7eb', borderRadius: 4, height: 10, overflow: 'hidden' }}>
+      <div style={{ position: 'relative', background: neutral[200], borderRadius: 4, height: 10, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', left: 0, top: 0, width: `${currentPct}%`, height: '100%', background: currentPct < 20 ? '#ef4444' : '#f97316', borderRadius: 4 }} />
         {requested > 0 && <div style={{ position: 'absolute', left: `${currentPct}%`, top: 0, width: `${Math.min(afterPct - currentPct, 100 - currentPct)}%`, height: '100%', background: '#22c55e', opacity: 0.7 }} />}
       </div>
@@ -675,36 +690,26 @@ const ScheduledPage: React.FC = () => {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '0 0 60px' }}>
+    <div style={{ padding: '0 0 60px', fontFamily: font.ui }}>
 
       {/* ── Header ── */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
-        <div>
-          <h1 style={{ fontSize:24, fontWeight:800, color:'#111827', margin:0 }}>Scheduled Refueling</h1>
-          <p style={{ fontSize:13, color:'#9ca3af', margin:'4px 0 0' }}>
-            Create and track refueling requests — from approval through to execution
-          </p>
-        </div>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <select value={cycleKey} onChange={e => setCycleKey(e.target.value)}
-            aria-label="Select billing cycle"
-            style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 10px', fontSize:13 }}>
-            {cycles.map(c => (
-              <option key={c.cycle_key} value={c.cycle_key}>
-                {c.label || c.cycle_key}{c.status && c.status !== 'open' ? ` (${c.status})` : ''}
-              </option>
-            ))}
-          </select>
-          <Button onClick={() => { loadRequests(); loadMaintenance(); }} variant="ghost" size="sm">
-            <FiRefreshCw size={13} />
-          </Button>
-          {isManager && (
-            <Button onClick={() => setShowCreate(true)} variant="primary">
-              <FiPlus style={{ marginRight:6 }} /> New Fuel Request
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="🗓️ Scheduled Refueling"
+        subtitle="Create and track refueling requests — from approval through to execution"
+        actions={
+          <>
+            <CycleSelector cycles={cycles} value={cycleKey} onChange={setCycleKey} />
+            <Btn onClick={() => { loadRequests(); loadMaintenance(); }} variant="ghost" size="sm">
+              <FiRefreshCw size={13} />
+            </Btn>
+            {isManager && (
+              <Btn onClick={() => setShowCreate(true)} variant="primary">
+                <FiPlus style={{ marginRight:6 }} /> New Fuel Request
+              </Btn>
+            )}
+          </>
+        }
+      />
 
       {/* ── KPI strip ── */}
       <div style={{
@@ -712,34 +717,22 @@ const ScheduledPage: React.FC = () => {
         gridTemplateColumns: isMobile ? '1fr' : isNarrow ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
         gap: 12, marginBottom: 24,
       }}>
-        {[
-          { label:'Awaiting Approval', value:awaitingApproval.length, color:'#f59e0b', icon:<FiClock size={20}/> },
-          { label:'Ready to Schedule', value:readyToSchedule.length,  color:'#16a34a', icon:<FiCheckCircle size={20}/> },
-          { label:'In Execution',      value:inExecution.length,      color:'#2563eb', icon:<FiZap size={20}/> },
-          { label:'Approved Litres',   value:`${totalApprovedLiters} L`, color:'#7c3aed', icon:<FiDroplet size={20}/> },
-        ].map(k => (
-          <Card key={k.label} style={{ borderTop: `3px solid ${k.color}` }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-              <div>
-                <p style={{ fontSize:11, color:'#9ca3af', margin:'0 0 4px' }}>{k.label}</p>
-                <p style={{ fontSize:24, fontWeight:800, color:k.color, margin:0 }}>{k.value}</p>
-              </div>
-              <div style={{ color:k.color, opacity:0.25 }}>{k.icon}</div>
-            </div>
-          </Card>
-        ))}
+        <KpiCard label="Awaiting Approval" value={awaitingApproval.length} icon="⏳" color={urgencyTokens.high.fg} />
+        <KpiCard label="Ready to Schedule" value={readyToSchedule.length}  icon="✅" color={statusTokens.success.text} />
+        <KpiCard label="In Execution"      value={inExecution.length}      icon="⚡" color={urgencyTokens.medium.fg} />
+        <KpiCard label="Approved Litres"   value={`${totalApprovedLiters} L`} icon="💧" color="#7c3aed" />
       </div>
 
       {/* ── Tabs ── */}
-      <div style={{ display:'flex', gap:4, marginBottom:20, borderBottom:'1px solid #e5e7eb', paddingBottom:0 }}>
+      <div style={{ display:'flex', gap:4, marginBottom:20, borderBottom:`1px solid ${neutral[200]}`, paddingBottom:0 }}>
         {[
           { key:'fuel',        label:`Fuel Requests (${activeRequests.length})` },
           { key:'maintenance', label:`Maintenance Tasks (${maintenance.length})` },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)} style={{
             padding:'8px 16px', border:'none', cursor:'pointer', fontSize:13, fontWeight:600,
-            background:'none', borderBottom: tab===t.key ? '2px solid #1e3a5f' : '2px solid transparent',
-            color: tab===t.key ? '#1e3a5f' : '#6b7280', marginBottom:-1,
+            background:'none', borderBottom: tab===t.key ? `2px solid ${brand.primary}` : '2px solid transparent',
+            color: tab===t.key ? brand.primary : neutral[500], marginBottom:-1,
           }}>{t.label}</button>
         ))}
       </div>
@@ -747,27 +740,34 @@ const ScheduledPage: React.FC = () => {
       {/* ── FUEL TAB ── */}
       {tab === 'fuel' && (
         loading ? (
-          <div style={{ display:'flex', justifyContent:'center', padding:'48px 0' }}><Spinner size="lg" /></div>
+          <div style={{ display:'flex', justifyContent:'center', padding:'48px 0' }}><Spinner /></div>
         ) : activeRequests.length === 0 ? (
-          <EmptyState
-            icon={<FiDroplet size={48} color="#d1d5db" />}
-            title={`No fuel requests for ${cycleKey}`}
-            description={isManager ? 'Click "New Fuel Request" to create one' : 'Requests will appear here once created'}
-            actionLabel={isManager ? 'Create Request' : undefined}
-            onAction={isManager ? () => setShowCreate(true) : undefined}
-          />
+          <>
+            <EmptyState
+              icon="💧"
+              title={`No fuel requests for ${cycleKey}`}
+              desc={isManager ? 'Click "New Fuel Request" to create one' : 'Requests will appear here once created'}
+            />
+            {isManager && (
+              <div style={{ textAlign: 'center', marginTop: -24 }}>
+                <Btn onClick={() => setShowCreate(true)} variant="primary">
+                  <FiPlus style={{ marginRight:6 }} /> Create Request
+                </Btn>
+              </div>
+            )}
+          </>
         ) : (
           <>
             {/* My Scheduled Refueling — for technicians whose requests were approved */}
             {myAssigned.length > 0 && (
               <div style={{ marginBottom: 24 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12, padding:'10px 14px', background:'#dbeafe', borderRadius:10, border:'1px solid #93c5fd' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12, padding:'10px 14px', background:statusTokens.info.bg, borderRadius:10, border:`1px solid ${statusTokens.info.border}` }}>
                   <span style={{ fontSize:18 }}>⛽</span>
                   <div>
-                    <div style={{ fontWeight:700, fontSize:14, color:'#1e40af' }}>
+                    <div style={{ fontWeight:700, fontSize:14, color:statusTokens.info.text }}>
                       Your Scheduled Refueling Tasks ({myAssigned.length})
                     </div>
-                    <div style={{ fontSize:12, color:'#3b82f6', marginTop:2 }}>
+                    <div style={{ fontSize:12, color:urgencyTokens.medium.fg, marginTop:2 }}>
                       These requests have been approved and assigned to you
                     </div>
                   </div>
@@ -790,7 +790,7 @@ const ScheduledPage: React.FC = () => {
             {/* Stage 2: Ready to Schedule */}
             {readyToSchedule.length > 0 && (
               <div style={{ marginBottom:8 }}>
-                <StageHeader number={2} label="✅ Approved & Scheduled — Assign a Refueler" count={readyToSchedule.length} color="#16a34a" icon={<FiCheckCircle size={16} color="#16a34a" />} />
+                <StageHeader number={2} label="✅ Approved & Scheduled — Assign a Refueler" count={readyToSchedule.length} color={urgencyTokens.ok.fg} icon={<FiCheckCircle size={16} color={urgencyTokens.ok.fg} />} />
                 {readyToSchedule.map(r => (
                   <RequestCard key={r._id} req={r} onAssign={setAssignTarget} onView={setViewReq}
                     onApprove={setApproveId} onReject={setRejectId}
@@ -802,7 +802,7 @@ const ScheduledPage: React.FC = () => {
             {/* Stage 3: In Execution */}
             {inExecution.length > 0 && (
               <div style={{ marginBottom:8 }}>
-                <StageHeader number={3} label="In Execution" count={inExecution.length} color="#2563eb" icon={<FiZap size={16} color="#2563eb" />} />
+                <StageHeader number={3} label="In Execution" count={inExecution.length} color={urgencyTokens.medium.fg} icon={<FiZap size={16} color={urgencyTokens.medium.fg} />} />
                 {inExecution.map(r => (
                   <RequestCard key={r._id} req={r} onAssign={setAssignTarget} onView={setViewReq}
                     onApprove={setApproveId} onReject={setRejectId}
@@ -814,7 +814,7 @@ const ScheduledPage: React.FC = () => {
             {/* Stage 1: Awaiting Approval */}
             {awaitingApproval.length > 0 && (
               <div>
-                <StageHeader number={1} label="Awaiting Approval" count={awaitingApproval.length} color="#f59e0b" icon={<FiClock size={16} color="#f59e0b" />} />
+                <StageHeader number={1} label="Awaiting Approval" count={awaitingApproval.length} color={urgencyTokens.high.fg} icon={<FiClock size={16} color={urgencyTokens.high.fg} />} />
                 {awaitingApproval.map(r => (
                   <RequestCard key={r._id} req={r} onAssign={setAssignTarget} onView={setViewReq}
                     onApprove={setApproveId} onReject={setRejectId}
@@ -830,13 +830,13 @@ const ScheduledPage: React.FC = () => {
       {tab === 'maintenance' && (
         maintLoading ? <Spinner /> :
         maintenance.length === 0 ? (
-          <EmptyState icon={<FiList size={48} color="#d1d5db" />} title="No maintenance tasks scheduled" />
+          <EmptyState icon="🔧" title="No maintenance tasks scheduled" />
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12 }}>
             {maintenance.map((m: any) => (
               <Card key={m._id}>
                 <div style={{ fontWeight:700, fontSize:14 }}>{m.site_details?.Site_Name || m.site_id}</div>
-                <div style={{ fontSize:11, color:'#9ca3af', marginBottom:8 }}>{m.site_id}</div>
+                <div style={{ fontSize:11, color:neutral[400], marginBottom:8 }}>{m.site_id}</div>
                 <div style={{ ...detailGrid }}>
                   <span style={detailKey}>Technician</span>
                   <span style={detailVal}>{m.technician?.fullName || m.technician_name || '—'}</span>
@@ -865,7 +865,7 @@ const ScheduledPage: React.FC = () => {
                 id="sched-site"
                 value={createForm.site_id}
                 onChange={e => handleSiteSelect(e.target.value)}
-                style={{ ...selectStyle, borderColor: !createForm.site_id ? '#fca5a5' : '#e5e7eb' }}
+                style={{ ...selectStyle, borderColor: !createForm.site_id ? statusTokens.danger.border : neutral[200] }}
               >
                 <option value="">Select Site</option>
                 {sites.map((s: any) => (
@@ -875,7 +875,7 @@ const ScheduledPage: React.FC = () => {
                 ))}
               </select>
               {createForm.site_id && (
-                <div style={{ fontSize:11, color:'#6b7280', marginTop:3 }}>
+                <div style={{ fontSize:11, color:neutral[500], marginTop:3 }}>
                   {createForm.site_id}
                   {createForm.current_fuel_level && ` · Current: ${createForm.current_fuel_level} L`}
                   {createForm.tank_capacity      && ` / ${createForm.tank_capacity} L`}
@@ -883,33 +883,35 @@ const ScheduledPage: React.FC = () => {
               )}
 
               {/* ── Budget exhaustion banner ── */}
-              {siteInfoLoading && <div style={{ fontSize:11, color:'#9ca3af', padding:'4px 0' }}>Loading budget…</div>}
+              {siteInfoLoading && <div style={{ fontSize:11, color:neutral[400], padding:'4px 0' }}>Loading budget…</div>}
               {!siteInfoLoading && siteBudgetInfo && (() => {
                 const rem  = Math.round(siteBudgetInfo.liters_remaining || 0);
                 const tot  = Math.round(siteBudgetInfo.budget_liters    || 0);
                 const pct  = siteBudgetInfo.utilisation_pct || 0;
                 const al   = siteBudgetInfo.alert_level;
                 const isEx = al === 'exhausted', isCr = al === 'critical' || al === 'high';
+                const tone = isEx ? urgencyTokens.critical : isCr ? urgencyTokens.high : urgencyTokens.ok;
+                const borderTone = isEx ? statusTokens.danger.border : isCr ? statusTokens.warning.border : statusTokens.success.border;
                 return (
                   <div style={{
                     margin:'8px 0', padding:'9px 12px', borderRadius:8,
-                    border:`1px solid ${isEx ? '#fca5a5' : isCr ? '#fde68a' : '#bbf7d0'}`,
-                    background: isEx ? '#fff5f5' : isCr ? '#fffbeb' : '#f0fdf4',
+                    border:`1px solid ${borderTone}`,
+                    background: tone.bg,
                     fontSize: 12,
                   }}>
-                    <div style={{ fontWeight:700, color: isEx ? '#dc2626' : isCr ? '#d97706' : '#16a34a', marginBottom:3 }}>
+                    <div style={{ fontWeight:700, color: tone.fg, marginBottom:3 }}>
                       {isEx ? '🚫 Budget Exhausted' : isCr ? '⚠️ Budget Running Low' : '✅ Budget Available'}
                     </div>
-                    <div style={{ color:'#374151' }}>
+                    <div style={{ color:neutral[700] }}>
                       <strong>{rem.toLocaleString()} L</strong> remaining of <strong>{tot.toLocaleString()} L</strong>
                       {' · '}{pct}% used
                       {siteBudgetInfo.in_deficit && (
-                        <span style={{ color:'#dc2626', marginLeft:6 }}>
+                        <span style={{ color:urgencyTokens.critical.fg, marginLeft:6 }}>
                           ({Math.round(siteBudgetInfo.deficit_liters||0)} L deficit)
                         </span>
                       )}
                     </div>
-                    {isEx && <div style={{ color:'#dc2626', fontSize:11, marginTop:4 }}>
+                    {isEx && <div style={{ color:urgencyTokens.critical.fg, fontSize:11, marginTop:4 }}>
                       Transfer fuel from another cluster or request budget extension before scheduling.
                     </div>}
                   </div>
@@ -918,27 +920,27 @@ const ScheduledPage: React.FC = () => {
 
               {/* ── Request history this cycle ── */}
               {!siteInfoLoading && siteReqHistory.length > 0 && (
-                <div style={{ margin:'6px 0', padding:'9px 12px', borderRadius:8, border:'1px solid #e5e7eb', background:'#f9fafb', fontSize:12 }}>
-                  <div style={{ fontWeight:700, color:'#374151', marginBottom:5 }}>
+                <div style={{ margin:'6px 0', padding:'9px 12px', borderRadius:8, border:`1px solid ${neutral[200]}`, background:neutral[50], fontSize:12 }}>
+                  <div style={{ fontWeight:700, color:neutral[700], marginBottom:5 }}>
                     {siteReqHistory.length} request{siteReqHistory.length !== 1 ? 's' : ''} this cycle
                   </div>
                   {siteReqHistory.slice(0, 5).map((r: any) => (
-                    <div key={r._id} style={{ display:'flex', justifyContent:'space-between', padding:'3px 0', borderBottom:'0.5px solid #e5e7eb' }}>
-                      <span style={{ color:'#6b7280' }}>{(r.liters_approved ?? r.liters_requested)} L · {(r.urgency||'').toUpperCase()}</span>
+                    <div key={r._id} style={{ display:'flex', justifyContent:'space-between', padding:'3px 0', borderBottom:`0.5px solid ${neutral[200]}` }}>
+                      <span style={{ color:neutral[500] }}>{(r.liters_approved ?? r.liters_requested)} L · {(r.urgency||'').toUpperCase()}</span>
                       <span style={{
                         padding:'1px 7px', borderRadius:4, fontSize:10, fontWeight:700,
-                        background: r.status==='refueled'||r.status==='completed' ? '#dcfce7'
-                          : r.status?.startsWith('pending_') ? '#fef9c3'
-                          : ['approved','scheduled'].includes(r.status) ? '#dbeafe' : '#fee2e2',
-                        color: r.status==='refueled'||r.status==='completed' ? '#16a34a'
-                          : r.status?.startsWith('pending_') ? '#a16207'
-                          : ['approved','scheduled'].includes(r.status) ? '#1d4ed8' : '#dc2626',
+                        background: r.status==='refueled'||r.status==='completed' ? statusTokens.success.bg
+                          : r.status?.startsWith('pending_') ? statusTokens.warning.bg
+                          : ['approved','scheduled'].includes(r.status) ? statusTokens.info.bg : statusTokens.danger.bg,
+                        color: r.status==='refueled'||r.status==='completed' ? statusTokens.success.text
+                          : r.status?.startsWith('pending_') ? statusTokens.warning.text
+                          : ['approved','scheduled'].includes(r.status) ? statusTokens.info.text : statusTokens.danger.text,
                       }}>
                         {(r.status||'').replace('pending_','').replace(/_/g,' ').toUpperCase()}
                       </span>
                     </div>
                   ))}
-                  {siteReqHistory.length > 5 && <div style={{ fontSize:11, color:'#9ca3af', marginTop:3 }}>+{siteReqHistory.length-5} more</div>}
+                  {siteReqHistory.length > 5 && <div style={{ fontSize:11, color:neutral[400], marginTop:3 }}>+{siteReqHistory.length-5} more</div>}
                 </div>
               )}
             </div>
@@ -962,7 +964,7 @@ const ScheduledPage: React.FC = () => {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
             <div>
               <label style={fieldLabel} htmlFor="sched-maint-type">Maintenance Type</label>
-              <select id="sched-maint-type" disabled style={{ ...selectStyle, background:'#f9fafb', color:'#6b7280' }}>
+              <select id="sched-maint-type" disabled style={{ ...selectStyle, background:neutral[50], color:neutral[500] }}>
                 <option>Refueling</option>
               </select>
             </div>
@@ -1007,8 +1009,8 @@ const ScheduledPage: React.FC = () => {
               />
               {litresNum > 0 && (
                 <div style={{ fontSize:11, marginTop:3, display:'flex', gap:8, alignItems:'center' }}>
-                  <span style={{ color:'#374151', fontWeight:600 }}>≈ XAF {xafPreview.toLocaleString()}</span>
-                  {needsCEO && <span style={{ background:'#fef3c7', color:'#92400e', fontWeight:700, borderRadius:5, padding:'1px 7px', fontSize:10 }}>👑 CEO required</span>}
+                  <span style={{ color:neutral[700], fontWeight:600 }}>≈ XAF {xafPreview.toLocaleString()}</span>
+                  {needsCEO && <span style={{ background:statusTokens.warning.bg, color:statusTokens.warning.text, fontWeight:700, borderRadius:5, padding:'1px 7px', fontSize:10 }}>👑 CEO required</span>}
                 </div>
               )}
             </div>
@@ -1051,7 +1053,7 @@ const ScheduledPage: React.FC = () => {
 
           {/* Approval chain preview — shown when litres > 0 */}
           {litresNum > 0 && (
-            <div style={{ background:'#f8fafc', borderRadius:8, padding:'10px 14px', border:'1px solid #e2e8f0' }}>
+            <div style={{ background:neutral[50], borderRadius:8, padding:'10px 14px', border:`1px solid ${neutral[200]}` }}>
               <p style={{ ...sectionLabel, marginBottom:8 }}>Approval Chain</p>
               <div style={{ display:'flex', gap:0, alignItems:'center', flexWrap:'wrap' }}>
                 {['Minka', 'Pascal', 'Didier', 'Finance', 'HOB', ...(needsCEO ? ['👑 CEO'] : [])].map((name, i, arr) => (
@@ -1059,14 +1061,14 @@ const ScheduledPage: React.FC = () => {
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
                       <div style={{
                         width:30, height:30, borderRadius:'50%',
-                        background: needsCEO && i===5 ? '#86198f' : '#1e3a5f',
+                        background: needsCEO && i===5 ? '#86198f' : brand.primary,
                         color:'#fff', fontSize:10, fontWeight:800,
                         display:'flex', alignItems:'center', justifyContent:'center',
                       }}>{i+1}</div>
-                      <span style={{ fontSize:10, color:'#6b7280', whiteSpace:'nowrap' }}>{name}</span>
+                      <span style={{ fontSize:10, color:neutral[500], whiteSpace:'nowrap' }}>{name}</span>
                     </div>
                     {i < arr.length - 1 && (
-                      <div style={{ flex:1, minWidth:12, height:2, background:'#e5e7eb', margin:'0 4px', marginBottom:14 }} />
+                      <div style={{ flex:1, minWidth:12, height:2, background:neutral[200], margin:'0 4px', marginBottom:14 }} />
                     )}
                   </React.Fragment>
                 ))}
@@ -1075,10 +1077,10 @@ const ScheduledPage: React.FC = () => {
           )}
 
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, paddingTop:4 }}>
-            <Button onClick={() => setShowCreate(false)} variant="secondary">Cancel</Button>
-            <Button onClick={handleCreate} variant="primary" loading={creating}>
+            <Btn onClick={() => setShowCreate(false)} variant="secondary">Cancel</Btn>
+            <Btn onClick={handleCreate} variant="primary" loading={creating}>
               Schedule Refueling
-            </Button>
+            </Btn>
           </div>
         </div>
       </Modal>
@@ -1086,13 +1088,13 @@ const ScheduledPage: React.FC = () => {
       {/* ══ ASSIGN REFUELER MODAL ══ */}
       <Modal isOpen={!!assignTarget} onClose={() => setAssignTarget(null)} title="Assign Refueler" size="sm">
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#166534' }}>
+          <div style={{ background:statusTokens.success.bg, border:`1px solid ${statusTokens.success.border}`, borderRadius:8, padding:'10px 14px', fontSize:13, color:statusTokens.success.text }}>
             <strong>{assignTarget?.site_name}</strong> — {assignTarget?.liters_approved ?? assignTarget?.liters_requested} L approved
-            <span style={{ marginLeft:6, fontSize:11, color:'#9ca3af' }}>
+            <span style={{ marginLeft:6, fontSize:11, color:neutral[400] }}>
               (XAF {((assignTarget?.liters_approved ?? assignTarget?.liters_requested ?? 0) * LITER_TO_XAF).toLocaleString()})
             </span>
             <br />
-            <span style={{ fontSize:12, color:'#166534', marginTop:4, display:'block' }}>
+            <span style={{ fontSize:12, color:statusTokens.success.text, marginTop:4, display:'block' }}>
               Once assigned, this site will appear on the refueler's mobile dashboard immediately.
             </span>
           </div>
@@ -1100,7 +1102,7 @@ const ScheduledPage: React.FC = () => {
           <div>
             <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:4 }} htmlFor="sched-assign-to">Assign to *</label>
             <select id="sched-assign-to" value={assignUserId} onChange={e => setAssignUserId(e.target.value)}
-              style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 12px', fontSize:14 }}>
+              style={{ width:'100%', border:`1px solid ${neutral[200]}`, borderRadius:8, padding:'8px 12px', fontSize:14 }}>
               <option value="">— Select refueler —</option>
               {technicians.map(t => (
                 <option key={t._id} value={t._id}>
@@ -1111,16 +1113,16 @@ const ScheduledPage: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:4 }} htmlFor="sched-assign-date">Scheduled Date <span style={{ color:'#9ca3af', fontWeight:400 }}>(optional)</span></label>
+            <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:4 }} htmlFor="sched-assign-date">Scheduled Date <span style={{ color:neutral[400], fontWeight:400 }}>(optional)</span></label>
             <input id="sched-assign-date" type="date" value={assignDate} onChange={e => setAssignDate(e.target.value)}
-              style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 12px', fontSize:14 }} />
+              style={{ width:'100%', border:`1px solid ${neutral[200]}`, borderRadius:8, padding:'8px 12px', fontSize:14 }} />
           </div>
 
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
-            <Button onClick={() => setAssignTarget(null)} variant="secondary">Cancel</Button>
-            <Button onClick={handleAssign} variant="primary" loading={assigning}>
+            <Btn onClick={() => setAssignTarget(null)} variant="secondary">Cancel</Btn>
+            <Btn onClick={handleAssign} variant="primary" loading={assigning}>
               <FiUser style={{ marginRight:4 }} /> Assign & Schedule
-            </Button>
+            </Btn>
           </div>
         </div>
       </Modal>
@@ -1130,16 +1132,21 @@ const ScheduledPage: React.FC = () => {
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div>
             <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:4 }}>
-              Override Litres Approved <span style={{ fontWeight:400, color:'#9ca3af' }}>(blank = approve as-requested)</span>
+              Override Litres Approved <span style={{ fontWeight:400, color:neutral[400] }}>(blank = approve as-requested)</span>
             </label>
-            <Input type="number" min={1} value={approveOverride} onChange={e => setApproveOverride(e.target.value)} placeholder="Optional override" fullWidth />
+            <input type="number" min={1} value={approveOverride} onChange={e => setApproveOverride(e.target.value)} placeholder="Optional override" style={inputStyle} />
           </div>
-          <Textarea label="Comments" value={approveComment} onChange={e => setApproveComment(e.target.value)} rows={3} fullWidth />
+          <div>
+            <label style={fieldLabel}>Comments</label>
+            <textarea value={approveComment} onChange={e => setApproveComment(e.target.value)} rows={3} style={{ ...inputStyle, resize:'vertical' }} />
+          </div>
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
-            <Button onClick={() => setApproveId(null)} variant="secondary">Cancel</Button>
-            <Button onClick={handleApprove} variant="success" loading={approving}>
+            <Btn onClick={() => setApproveId(null)} variant="secondary">Cancel</Btn>
+            {/* Btn has no "success" variant — primary + a green style override
+                stands in for it, matching FuelRequestsPage.tsx's pattern. */}
+            <Btn onClick={handleApprove} loading={approving} style={{ background: brand.success }}>
               <FiCheckCircle style={{ marginRight:4 }} /> Approve
-            </Button>
+            </Btn>
           </div>
         </div>
       </Modal>
@@ -1147,14 +1154,17 @@ const ScheduledPage: React.FC = () => {
       {/* ══ REJECT MODAL ══ */}
       <Modal isOpen={!!rejectId} onClose={() => setRejectId(null)} title="Reject Fuel Request" size="sm">
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-          <Textarea label="Reason for rejection *" value={rejectReason}
-            onChange={e => setRejectReason(e.target.value)} rows={4}
-            placeholder="Explain why this request is being rejected..." fullWidth />
+          <div>
+            <label style={fieldLabel}>Reason for rejection *</label>
+            <textarea value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)} rows={4}
+              placeholder="Explain why this request is being rejected..." style={{ ...inputStyle, resize:'vertical' }} />
+          </div>
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
-            <Button onClick={() => setRejectId(null)} variant="secondary">Cancel</Button>
-            <Button onClick={handleReject} variant="danger" loading={rejecting}>
+            <Btn onClick={() => setRejectId(null)} variant="secondary">Cancel</Btn>
+            <Btn onClick={handleReject} variant="danger" loading={rejecting}>
               <FiXCircle style={{ marginRight:4 }} /> Reject
-            </Button>
+            </Btn>
           </div>
         </div>
       </Modal>
@@ -1166,14 +1176,12 @@ const ScheduledPage: React.FC = () => {
           <div style={{ maxHeight:'75vh', overflowY:'auto', paddingRight:4 }}>
             <div style={{ display:'flex', gap:8, marginBottom:16, flexWrap:'wrap' }}>
               <StatusPill status={viewReq.status} />
-              <span style={{ fontSize:11, fontWeight:700, background:({low:'#f3f4f6',medium:'#dbeafe',high:'#fef3c7',critical:'#fee2e2'} as any)[viewReq.urgency]||'#f3f4f6', color:({low:'#374151',medium:'#1e40af',high:'#92400e',critical:'#991b1b'} as any)[viewReq.urgency]||'#374151', borderRadius:6, padding:'2px 8px' }}>
-                {viewReq.urgency.toUpperCase()}
-              </span>
+              <UrgencyPill urgency={viewReq.urgency} />
             </div>
 
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
               <div>
-                <p style={sectionLabel}>Request Info</p>
+                <SectionLabel style={{ margin: '0 0 8px' }}>Request Info</SectionLabel>
                 <div style={detailGrid}>
                   {[
                     ['Site', viewReq.site_name], ['Site ID', viewReq.site_id], ['Cluster', viewReq.cluster||'—'],
@@ -1193,62 +1201,64 @@ const ScheduledPage: React.FC = () => {
                   ))}
                 </div>
                 {viewReq.budget_snapshot && (
-                  <div style={{ marginTop:12, padding:'10px 12px', background:'#f8fafc', borderRadius:8 }}>
-                    <p style={{ ...sectionLabel, marginBottom:6 }}>Budget Snapshot</p>
+                  <div style={{ marginTop:12, padding:'10px 12px', background:neutral[50], borderRadius:8 }}>
+                    <SectionLabel style={{ margin: '0 0 6px' }}>Budget Snapshot</SectionLabel>
                     <div style={detailGrid}>
                       <span style={detailKey}>Cycle total</span>
                       <span style={detailVal}>{viewReq.budget_snapshot.budget_liters_total} L</span>
                       <span style={detailKey}>Remaining</span>
-                      <span style={{ ...detailVal, color: viewReq.budget_snapshot.budget_liters_remaining < 50 ? '#dc2626' : '#059669', fontWeight:700 }}>
+                      <span style={{ ...detailVal, color: viewReq.budget_snapshot.budget_liters_remaining < 50 ? urgencyTokens.critical.fg : statusTokens.success.text, fontWeight:700 }}>
                         {viewReq.budget_snapshot.budget_liters_remaining} L
                       </span>
                     </div>
                   </div>
                 )}
-                <div style={{ marginTop:12, padding:'10px 12px', background:'#f9fafb', borderRadius:8 }}>
-                  <p style={{ ...sectionLabel, marginBottom:4 }}>Reason</p>
-                  <p style={{ fontSize:13, color:'#374151', margin:0 }}>{viewReq.request_reason}</p>
+                <div style={{ marginTop:12, padding:'10px 12px', background:neutral[50], borderRadius:8 }}>
+                  <SectionLabel style={{ margin: '0 0 4px' }}>Reason</SectionLabel>
+                  <p style={{ fontSize:13, color:neutral[700], margin:0 }}>{viewReq.request_reason}</p>
                 </div>
               </div>
 
               <div>
-                <p style={sectionLabel}>Approval Trail</p>
+                <SectionLabel style={{ margin: '0 0 8px' }}>Approval Trail</SectionLabel>
                 <ApprovalTrail chain={viewReq.approvalChain || []} />
               </div>
             </div>
 
             {/* Action buttons in detail modal */}
-            <div style={{ display:'flex', gap:8, borderTop:'1px solid #e5e7eb', paddingTop:14 }}>
+            <div style={{ display:'flex', gap:8, borderTop:`1px solid ${neutral[200]}`, paddingTop:14 }}>
               {viewReq.status === 'approved' && isManager && (
-                <Button onClick={() => { setViewReq(null); setAssignTarget(viewReq); }} variant="primary">
+                <Btn onClick={() => { setViewReq(null); setAssignTarget(viewReq); }} variant="primary">
                   <FiUser style={{ marginRight:4 }} /> Assign Refueler
-                </Button>
+                </Btn>
               )}
-              <Button onClick={() => setViewReq(null)} variant="secondary">Close</Button>
+              <Btn onClick={() => setViewReq(null)} variant="secondary">Close</Btn>
             </div>
 
             {/* ── Emergency override ── (mirrors FuelRequestsPage.tsx) */}
             {canEmergencyOverride && !['approved','denied','refueled','completed'].includes(viewReq.status) && (
               <div style={{
                 marginTop: 16, padding: 16, borderRadius: 10,
-                border: '1px dashed #dc2626', background: '#fef2f2',
+                border: `1px dashed ${urgencyTokens.critical.fg}`, background: urgencyTokens.critical.bg,
               }}>
-                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#991b1b' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: statusTokens.danger.text }}>
                   ⚠️ Emergency Override
                 </p>
+                {/* Deliberately a shade darker than statusTokens.danger.text — this
+                    body copy needs to read as secondary to the heading above it. */}
                 <p style={{ margin: '0 0 10px', fontSize: 12, color: '#7f1d1d' }}>
                   Bypasses every remaining approval level immediately and marks this request
                   fully approved. Every approver and the requester will be notified, and a
                   permanent audit record is created with your name and the reason below.
                   Use only for genuine emergencies.
                 </p>
-                <Button
+                <Btn
                   size="sm"
                   variant="danger"
                   onClick={() => { setEmergencyId(viewReq._id); setEmergencyReason(''); setEmergencyLiters(''); }}
                 >
                   Emergency Override…
-                </Button>
+                </Btn>
               </div>
             )}
           </div>
@@ -1258,13 +1268,13 @@ const ScheduledPage: React.FC = () => {
       {/* ── Emergency override modal ── */}
       <Modal isOpen={!!emergencyId} onClose={() => setEmergencyId(null)} title="⚠️ Emergency Approval Override" size="sm">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#7f1d1d' }}>
+          <div style={{ background: urgencyTokens.critical.bg, border: `1px solid ${statusTokens.danger.border}`, borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#7f1d1d' }}>
             This immediately approves the request and skips every pending approval level.
             This action is logged and broadcast to the full approval chain — it cannot be undone.
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
-              Reason for override <span style={{ color: '#dc2626' }}>*</span>
+              Reason for override <span style={{ color: urgencyTokens.critical.fg }}>*</span>
             </label>
             <textarea
               value={emergencyReason}
@@ -1272,7 +1282,7 @@ const ScheduledPage: React.FC = () => {
               rows={4}
               placeholder="Explain the emergency — this is included in the audit trail and the notification sent to every approver."
               aria-label="Reason for emergency override"
-              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
+              style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '9px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
             />
           </div>
           <div>
@@ -1285,16 +1295,16 @@ const ScheduledPage: React.FC = () => {
               onChange={e => setEmergencyLiters(e.target.value)}
               placeholder="Leave blank to approve the full requested amount"
               aria-label="Emergency override liters approved"
-              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 14, boxSizing: 'border-box' as const }}
+              style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '9px 12px', fontSize: 14, boxSizing: 'border-box' as const }}
             />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => setEmergencyId(null)} variant="secondary">
+            <Btn onClick={() => setEmergencyId(null)} variant="secondary">
               Cancel
-            </Button>
-            <Button onClick={handleEmergencyOverride} variant="danger" loading={emergencyLoading} disabled={!emergencyReason.trim()}>
+            </Btn>
+            <Btn onClick={handleEmergencyOverride} variant="danger" loading={emergencyLoading} disabled={!emergencyReason.trim()}>
               Confirm Emergency Override
-            </Button>
+            </Btn>
           </div>
         </div>
       </Modal>

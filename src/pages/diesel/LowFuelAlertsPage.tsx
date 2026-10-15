@@ -1,18 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFuel } from '@/hooks/useFuel';
 import { useNotification } from '@/contexts/NotificationContext';
-import { Card } from '@/components/common/Card';
-import { Badge } from '@/components/common/Badge';
-import { Select } from '@/components/common/Select';
-import { Spinner } from '@/components/common/Spinner';
-import { EmptyState } from '@/components/common/EmptyState';
+import {
+  PageHeader, Card, KpiCard, Tag, Spinner, EmptyState, Btn,
+} from '@/components/diesel/DieselComponents';
+import { neutral, ink, urgency as urgencyTokens, font } from '@/styles/dieselTokens';
 import { formatDate, formatNumber } from '@/utils/formatters';
-import { FiDroplet, FiAlertTriangle, FiMapPin } from 'react-icons/fi';
+
+type SortKey = 'urgency' | 'fuel_pct' | 'site_name';
+const URGENCY_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+const URGENCY_TAG: Record<string, 'danger' | 'warning' | 'info' | 'neutral'> = {
+  critical: 'danger', high: 'warning', medium: 'info', low: 'neutral',
+};
 
 const LowFuelAlertsPage: React.FC = () => {
+  const nav = useNavigate();
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [threshold, setThreshold] = useState('25');
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('urgency');
   const { getLowFuelAlerts } = useFuel();
   const { error: showError } = useNotification();
 
@@ -32,207 +40,134 @@ const LowFuelAlertsPage: React.FC = () => {
     }
   };
 
-  const getUrgencyColor = (urgency: string) => {
-    const colors: Record<string, any> = {
-      critical: 'red',
-      high: 'orange',
-      medium: 'yellow',
-      low: 'gray',
-    };
-    return colors[urgency] || 'gray';
-  };
-  // Group by urgency
+  // Group by urgency — purely for the summary KPI strip now; the table
+  // itself is one sortable/filterable list (matching the redesign), not
+  // one card grid per tier.
   const groupedAlerts = {
     critical: alerts.filter((a) => a.urgency === 'critical'),
     high: alerts.filter((a) => a.urgency === 'high'),
     medium: alerts.filter((a) => a.urgency === 'medium'),
-    low: alerts.filter((a) => a.urgency === 'low'),
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = q
+      ? alerts.filter((a) =>
+          a.site_name?.toLowerCase().includes(q) ||
+          a.site_id?.toLowerCase().includes(q) ||
+          a.cluster?.toLowerCase().includes(q))
+      : alerts;
+    const sorted = [...filtered];
+    if (sortKey === 'urgency') sorted.sort((a, b) => (URGENCY_RANK[a.urgency] ?? 9) - (URGENCY_RANK[b.urgency] ?? 9) || a.fuel_percentage - b.fuel_percentage);
+    else if (sortKey === 'fuel_pct') sorted.sort((a, b) => a.fuel_percentage - b.fuel_percentage);
+    else sorted.sort((a, b) => (a.site_name || '').localeCompare(b.site_name || ''));
+    return sorted;
+  }, [alerts, search, sortKey]);
+
+  if (loading) return <Spinner />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Low Fuel Alerts</h1>
-        <div className="flex items-center space-x-4">
-          <span className="text-sm text-gray-600">Threshold:</span>
-          <Select
-            value={threshold}
-            onChange={(e) => setThreshold(e.target.value)}
-            options={[
-              { value: '10', label: '<10%' },
-              { value: '25', label: '<25%' },
-              { value: '50', label: '<50%' },
-            ]}
-            className="w-32"
-          />
-          <Badge variant="red">{alerts.length} Alert{alerts.length !== 1 ? 's' : ''}</Badge>
-        </div>
-      </div>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: font.ui }}>
+      <PageHeader
+        title="🪫 Low Fuel Alerts"
+        subtitle={`${alerts.length} site(s) under the ${threshold}% threshold, ranked by urgency.`}
+        actions={
+          <>
+            <span style={{ fontSize: 13, color: neutral[500] }}>Threshold:</span>
+            <select
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
+              aria-label="Fuel level threshold"
+              style={{ border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '6px 12px', fontSize: 13 }}
+            >
+              <option value="10">&lt;10%</option>
+              <option value="25">&lt;25%</option>
+              <option value="50">&lt;50%</option>
+            </select>
+          </>
+        }
+      />
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <div className="text-center">
-            <p className="text-sm text-gray-500">Critical</p>
-            <p className="text-2xl font-bold text-red-600">{groupedAlerts.critical.length}</p>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <p className="text-sm text-gray-500">High</p>
-            <p className="text-2xl font-bold text-orange-600">{groupedAlerts.high.length}</p>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <p className="text-sm text-gray-500">Medium</p>
-            <p className="text-2xl font-bold text-yellow-600">{groupedAlerts.medium.length}</p>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <p className="text-sm text-gray-500">Low</p>
-            <p className="text-2xl font-bold text-gray-600">{groupedAlerts.low.length}</p>
-          </div>
-        </Card>
+      {/* ── Summary strip ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+        <KpiCard label="Critical" value={groupedAlerts.critical.length} tone={groupedAlerts.critical.length > 0 ? 'crit' : undefined} />
+        <KpiCard label="High" value={groupedAlerts.high.length} tone={groupedAlerts.high.length > 0 ? 'warn' : undefined} />
+        <KpiCard label="Medium" value={groupedAlerts.medium.length} />
       </div>
 
       {alerts.length === 0 ? (
-        <EmptyState
-          icon={<FiDroplet className="h-16 w-16 text-green-400" />}
-          title="No low fuel alerts"
-          description="All sites have sufficient fuel levels"
-        />
+        <EmptyState icon="💧" title="No low fuel alerts" desc="All sites have sufficient fuel levels at this threshold." />
       ) : (
         <>
-          {/* Critical Alerts */}
-          {groupedAlerts.critical.length > 0 && (
-            <div>
-              <div className="flex items-center mb-4">
-                <FiAlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Critical Alerts ({groupedAlerts.critical.length})
-                </h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {groupedAlerts.critical.map((alert) => (
-                  <Card key={alert.site_id} className="border-2 border-red-500">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">{alert.site_name}</h3>
-                          <p className="text-sm text-gray-500">{alert.site_id}</p>
-                        </div>
-                        <Badge variant="red">{alert.urgency}</Badge>
-                      </div>
+          {/* ── Filters ── */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search site…"
+              aria-label="Search site"
+              style={{ flex: '1 1 220px', minWidth: 160, border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '6px 12px', fontSize: 13, boxSizing: 'border-box' }}
+            />
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              aria-label="Sort order"
+              style={{ border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '6px 12px', fontSize: 13 }}
+            >
+              <option value="urgency">Sort: urgency (high → low)</option>
+              <option value="fuel_pct">Sort: fuel % (low → high)</option>
+              <option value="site_name">Sort: site name</option>
+            </select>
+          </div>
 
-                      <div>
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-gray-600">Fuel Level</span>
-                          <span className="font-bold text-red-600">{alert.fuel_percentage}%</span>
-                        </div>
-                        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-red-500"
-                            style={{ width: `${alert.fuel_percentage}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <p className="text-gray-500">Current</p>
-                          <p className="font-medium">{formatNumber(alert.fuel_level)} L</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Capacity</p>
-                          <p className="font-medium">{formatNumber(alert.tank_capacity)} L</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center text-sm text-gray-600">
-                        <FiMapPin className="mr-2 h-4 w-4" />
-                        {alert.region} • {alert.cluster}
-                      </div>
-
-                      <div className="text-sm">
-                        <span className="text-gray-500">Technician:</span>
-                        <span className="ml-2 font-medium">{alert.technician}</span>
-                      </div>
-
-                      <div className="text-xs text-gray-500">
-                        Last updated: {formatDate(alert.last_updated)}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* High Priority Alerts */}
-          {groupedAlerts.high.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                High Priority ({groupedAlerts.high.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {groupedAlerts.high.map((alert) => (
-                  <Card key={alert.site_id} className="border-l-4 border-orange-500">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">{alert.site_name}</h3>
-                          <p className="text-sm text-gray-500">{alert.site_id}</p>
-                        </div>
-                        <Badge variant="orange">{alert.fuel_percentage}%</Badge>
-                      </div>
-
-                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-orange-500"
-                          style={{ width: `${alert.fuel_percentage}%` }}
-                        />
-                      </div>
-
-                      <div className="text-sm text-gray-600">
-                        {formatNumber(alert.fuel_level)} L / {formatNumber(alert.tank_capacity)} L
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Medium & Low Priority (collapsed view) */}
-          {(groupedAlerts.medium.length > 0 || groupedAlerts.low.length > 0) && (
-            <div className="space-y-4">
-              {groupedAlerts.medium.length > 0 && (
-                <Card>
-                  <h3 className="font-semibold mb-2">
-                    Medium Priority ({groupedAlerts.medium.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {groupedAlerts.medium.slice(0, 5).map((alert) => (
-                      <div key={alert.site_id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm">{alert.site_name}</span>
-                        <Badge variant="yellow" size="sm">{alert.fuel_percentage}%</Badge>
-                      </div>
+          <Card padded={false} style={{ overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                <thead>
+                  <tr style={{ background: neutral[50] }}>
+                    {['Site', 'Cluster', 'Technician', 'Urgency', 'Current Level', 'Last Reading', ''].map((h) => (
+                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: neutral[500], fontSize: 11, borderBottom: `1px solid ${neutral[200]}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
-                  </div>
-                </Card>
-              )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((alert) => (
+                    <tr key={alert.site_id}
+                      style={{ borderBottom: `1px solid ${neutral[100]}` }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = neutral[50])}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '')}>
+                      <td style={{ padding: '10px 14px' }}>
+                        <p style={{ margin: 0, fontWeight: 600, color: ink }}>{alert.site_name || alert.site_id}</p>
+                        <p style={{ margin: 0, color: neutral[400], fontSize: 11 }}>{alert.site_id}{alert.region ? ` · ${alert.region}` : ''}</p>
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>{alert.cluster || '—'}</td>
+                      <td style={{ padding: '10px 14px' }}>{alert.technician || '—'}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <Tag variant={URGENCY_TAG[alert.urgency] || 'neutral'} dot>{(alert.urgency || 'unknown').toUpperCase()}</Tag>
+                      </td>
+                      <td style={{ padding: '10px 14px', minWidth: 160 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
+                          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatNumber(alert.fuel_level)} / {formatNumber(alert.tank_capacity)} L</span>
+                          <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{alert.fuel_percentage}%</strong>
+                        </div>
+                        <div style={{ background: neutral[200], borderRadius: 3, height: 5, overflow: 'hidden' }}>
+                          <div style={{
+                            width: `${Math.min(alert.fuel_percentage, 100)}%`, height: 5, borderRadius: 3,
+                            background: alert.urgency === 'critical' ? urgencyTokens.critical.fg : alert.urgency === 'high' ? urgencyTokens.high.fg : urgencyTokens.medium.fg,
+                          }} />
+                        </div>
+                      </td>
+                      <td style={{ padding: '10px 14px', color: neutral[500], whiteSpace: 'nowrap' }}>{formatDate(alert.last_updated)}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <Btn size="sm" variant="secondary" onClick={() => nav('/diesel/fuel-requests')}>Fuel Requests →</Btn>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+          </Card>
         </>
       )}
     </div>

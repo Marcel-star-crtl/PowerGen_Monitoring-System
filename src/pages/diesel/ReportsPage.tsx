@@ -12,7 +12,8 @@ import { reportsApi } from '../../api/dieselApi';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { PageHeader, CycleSelector, fmtNum, Spinner, EmptyState, Btn } from '../../components/diesel/DieselComponents';
+import { PageHeader, CycleSelector, fmtNum, Spinner, EmptyState, Btn, Card, SectionLabel, KpiCard } from '../../components/diesel/DieselComponents';
+import { neutral, ink, status as statusTokens, urgency as urgencyTokens, font } from '../../styles/dieselTokens';
 
 export default function ReportsPage() {
   const { cycles, selectedKey, setSelectedKey, loading: cyclesLoading } = useCycles();
@@ -73,7 +74,7 @@ export default function ReportsPage() {
   const cycleLabel = selectedKey || '—';
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="📊 Reports"
         subtitle="Download formatted Excel reports or view cluster comparisons"
@@ -138,7 +139,7 @@ export default function ReportsPage() {
                 value={siteId}
                 onChange={e => setSiteId(e.target.value)}
                 aria-label="Select site for deep-dive report"
-                style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: 6, padding: '6px 8px', fontSize: 12 }}
+                style={{ flex: 1, border: `1px solid ${neutral[200]}`, borderRadius: 6, padding: '6px 8px', fontSize: 12 }}
               >
                 <option value="">Select site…</option>
                 {siteList.map((s: any) => (
@@ -167,50 +168,48 @@ export default function ReportsPage() {
       </div>
 
       {/* ── PM Integration note ── */}
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 18px', marginBottom: 24 }}>
-        <p style={{ margin: 0, fontSize: 13, color: '#1e40af' }}>
+      <div style={{ background: statusTokens.info.bg, border: `1px solid ${statusTokens.info.border}`, borderRadius: 10, padding: '12px 18px', marginBottom: 24 }}>
+        <p style={{ margin: 0, fontSize: 13, color: statusTokens.info.text }}>
           ℹ️ Site Deep-Dive reports now include technician PM running hours from maintenance records,
           enabling CMS validation against actual field meter readings.
         </p>
       </div>
 
       {/* ── Cluster comparison chart ── */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>
-          Budget vs Contractual vs CMS vs Field — by Cluster
-        </h3>
+      <Card>
+        <SectionLabel>Budget vs Contractual vs CMS vs Field — by Cluster</SectionLabel>
         {clusterLoading ? <Spinner /> : chartData.length === 0 ? (
           <EmptyState icon="📊" title="No cluster data" desc="Run reconciliation first" />
         ) : (
           <ResponsiveContainer width="100%" height={360}>
             <BarChart data={chartData} margin={{ left: 0, right: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <CartesianGrid strokeDasharray="3 3" stroke={neutral[100]} />
               <XAxis dataKey="cluster" tick={{ fontSize: 11 }} angle={-25} textAnchor="end" height={70} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: any) => fmtNum(v) + ' L'} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="budget"      fill="#9ca3af" name="Budget (L)"        radius={[4, 4, 0, 0]} />
+              <Bar dataKey="budget"      fill={neutral[400]} name="Budget (L)"        radius={[4, 4, 0, 0]} />
               <Bar dataKey="contractual" fill="#2563eb" name="Contractual (L)"   radius={[4, 4, 0, 0]} />
-              <Bar dataKey="cms"         fill="#16a34a" name="CMS Actual (L)"    radius={[4, 4, 0, 0]} />
-              <Bar dataKey="field"       fill="#f59e0b" name="Field Consumed (L)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="cms"         fill={urgencyTokens.ok.fg} name="CMS Actual (L)"    radius={[4, 4, 0, 0]} />
+              <Bar dataKey="field"       fill={urgencyTokens.high.fg} name="Field Consumed (L)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
-      </div>
+      </Card>
       {/* ── Multi-cycle comparison chart ── */}
-      <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:12, padding:24, marginTop:24 }}>
+      <Card style={{ marginTop: 24 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
           <div>
-            <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:'#111827' }}>📈 Cycle Comparison — Budget vs Consumed</h3>
-            <p style={{ margin:'4px 0 0', fontSize:12, color:'#6b7280' }}>Last {compareData.length} cycles · from /site-budget aggregate</p>
+            <h3 style={{ margin:0, fontSize:16, fontWeight:700, color: ink }}>📈 Cycle Comparison — Budget vs Consumed</h3>
+            <p style={{ margin:'4px 0 0', fontSize:12, color: neutral[500] }}>Last {compareData.length} cycles · from /site-budget aggregate</p>
           </div>
           <button onClick={loadComparison} disabled={compareLoading}
-            style={{ border:'1px solid #e5e7eb', background:'#f9fafb', borderRadius:8, padding:'6px 14px', cursor:'pointer', fontSize:12 }}>
+            style={{ border: `1px solid ${neutral[200]}`, background: neutral[50], borderRadius:8, padding:'6px 14px', cursor:'pointer', fontSize:12 }}>
             {compareLoading ? '⏳ Loading…' : '🔄 Refresh'}
           </button>
         </div>
         {compareLoading ? <Spinner size={28} /> : compareData.length === 0 ? (
-          <p style={{ color:'#9ca3af', textAlign:'center', padding:24, fontSize:13 }}>
+          <p style={{ color: neutral[400], textAlign:'center', padding:24, fontSize:13 }}>
             No multi-cycle budget data available — upload Book11 files for past cycles to enable comparison.
           </p>
         ) : (
@@ -219,25 +218,18 @@ export default function ReportsPage() {
             <div style={{ display:'flex', gap:12, marginBottom:20, flexWrap:'wrap' }}>
               {compareData.slice(-1).map((d: any) => (
                 <React.Fragment key={d.cycle}>
-                  {[
-                    { label:'Budget (L)',   value: (d.total_budget_liters||0).toLocaleString() },
-                    { label:'Used (L)',     value: (d.total_liters_used||0).toLocaleString() },
-                    { label:'Remaining (L)',value: Math.max(0,(d.total_budget_liters||0)-(d.total_liters_used||0)).toLocaleString() },
-                    { label:'Utilisation', value: d.total_budget_liters > 0
-                        ? Math.round(((d.total_liters_used||0)/d.total_budget_liters)*100)+'%' : '—' },
-                  ].map(s => (
-                    <div key={s.label} style={{ background:'#f9fafb', borderRadius:8, padding:'10px 16px', flex:1, minWidth:120 }}>
-                      <div style={{ fontSize:10, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label} (latest)</div>
-                      <div style={{ fontSize:22, fontWeight:800, color:'#111827', marginTop:2 }}>{s.value}</div>
-                    </div>
-                  ))}
+                  <KpiCard label="Budget (L) (latest)" value={(d.total_budget_liters||0).toLocaleString()} />
+                  <KpiCard label="Used (L) (latest)" value={(d.total_liters_used||0).toLocaleString()} />
+                  <KpiCard label="Remaining (L) (latest)" value={Math.max(0,(d.total_budget_liters||0)-(d.total_liters_used||0)).toLocaleString()} />
+                  <KpiCard label="Utilisation (latest)" value={d.total_budget_liters > 0
+                      ? Math.round(((d.total_liters_used||0)/d.total_budget_liters)*100)+'%' : '—'} />
                 </React.Fragment>
               ))}
             </div>
 
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={compareData} margin={{ top:4, right:16, left:0, bottom:4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke={neutral[100]} />
                 <XAxis dataKey="label" tick={{ fontSize:11 }} />
                 <YAxis tick={{ fontSize:11 }} tickFormatter={(v: number) => (v/1000).toFixed(0)+'k'} />
                 <Tooltip
@@ -245,9 +237,9 @@ export default function ReportsPage() {
                   labelStyle={{ fontWeight:700, marginBottom:4 }}
                 />
                 <Legend wrapperStyle={{ fontSize:12 }} />
-                <Bar dataKey="total_budget_liters"   name="Budget (L)"    fill="#e5e7eb" radius={[3,3,0,0]} />
+                <Bar dataKey="total_budget_liters"   name="Budget (L)"    fill={neutral[200]} radius={[3,3,0,0]} />
                 <Bar dataKey="total_liters_used"      name="Used (L)"      fill="#2a78d6" radius={[3,3,0,0]} />
-                <Bar dataKey="total_liters_remaining" name="Remaining (L)" fill="#1baf7a" radius={[3,3,0,0]} />
+                <Bar dataKey="total_liters_remaining" name="Remaining (L)" fill={urgencyTokens.ok.fg} radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
 
@@ -255,9 +247,9 @@ export default function ReportsPage() {
             <div style={{ overflowX:'auto', marginTop:20 }}>
               <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
                 <thead>
-                  <tr style={{ background:'#f9fafb' }}>
+                  <tr style={{ background: neutral[50] }}>
                     {['Cycle','Budget (L)','Used (L)','Remaining (L)','Utilisation','Sites'].map(h => (
-                      <th key={h} style={{ padding:'8px 12px', textAlign:'left', fontWeight:600, color:'#6b7280', fontSize:11, borderBottom:'1px solid #e5e7eb' }}>{h}</th>
+                      <th key={h} style={{ padding:'8px 12px', textAlign:'left', fontWeight:600, color: neutral[500], fontSize:11, borderBottom: `1px solid ${neutral[200]}` }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -265,20 +257,20 @@ export default function ReportsPage() {
                   {[...compareData].reverse().map((d: any) => {
                     const rem  = Math.max(0,(d.total_budget_liters||0)-(d.total_liters_used||0));
                     const pct  = d.total_budget_liters > 0 ? Math.round(((d.total_liters_used||0)/d.total_budget_liters)*100) : 0;
-                    const color= pct>=90 ? '#dc2626' : pct>=75 ? '#d97706' : '#16a34a';
+                    const color= pct>=90 ? urgencyTokens.critical.fg : pct>=75 ? urgencyTokens.high.fg : urgencyTokens.ok.fg;
                     return (
-                      <tr key={d.cycle} style={{ borderBottom:'0.5px solid #f3f4f6' }}>
+                      <tr key={d.cycle} style={{ borderBottom: `0.5px solid ${neutral[100]}` }}>
                         <td style={{ padding:'8px 12px', fontWeight:700 }}>{d.label}</td>
                         <td style={{ padding:'8px 12px' }}>{(d.total_budget_liters||0).toLocaleString()}</td>
                         <td style={{ padding:'8px 12px' }}>{(d.total_liters_used||0).toLocaleString()}</td>
                         <td style={{ padding:'8px 12px' }}>{rem.toLocaleString()}</td>
                         <td style={{ padding:'8px 12px' }}>
                           <span style={{ color, fontWeight:700 }}>{pct}%</span>
-                          <div style={{ background:'#e5e7eb', height:4, width:60, borderRadius:2, display:'inline-block', marginLeft:8, verticalAlign:'middle' }}>
+                          <div style={{ background: neutral[200], height:4, width:60, borderRadius:2, display:'inline-block', marginLeft:8, verticalAlign:'middle' }}>
                             <div style={{ background:color, height:4, width:`${Math.min(pct,100)}%`, borderRadius:2 }} />
                           </div>
                         </td>
-                        <td style={{ padding:'8px 12px', color:'#6b7280' }}>{d.total_sites||'—'}</td>
+                        <td style={{ padding:'8px 12px', color: neutral[500] }}>{d.total_sites||'—'}</td>
                       </tr>
                     );
                   })}
@@ -287,7 +279,7 @@ export default function ReportsPage() {
             </div>
           </>
         )}
-      </div>
+      </Card>
 
     </div>
   );
@@ -299,15 +291,12 @@ function ReportCard({
   icon: string; title: string; desc: string; action: React.ReactNode;
 }) {
   return (
-    <div style={{
-      background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12,
-      padding: 20, display: 'flex', flexDirection: 'column', gap: 12,
-    }}>
+    <Card style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ fontSize: 28 }}>{icon}</div>
-      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{title}</h4>
-      <p style={{ margin: 0, fontSize: 12, color: '#6b7280', flex: 1, lineHeight: 1.5 }}>{desc}</p>
+      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: ink }}>{title}</h4>
+      <p style={{ margin: 0, fontSize: 12, color: neutral[500], flex: 1, lineHeight: 1.5 }}>{desc}</p>
       {action}
-    </div>
+    </Card>
   );
 }
 

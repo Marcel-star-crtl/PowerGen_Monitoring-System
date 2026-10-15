@@ -82,6 +82,21 @@ export const urgency = {
   unknown:  { fg: '#9ca3af', bg: '#f9fafb' },
 } as const;
 
+// ── Font families ──────────────────────────────────────────────────────────
+// The redesign's whole visual identity runs on IBM Plex Sans (UI text) +
+// IBM Plex Mono (figures — tabular-nums reads as "designed" only paired
+// with a mono face). Loaded via <link> in public/index.html. Deliberately
+// NOT applied globally in index.css — the rest of the app (every
+// non-diesel portal) runs on its own brand font ('Syne', see index.css)
+// and that's outside this redesign's scope, so every diesel page sets
+// `fontFamily: font.ui` on its own top-level wrapper div instead, which
+// cascades to everything inside it; font.mono is applied explicitly
+// wherever a value is already marked tabular-nums (KpiCard, VarianceCell).
+export const font = {
+  ui:   "'IBM Plex Sans', system-ui, -apple-system, sans-serif",
+  mono: "'IBM Plex Mono', ui-monospace, Menlo, monospace",
+} as const;
+
 // ── Type scale (replaces the 12 unscaled font sizes found in the audit) ──────
 // 5 sizes, each with a clear semantic role. Anything that doesn't fit one
 // of these is a sign the layout needs a different element, not a new size.
@@ -99,3 +114,12 @@ export const space = {
 } as const;
 
 export const radius = { sm: 6, md: 8, lg: 10, pill: 20 } as const;
+
+// ── Shadow (card elevation) ───────────────────────────────────────────────────
+// One subtle resting shadow, used by Card/KpiCard instead of each page
+// re-inventing its own box-shadow string. Deliberately light — these are
+// dashboards read all day, not marketing pages, so elevation should be a
+// faint hint of depth, not a drop shadow.
+export const shadow = {
+  card: '0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 1px rgba(17, 24, 39, 0.03)',
+} as const;

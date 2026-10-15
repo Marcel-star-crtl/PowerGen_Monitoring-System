@@ -67,6 +67,7 @@ import TheftInvestigationPage from '@/pages/diesel/TheftInvestigationPage';
 import BudgetPlanningPage from '@/pages/diesel/BudgetPlanningPage';
 import AIFleetInsightsPage from '@/pages/diesel/AIFleetInsightsPage';
 import HistoricalDataPage from '@/pages/diesel/HistoricalDataPage';
+import HistoricalAnalysisPage from '@/pages/diesel/HistoricalAnalysisPage';
 import SiteStockPage from '@/pages/diesel/SiteStockPage';
 import TankAuditPage from '@/pages/diesel/TankAuditPage';
 import DataSourceComparisonPage from '@/pages/diesel/DataSourceComparisonPage';
@@ -77,6 +78,8 @@ import DieselReconAlertsPage from '@/pages/diesel/AlertsPage';
 import TomCardPage from '@/pages/diesel/TomCardPage';
 import GeneratorLedgerPage from '@/pages/diesel/GeneratorLedgerPage';
 import DieselReconReportsPage from '@/pages/diesel/ReportsPage';
+import GainLossTrackerPage from '@/pages/diesel/GainLossTrackerPage';
+import TechnicianIntegrityPage from '@/pages/diesel/TechnicianIntegrityPage';
 
 // ========== DATA COLLECTOR PAGES ==========
 import DataCollectorDashboard from '@/pages/data-collector/DashboardPage';
@@ -196,10 +199,13 @@ const App: React.FC = () => {
               <Route path="tank-level" element={<TankLevelUploadPage />} />
               <Route path="sites-map" element={<SitesMapPage />} />
               <Route path="site-directory" element={<SiteDirectoryPage />} />
+              <Route path="technician-integrity" element={<TechnicianIntegrityPage />} />
               <Route path="theft-investigation" element={<TheftInvestigationPage />} />
               <Route path="budget-planning" element={<BudgetPlanningPage />} />
               <Route path="ai-insights" element={<AIFleetInsightsPage />} />
+              <Route path="gain-loss-tracker" element={<GainLossTrackerPage />} />
               <Route path="historical-data" element={<HistoricalDataPage />} />
+              <Route path="historical-analysis" element={<HistoricalAnalysisPage />} />
               <Route path="site-stock" element={<SiteStockPage />} />
               <Route path="tank-audits" element={<TankAuditPage />} />
               <Route path="data-sources" element={<DataSourceComparisonPage />} />

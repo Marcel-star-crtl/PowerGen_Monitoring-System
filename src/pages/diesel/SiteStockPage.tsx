@@ -12,8 +12,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import { stockApi } from '../../api/dieselApi';
-import { PageHeader, Spinner, ErrorBox, EmptyState, Btn, KpiCard } from '../../components/diesel/DieselComponents';
-import { neutral, ink, urgency } from '../../styles/dieselTokens';
+import { PageHeader, Spinner, ErrorBox, EmptyState, Btn, KpiCard, Card, SectionLabel } from '../../components/diesel/DieselComponents';
+import { neutral, ink, urgency, font } from '../../styles/dieselTokens';
 
 function fmt(n: number | null | undefined, decimals = 0) {
   if (n == null) return '—';
@@ -119,7 +119,7 @@ export default function SiteStockPage() {
     });
 
   return (
-    <div>
+    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="⛽ Site & Cluster Stock"
         subtitle="Live fuel stock, per site and per cluster — reads the same live tank data every other view in this system uses. Not the historical archive."
@@ -177,8 +177,8 @@ export default function SiteStockPage() {
 
           {/* ── Carried-over stock from the prior cycle — only meaningful in the End of Cycle view ── */}
           {view === 'cycle' && (
-            <div style={{ marginBottom: 24, border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>↪ Carried Over From Prior Cycle</div>
+            <Card style={{ marginBottom: 24 }}>
+              <SectionLabel style={{ marginBottom: 4, fontSize: 13, textTransform: 'none', letterSpacing: 0, color: ink, fontWeight: 700 }}>↪ Carried Over From Prior Cycle</SectionLabel>
               <div style={{ fontSize: 11, color: neutral[500], marginBottom: 10 }}>
                 Stock still physically in the tank when the previous cycle closed, rolled into this cycle as a real opening balance — on top of whatever budget was freshly approved for this cycle, not instead of it.
               </div>
@@ -206,12 +206,12 @@ export default function SiteStockPage() {
                   </div>
                 </>
               )}
-            </div>
+            </Card>
           )}
 
           {/* ── Per-cluster breakdown ── */}
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Stock By Cluster</div>
+            <SectionLabel>Stock By Cluster</SectionLabel>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
               {(activeData.by_cluster || []).map((c: any) => (
                 <button
@@ -255,7 +255,7 @@ export default function SiteStockPage() {
             </div>
           </div>
 
-          <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, overflow: 'auto', maxHeight: 560 }}>
+          <Card padded={false} style={{ overflow: 'auto', maxHeight: 560 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead style={{ position: 'sticky', top: 0, background: neutral[50] }}>
                 <tr>
@@ -293,7 +293,7 @@ export default function SiteStockPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         </>
       )}
     </div>

@@ -13,7 +13,8 @@ import type {
   ApiResponse, DieselCycle, SiteBudget, DieselAlert,
   CycleReconciliation, ClusterSummary, CmsUpload, CmsDailyRecord,
   FieldVisitRecord, TomCardTransaction, TomCardSummary, TomCardMapping,
-  GeneratorLedgerEntry, DashboardKPIs, DailyTrend, ValidationUpload, ValidationRecord
+  GeneratorLedgerEntry, DashboardKPIs, DailyTrend, ValidationUpload, ValidationRecord,
+  TechnicianIntegritySummary
 } from '../types/diesel.types';
 
 // ─── Base URL ────────────────────────────────────────────────────────────────
@@ -212,14 +213,28 @@ export const stockApi = {
 // submits to; this dashboard view is read-only (list, single record,
 // and the summary rollup), not a second write path.
 export const tankAuditApi = {
-  list: (params?: { status?: string; siteId?: string; severity?: string; logsCollected?: string; page?: number; limit?: number }) =>
+  list: (params?: { status?: string; siteId?: string; severity?: string; logsCollected?: string; dateFrom?: string; dateTo?: string; sortBy?: string; sortOrder?: string; page?: number; limit?: number }) =>
     get<any>('/technician/tank-audits', params),
   get: (id: string) => get<any>(`/technician/tank-audits/${id}`),
   summary: () => get<any>('/technician/tank-audits/summary'),
+  reconciliation: (cycle_key: string) => get<any>('/technician/tank-audits/reconciliation', { cycle_key }),
+  deliveryEventsForCycle: (cycle_key: string) => get<any>('/technician/tank-audits/delivery-events', { cycle_key }),
+  deliveryEventsForSite: (site_id: string, cycle_key: string) => get<any>(`/technician/tank-audits/delivery-events/${site_id}`, { cycle_key }),
+  extractRunHours: (id: string) => api.post<ApiResponse<any>>(
+    `/technician/tank-audits/${id}/extract-run-hours`, {},
+    { timeout: 90000 } // 90s — a real image fetch + vision-model call server-side, genuinely slower than a normal API call; same reasoning as uploadFile's own longer timeout above
+  ).then(r => r.data),
+  acceptExtractedRunHours: (id: string) => post<any>(`/technician/tank-audits/${id}/accept-extracted-run-hours`, {}),
+  update: (id: string, fields: Record<string, any>) =>
+    api.put<ApiResponse<any>>(`/technician/tank-audits/${id}`, fields).then(r => r.data),
+  setManualRunHours: (id: string, value: number) =>
+    api.patch<ApiResponse<any>>(`/technician/tank-audits/${id}/manual-run-hours`, { value }).then(r => r.data),
+  notesRunHoursCandidates: () => get<any>('/technician/tank-audits/notes-run-hours-candidates'),
+  analytics: (cycle_key?: string) => get<any>('/technician/tank-audits/analytics', cycle_key ? { cycle_key } : undefined),
 };
 
 export const historicalDataApi = {
-  summary: () => get<any>('/historical/summary'),
+  summary: (since?: string) => get<any>(`/historical/summary${since ? `?since=${since}` : ''}`),
   reserves: (month_key: string) => get<any>(`/historical/reserves/${month_key}`),
   siteHistory: (site_id: string) => get<any>(`/historical/site/${site_id}`),
   adhocRequests: () => get<any>('/historical/adhoc-requests'),
@@ -234,6 +249,34 @@ export const historicalDataApi = {
   fullSummary: (month_key: string) => get<any>(`/historical/full-summary/${month_key}`),
   midCycleEstimate: (month_key: string) => get<any>(`/historical/mid-cycle-estimate/${month_key}`),
   plannedVsSupplied: (month_key: string) => get<any>(`/historical/planned-vs-supplied/${month_key}`),
+  // Phase 143 — consolidated "everything about this site/cluster, this
+  // cycle" reports. Cycle-scoped, unlike siteHistory/fieldVisits above
+  // (which are all-time).
+  siteCycleReport: (site_id: string, cycle_key: string) => get<any>(`/historical/site-cycle-report/${site_id}/${cycle_key}`),
+  clusterCycleReport: (cluster: string, cycle_key: string) => get<any>(`/historical/cluster-cycle-report/${cluster}/${cycle_key}`),
+  // Phase 147 — the listing views that back each tab's landing table:
+  // every site/cluster for a cycle in one call, so the page shows data
+  // immediately rather than waiting for a search-then-select step.
+  siteCycleSummary: (cycle_key: string) => get<any>(`/historical/site-cycle-summary/${cycle_key}`),
+  clusterCycleSummary: (cycle_key: string) => get<any>(`/historical/cluster-cycle-summary/${cycle_key}`),
+  // Phase 152 — one workbook covering Global Summary, Site Cycle Analysis,
+  // Cluster Cycle Analysis, and Complete Monthly Summary, each with
+  // embedded charts. A path for reportsApi.downloadFile, same pattern as
+  // reportsApi's own cyclePath/sitePath/tomCardPath — this can take a
+  // while to build server-side (many months/sites/clusters, several
+  // rendered chart images), so it's downloaded via fetch (reportsApi.
+  // downloadFile), not the `get<T>` axios helper above, to sidestep that
+  // helper's shared 30s axios timeout entirely rather than tuning it.
+  exportExcelPath: () => '/historical/export/excel',
+};
+
+// ─── Gain/Loss Tracker ──────────────────────────────────────────────────────
+// Live, current-cycle view — reads FieldVisitRecord/CycleReconciliation
+// (see gainLossRoutes.js docblock), NOT the historical email archive
+// historicalDataApi above reads from. Different data source, deliberately.
+export const gainLossApi = {
+  tracker: (cycle_key: string) => get<any>(`/gain-loss/tracker/${cycle_key}`),
+  trackerDetail: (cycle_key: string, site_id: string) => get<any>(`/gain-loss/tracker/${cycle_key}/${site_id}`),
 };
 
 export const aiInsightsApi = {
@@ -382,6 +425,8 @@ export const reconciliationApi = {
   override:       (cycle_key: string, site_id: string, override_notes: string) =>
     patch(`/reconciliation/${cycle_key}/site/${site_id}/override`, { override_notes }),
   alertSummary:   (cycle_key: string)   => get(`/reconciliation/alerts/summary/${cycle_key}`),
+  technicianIntegrity: (cycle_key: string, params?: { page?: number; limit?: number }) =>
+    get<TechnicianIntegritySummary>(`/reconciliation/technician-integrity/${cycle_key}`, params),
 };
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────

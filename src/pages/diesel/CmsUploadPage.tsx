@@ -21,8 +21,9 @@ import { cmsApi, fuelPlanningApi } from '../../api/dieselApi';
 import { useCycles, useCmsUploads, useMissingDays, useFileUpload } from '../../hooks/useDiesel';
 import {
   PageHeader, CycleSelector, UploadZone, StatusPill, Btn,
-  fmtDate, Spinner, ErrorBox, EmptyState,
+  fmtDate, Spinner, ErrorBox, EmptyState, Card, SectionLabel, KpiCard,
 } from '../../components/diesel/DieselComponents';
+import { neutral, status as statusTokens, urgency as urgencyTokens, brand, font } from '../../styles/dieselTokens';
 
 export default function CmsUploadPage() {
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ export default function CmsUploadPage() {
   const isWrongEndpoint = wrongFile || apiError?.includes('Wrong endpoint');
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1200, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="📡 CMS Daily Upload"
         subtitle="Upload the ERS extraction file once per day. Each file covers one day's telemetry for all sites."
@@ -116,13 +117,13 @@ export default function CmsUploadPage() {
         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20,
       }}>
         <div style={{
-          background: '#eff6ff', border: '1px solid #bfdbfe',
+          background: statusTokens.info.bg, border: `1px solid ${statusTokens.info.border}`,
           borderRadius: 10, padding: '12px 16px',
         }}>
-          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: '#1e40af' }}>
+          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: statusTokens.info.text }}>
             📡 This page: CMS/ERS Telemetry
           </p>
-          <p style={{ margin: 0, fontSize: 12, color: '#1e40af', lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 12, color: statusTokens.info.text, lineHeight: 1.5 }}>
             CSV export from the CMS/ERS monitoring system.<br />
             Contains: Gen RH per day, grid availability hours, fuel sensor level.
           </p>
@@ -130,14 +131,14 @@ export default function CmsUploadPage() {
         <div
           onClick={() => navigate('/diesel/grato-upload')}
           style={{
-            background: '#f0fdf4', border: '1px solid #bbf7d0',
+            background: statusTokens.success.bg, border: `1px solid ${statusTokens.success.border}`,
             borderRadius: 10, padding: '12px 16px', cursor: 'pointer',
           }}
         >
-          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: '#166534' }}>
+          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: statusTokens.success.text }}>
             📋 GRATO Daily Report → different page ↗
           </p>
-          <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 12, color: statusTokens.success.text, lineHeight: 1.5 }}>
             The GRATO Global Daily Report (.xlsx) goes to the <strong>GRATO Upload</strong> page,
             not here. Click to go there.
           </p>
@@ -147,13 +148,13 @@ export default function CmsUploadPage() {
       {/* ── Wrong file warning ── */}
       {isWrongEndpoint && (
         <div style={{
-          background: '#fef9c3', border: '2px solid #fde68a',
+          background: statusTokens.warning.bg, border: `2px solid ${statusTokens.warning.border}`,
           borderRadius: 10, padding: '14px 18px', marginBottom: 20,
         }}>
-          <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: '#92400e' }}>
+          <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: statusTokens.warning.text }}>
             ⚠️ Wrong file for this page
           </p>
-          <p style={{ margin: '0 0 10px', fontSize: 13, color: '#78350f' }}>
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: statusTokens.warning.text }}>
             This looks like the <strong>GRATO Global Daily Report</strong> (.xlsx).
             That file belongs on the GRATO Upload page — it contains daily maintenance
             visits by technicians, not CMS telemetry.
@@ -181,30 +182,30 @@ export default function CmsUploadPage() {
 
           {importResult && (
             <div style={{
-              marginTop: 16, background: '#dcfce7', border: '1px solid #bbf7d0',
+              marginTop: 16, background: statusTokens.success.bg, border: `1px solid ${statusTokens.success.border}`,
               borderRadius: 10, padding: '14px 18px',
             }}>
-              <p style={{ fontWeight: 600, color: '#166534', margin: '0 0 6px' }}>
+              <p style={{ fontWeight: 600, color: statusTokens.success.text, margin: '0 0 6px' }}>
                 ✅ Import successful
               </p>
               <div style={{
-                fontSize: 13, color: '#166534',
+                fontSize: 13, color: statusTokens.success.text,
                 display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
               }}>
                 <span>Rows processed:</span><strong>{importResult.rows_total}</strong>
                 <span>Imported:</span><strong>{importResult.rows_imported}</strong>
                 <span>Skipped (dup):</span><strong>{importResult.rows_skipped}</strong>
                 <span>Errors:</span>
-                <strong style={{ color: importResult.error_count > 0 ? '#dc2626' : '#166534' }}>
+                <strong style={{ color: importResult.error_count > 0 ? statusTokens.danger.text : statusTokens.success.text }}>
                   {importResult.error_count}
                 </strong>
               </div>
               {importResult.errors?.length > 0 && (
                 <details style={{ marginTop: 8, fontSize: 12 }}>
-                  <summary style={{ cursor: 'pointer', color: '#166534' }}>
+                  <summary style={{ cursor: 'pointer', color: statusTokens.success.text }}>
                     {importResult.errors.length} row error(s)
                   </summary>
-                  <ul style={{ margin: '6px 0 0 18px', color: '#166534' }}>
+                  <ul style={{ margin: '6px 0 0 18px', color: statusTokens.success.text }}>
                     {importResult.errors.map((w: string, i: number) => <li key={i}>{w}</li>)}
                   </ul>
                 </details>
@@ -214,10 +215,10 @@ export default function CmsUploadPage() {
 
           {/* Format guide */}
           <div style={{
-            marginTop: 16, background: '#f9fafb', border: '1px solid #e5e7eb',
-            borderRadius: 8, padding: '12px 14px', fontSize: 12, color: '#6b7280',
+            marginTop: 16, background: neutral[50], border: `1px solid ${neutral[200]}`,
+            borderRadius: 8, padding: '12px 14px', fontSize: 12, color: neutral[500],
           }}>
-            <strong style={{ color: '#374151' }}>Expected CMS CSV columns:</strong>
+            <strong style={{ color: neutral[700] }}>Expected CMS CSV columns:</strong>
             <ul style={{ margin: '6px 0 0', paddingLeft: 16, lineHeight: 1.8 }}>
               <li>Site ID (IHS_ID_SITE)</li>
               <li>Date (YYYY-MM-DD)</li>
@@ -231,49 +232,41 @@ export default function CmsUploadPage() {
 
         {/* ── Fuel Planning Status ── */}
         {(planSummary || planLoading) && (
-          <div style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:12, padding:18, marginBottom:18 }}>
+          <Card style={{ marginBottom: 18 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-              <h3 style={{ margin:0, fontSize:14, fontWeight:600 }}>⛽ Fuel Status After Upload</h3>
-              <a href="/diesel/fuel-planning" style={{ fontSize:12, color:'#e53935', fontWeight:600, textDecoration:'none' }}>Fuel Planning →</a>
+              <SectionLabel style={{ marginBottom: 0 }}>⛽ Fuel Status After Upload</SectionLabel>
+              <a href="/diesel/fuel-planning" style={{ fontSize:12, color: brand.primary, fontWeight:600, textDecoration:'none' }}>Fuel Planning →</a>
             </div>
             {planLoading ? <Spinner /> : planSummary ? (
               <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-                {([
-                  { label:'🚨 Critical', value:planSummary.critical, color:'#dc2626' },
-                  { label:'⚠️ High',     value:planSummary.high,     color:'#d97706' },
-                  { label:'🔵 Medium',   value:planSummary.medium,   color:'#2563eb' },
-                  { label:'✅ OK',        value:planSummary.ok,       color:'#16a34a' },
-                ] as any[]).map((s:any) => (
-                  <div key={s.label} style={{ flex:1, minWidth:90, textAlign:'center', padding:'8px 12px',
-                    borderRadius:8, border:'1px solid #e5e7eb', borderTop:`3px solid ${s.color}` }}>
-                    <div style={{ fontSize:22, fontWeight:800, color:s.color }}>{s.value ?? 0}</div>
-                    <div style={{ fontSize:11, color:'#6b7280', marginTop:2 }}>{s.label}</div>
-                  </div>
-                ))}
+                <KpiCard label="Critical" value={planSummary.critical ?? 0} tone={planSummary.critical > 0 ? 'crit' : undefined} />
+                <KpiCard label="High" value={planSummary.high ?? 0} tone={planSummary.high > 0 ? 'warn' : undefined} />
+                <KpiCard label="Medium" value={planSummary.medium ?? 0} />
+                <KpiCard label="OK" value={planSummary.ok ?? 0} tone={planSummary.ok > 0 ? 'ok' : undefined} />
               </div>
             ) : null}
             {planSummary?.critical > 0 && (
-              <div style={{ marginTop:10, padding:'8px 12px', background:'#fff5f5', borderRadius:8, border:'1px solid #fca5a5', fontSize:12, color:'#dc2626' }}>
+              <div style={{ marginTop:10, padding:'8px 12px', background: urgencyTokens.critical.bg, borderRadius:8, border: `1px solid ${statusTokens.danger.border}`, fontSize:12, color: urgencyTokens.critical.fg }}>
                 ⚠️ <strong>{planSummary.critical} site(s)</strong> critically low — open Fuel Planning to schedule refueling.
               </div>
             )}
-          </div>
+          </Card>
         )}
 
         {/* ── Missing days panel ── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>Missing Days This Cycle</h3>
+        <Card>
+          <SectionLabel>Missing Days This Cycle</SectionLabel>
           {missingLoading ? <Spinner size={24} /> : missingDays.length === 0 ? (
-            <p style={{ color: '#16a34a', fontSize: 13 }}>✅ All days covered so far</p>
+            <p style={{ color: statusTokens.success.text, fontSize: 13 }}>✅ All days covered so far</p>
           ) : (
             <>
-              <p style={{ fontSize: 12, color: '#dc2626', marginBottom: 8 }}>
+              <p style={{ fontSize: 12, color: statusTokens.danger.text, marginBottom: 8 }}>
                 {missingDays.length} day(s) with no CMS data:
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {missingDays.map((d: string) => (
                   <span key={d} style={{
-                    background: '#fee2e2', color: '#991b1b',
+                    background: statusTokens.danger.bg, color: statusTokens.danger.text,
                     fontSize: 11, padding: '3px 8px', borderRadius: 6,
                   }}>
                     {new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
@@ -282,41 +275,43 @@ export default function CmsUploadPage() {
               </div>
             </>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── Upload history ── */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-        <h3 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 600 }}>Upload History</h3>
-        {uploadsError && <ErrorBox message={uploadsError} onRetry={refetchUploads} />}
-        {uploadsLoading ? <Spinner /> : uploadList.length === 0 ? (
-          <EmptyState icon="📭" title="No uploads yet" desc="Upload your first daily CMS file above" />
+      <Card padded={false} style={{ overflow: 'hidden' }}>
+        <div style={{ padding: '18px 20px 0' }}>
+          <SectionLabel>Upload History</SectionLabel>
+        </div>
+        {uploadsError && <div style={{ padding: '0 20px' }}><ErrorBox message={uploadsError} onRetry={refetchUploads} /></div>}
+        {uploadsLoading ? <div style={{ padding: 20 }}><Spinner /></div> : uploadList.length === 0 ? (
+          <div style={{ padding: 20 }}><EmptyState icon="📭" title="No uploads yet" desc="Upload your first daily CMS file above" /></div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f9fafb' }}>
+              <tr style={{ background: neutral[50] }}>
                 {['Date', 'Filename', 'Status', 'Sites', 'Skipped', 'Uploaded By', 'When', ''].map(h => (
                   <th key={h} style={{
                     padding: '8px 12px', textAlign: 'left',
-                    fontSize: 11, fontWeight: 600, color: '#6b7280',
-                    borderBottom: '1px solid #e5e7eb',
+                    fontSize: 11, fontWeight: 600, color: neutral[500],
+                    borderBottom: `1px solid ${neutral[200]}`,
                   }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {uploadList.map((u: any) => (
-                <tr key={u._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <tr key={u._id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
                   <td style={{ padding: '9px 12px', fontWeight: 600 }}>{fmtDate(u.data_date)}</td>
                   <td style={{
-                    padding: '9px 12px', color: '#6b7280',
+                    padding: '9px 12px', color: neutral[500],
                     maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>{u.filename}</td>
                   <td style={{ padding: '9px 12px' }}><StatusPill status={u.status} /></td>
                   <td style={{ padding: '9px 12px' }}>{u.sites_processed} / {u.sites_in_file}</td>
                   <td style={{ padding: '9px 12px' }}>{u.sites_skipped || 0}</td>
-                  <td style={{ padding: '9px 12px', color: '#6b7280' }}>{u.uploaded_by?.fullName || '—'}</td>
-                  <td style={{ padding: '9px 12px', color: '#9ca3af', fontSize: 12 }}>{fmtDate(u.createdAt)}</td>
+                  <td style={{ padding: '9px 12px', color: neutral[500] }}>{u.uploaded_by?.fullName || '—'}</td>
+                  <td style={{ padding: '9px 12px', color: neutral[400], fontSize: 12 }}>{fmtDate(u.createdAt)}</td>
                   <td style={{ padding: '9px 12px', display: 'flex', gap: 6 }}>
                     <Btn
                       variant="ghost"
@@ -339,7 +334,7 @@ export default function CmsUploadPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
 
       {/* Upload detail modal — surfaces routes/cmsUploadRoutes.js's
           GET /uploads/:id, which previously had no UI calling it at all
@@ -354,7 +349,7 @@ export default function CmsUploadPage() {
           <div style={{ fontSize: 13 }}>
             <div style={{ marginBottom: 10 }}>
               <strong>{viewingUpload.filename}</strong>
-              <div style={{ color: '#6b7280', fontSize: 12 }}>
+              <div style={{ color: neutral[500], fontSize: 12 }}>
                 {fmtDate(viewingUpload.data_date)} · Uploaded by {viewingUpload.uploaded_by?.fullName || '—'} on {fmtDate(viewingUpload.createdAt)}
               </div>
             </div>
@@ -365,26 +360,26 @@ export default function CmsUploadPage() {
             </div>
             {viewingUpload.errors?.length > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>
+                <div style={{ fontWeight: 700, color: statusTokens.danger.text, marginBottom: 4 }}>
                   {viewingUpload.errors.length} Error(s)
                 </div>
                 <ul style={{ margin: 0, paddingLeft: 18, maxHeight: 180, overflowY: 'auto' }}>
-                  {viewingUpload.errors.map((e: string, i: number) => <li key={i} style={{ color: '#991b1b', marginBottom: 2 }}>{e}</li>)}
+                  {viewingUpload.errors.map((e: string, i: number) => <li key={i} style={{ color: statusTokens.danger.text, marginBottom: 2 }}>{e}</li>)}
                 </ul>
               </div>
             )}
             {viewingUpload.warnings?.length > 0 && (
               <div>
-                <div style={{ fontWeight: 700, color: '#d97706', marginBottom: 4 }}>
+                <div style={{ fontWeight: 700, color: statusTokens.warning.text, marginBottom: 4 }}>
                   {viewingUpload.warnings.length} Warning(s)
                 </div>
                 <ul style={{ margin: 0, paddingLeft: 18, maxHeight: 180, overflowY: 'auto' }}>
-                  {viewingUpload.warnings.map((w: string, i: number) => <li key={i} style={{ color: '#92400e', marginBottom: 2 }}>{w}</li>)}
+                  {viewingUpload.warnings.map((w: string, i: number) => <li key={i} style={{ color: statusTokens.warning.text, marginBottom: 2 }}>{w}</li>)}
                 </ul>
               </div>
             )}
             {!viewingUpload.errors?.length && !viewingUpload.warnings?.length && (
-              <div style={{ color: '#16a34a' }}>✓ No errors or warnings — clean upload.</div>
+              <div style={{ color: statusTokens.success.text }}>✓ No errors or warnings — clean upload.</div>
             )}
           </div>
         ) : null}

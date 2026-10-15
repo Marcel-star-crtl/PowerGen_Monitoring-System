@@ -23,9 +23,10 @@ import {
   useCycles, useFileUpload, useTomCardCycleBudget, useTomCardCycleBudgetUploads,
 } from '../../hooks/useDiesel';
 import {
-  PageHeader, CycleSelector, UploadZone, KpiCard,
+  PageHeader, CycleSelector, UploadZone, KpiCard, Card, SectionLabel,
   fmtNum, fmtDate, Spinner, ErrorBox, EmptyState, Btn, StatusPill,
 } from '../../components/diesel/DieselComponents';
+import { neutral, status as statusTokens, urgency as urgencyTokens, font } from '../../styles/dieselTokens';
 
 export default function TomCardCycleBudgetUploadPage() {
   const { isNarrow } = useBreakpoint();
@@ -54,7 +55,7 @@ export default function TomCardCycleBudgetUploadPage() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="💳 Tom Card Cycle Budget Upload"
         subtitle="Upload once at the start of every cycle. Feeds the mobile fuel-purchase card picker automatically — no separate publish step."
@@ -65,7 +66,7 @@ export default function TomCardCycleBudgetUploadPage() {
         {/* ── Upload panel ── */}
         <div>
           {!selectedKey && (
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#92400e' }}>
+            <div style={{ background: statusTokens.warning.bg, border: `1px solid ${statusTokens.warning.border}`, borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: statusTokens.warning.text }}>
               Select a cycle above before uploading — this file has no per-row date to derive one from.
             </div>
           )}
@@ -77,7 +78,7 @@ export default function TomCardCycleBudgetUploadPage() {
             uploading={uploading}
           />
 
-          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '10px 14px', marginTop: 12, fontSize: 12, color: '#0369a1', lineHeight: 1.6 }}>
+          <div style={{ background: statusTokens.info.bg, border: `1px solid ${statusTokens.info.border}`, borderRadius: 8, padding: '10px 14px', marginTop: 12, fontSize: 12, color: statusTokens.info.text, lineHeight: 1.6 }}>
             <strong>What this upload does:</strong><br />
             • Loads each cluster's card budget/limit for the cycle<br />
             • If a card was reissued (a "New Card Number" different from the old one), the
@@ -91,24 +92,24 @@ export default function TomCardCycleBudgetUploadPage() {
 
           {importResult && (
             <div style={{
-              marginTop: 14, background: '#dcfce7', border: '1px solid #bbf7d0',
+              marginTop: 14, background: statusTokens.success.bg, border: `1px solid ${statusTokens.success.border}`,
               borderRadius: 10, padding: '14px 18px',
             }}>
-              <p style={{ fontWeight: 600, color: '#166534', margin: '0 0 10px' }}>✅ Import Complete</p>
-              <div style={{ fontSize: 13, color: '#166534', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+              <p style={{ fontWeight: 600, color: statusTokens.success.text, margin: '0 0 10px' }}>✅ Import Complete</p>
+              <div style={{ fontSize: 13, color: statusTokens.success.text, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                 <span>Rows processed:</span><strong>{importResult.rows_total}</strong>
                 <span>Cards loaded:</span><strong>{importResult.rows_imported}</strong>
                 <span>Cards reissued this cycle:</span>
-                <strong style={{ color: importResult.cards_reissued > 0 ? '#92400e' : '#166534' }}>
+                <strong style={{ color: importResult.cards_reissued > 0 ? statusTokens.warning.text : statusTokens.success.text }}>
                   {importResult.cards_reissued}
                 </strong>
               </div>
               {importResult.warnings?.length > 0 && (
                 <details style={{ marginTop: 8, fontSize: 12 }}>
-                  <summary style={{ cursor: 'pointer', color: '#166534' }}>
+                  <summary style={{ cursor: 'pointer', color: statusTokens.success.text }}>
                     {importResult.warnings.length} warning(s)
                   </summary>
-                  <ul style={{ margin: '6px 0 0 18px', color: '#166534' }}>
+                  <ul style={{ margin: '6px 0 0 18px', color: statusTokens.success.text }}>
                     {importResult.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
                   </ul>
                 </details>
@@ -118,9 +119,9 @@ export default function TomCardCycleBudgetUploadPage() {
         </div>
 
         {/* ── Upload history ── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18, overflow: 'hidden' }}>
+        <Card style={{ overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Upload History</h3>
+            <SectionLabel style={{ marginBottom: 0 }}>Upload History</SectionLabel>
             <Btn size="sm" variant="ghost" onClick={refetchUploads}>↻ Refresh</Btn>
           </div>
           {uploadsLoading ? <Spinner size={24} /> : uploadList.length === 0 ? (
@@ -129,29 +130,29 @@ export default function TomCardCycleBudgetUploadPage() {
             <div style={{ maxHeight: 380, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb' }}>
+                  <tr style={{ background: neutral[50] }}>
                     {['Cycle', 'Filename', 'Status', 'Cards', 'Reissued', 'Uploaded By', 'When'].map(h => (
-                      <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, color: '#6b7280', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, color: neutral[500], borderBottom: `1px solid ${neutral[200]}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {uploadList.map((u: any) => (
-                    <tr key={u._id} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }} onClick={() => u.cycle_key && setSelectedKey(u.cycle_key)}>
+                    <tr key={u._id} style={{ borderBottom: `1px solid ${neutral[100]}`, cursor: 'pointer' }} onClick={() => u.cycle_key && setSelectedKey(u.cycle_key)}>
                       <td style={{ padding: '6px 10px', fontWeight: 600 }}>{u.cycle_key}</td>
                       <td style={{ padding: '6px 10px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.filename}</td>
                       <td style={{ padding: '6px 10px' }}><StatusPill status={u.status} /></td>
                       <td style={{ padding: '6px 10px', textAlign: 'center' }}>{u.rows_imported}</td>
-                      <td style={{ padding: '6px 10px', textAlign: 'center', color: u.cards_reissued > 0 ? '#92400e' : undefined }}>{u.cards_reissued || 0}</td>
-                      <td style={{ padding: '6px 10px', color: '#6b7280' }}>{u.uploaded_by?.fullName || '—'}</td>
-                      <td style={{ padding: '6px 10px', color: '#9ca3af', fontSize: 11 }}>{fmtDate(u.createdAt)}</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'center', color: u.cards_reissued > 0 ? statusTokens.warning.text : undefined }}>{u.cards_reissued || 0}</td>
+                      <td style={{ padding: '6px 10px', color: neutral[500] }}>{u.uploaded_by?.fullName || '—'}</td>
+                      <td style={{ padding: '6px 10px', color: neutral[400], fontSize: 11 }}>{fmtDate(u.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── Cards for the selected cycle ── */}
@@ -161,11 +162,11 @@ export default function TomCardCycleBudgetUploadPage() {
             <KpiCard label="Cards Loaded" value={cardList.length} icon="💳" />
             <KpiCard label="Total Budget (L)" value={fmtNum(totalBudgetLiters)} icon="⛽" />
             <KpiCard label="Total Budget (XAF)" value={fmtNum(totalBudgetXaf, 0)} icon="💰" />
-            <KpiCard label="Reissued This Cycle" value={reissuedCount} color={reissuedCount > 0 ? '#d97706' : undefined} icon="🔁" />
+            <KpiCard label="Reissued This Cycle" value={reissuedCount} color={reissuedCount > 0 ? urgencyTokens.high.fg : undefined} icon="🔁" />
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-            <h3 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 600 }}>Cards — {selectedKey}</h3>
+          <Card>
+            <SectionLabel>Cards — {selectedKey}</SectionLabel>
             {cardsError && <ErrorBox message={cardsError} onRetry={refetchCards} />}
             {cardsLoading ? <Spinner /> : cardList.length === 0 ? (
               <EmptyState icon="📭" title="No cards for this cycle" desc="Upload the Tom Card budget file above" />
@@ -173,17 +174,17 @@ export default function TomCardCycleBudgetUploadPage() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
-                    <tr style={{ background: '#f9fafb' }}>
+                    <tr style={{ background: neutral[50] }}>
                       {['Cluster', 'Vendor', 'Card Number', 'Budget (L)', 'Budget (XAF)', 'Implied XAF/L', 'Card Limit (XAF)', ''].map(h => (
-                        <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
+                        <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: neutral[500], borderBottom: `1px solid ${neutral[200]}` }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {cardList.map((c: any) => (
-                      <tr key={c._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <tr key={c._id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
                         <td style={{ padding: '9px 12px', fontWeight: 600 }}>{c.cluster}</td>
-                        <td style={{ padding: '9px 12px', color: '#6b7280' }}>{c.vendor}</td>
+                        <td style={{ padding: '9px 12px', color: neutral[500] }}>{c.vendor}</td>
                         <td style={{ padding: '9px 12px', fontFamily: 'monospace' }}>{c.card_number}</td>
                         <td style={{ padding: '9px 12px' }}>{fmtNum(c.budget_liters)} L</td>
                         <td style={{ padding: '9px 12px' }}>{fmtNum(c.budget_xaf, 0)}</td>
@@ -191,7 +192,7 @@ export default function TomCardCycleBudgetUploadPage() {
                         <td style={{ padding: '9px 12px' }}>{c.card_limit_xaf ? fmtNum(c.card_limit_xaf, 0) : '—'}</td>
                         <td style={{ padding: '9px 12px' }}>
                           {c.was_reissued && (
-                            <span title={`Was card ${c.card_number_old}`} style={{ background: '#fef3c7', color: '#92400e', fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10 }}>
+                            <span title={`Was card ${c.card_number_old}`} style={{ background: statusTokens.warning.bg, color: statusTokens.warning.text, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10 }}>
                               🔁 reissued
                             </span>
                           )}
@@ -202,7 +203,7 @@ export default function TomCardCycleBudgetUploadPage() {
                 </table>
               </div>
             )}
-          </div>
+          </Card>
         </>
       )}
     </div>

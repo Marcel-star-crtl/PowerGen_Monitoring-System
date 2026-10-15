@@ -11,7 +11,7 @@ import {
   dashboardApi, cmsApi, gratoApi, tomCardApi,
   reconciliationApi, alertsApi, cyclesApi,
   generatorLedgerApi, siteBudgetApi, validationApi,
-  tankLevelApi, tomCardCycleBudgetApi,
+  tankLevelApi, tomCardCycleBudgetApi, gainLossApi,
 } from '../api/dieselApi';
 import type { DieselCycle, DashboardKPIs } from '../types/diesel.types';
 
@@ -203,6 +203,34 @@ export function useClusterSummary(cycle_key: string) {
     () => reconciliationApi.clusterSummary(cycle_key),
     [cycle_key],
     { skip: !cycle_key }
+  );
+}
+
+export function useTechnicianIntegrity(cycle_key: string, params?: { page?: number; limit?: number }) {
+  return useFetch(
+    () => reconciliationApi.technicianIntegrity(cycle_key, params),
+    [cycle_key, JSON.stringify(params)],
+    { skip: !cycle_key }
+  );
+}
+
+// ─── Gain/Loss Tracker hooks ──────────────────────────────────────────────────
+// Live, current-cycle (FieldVisitRecord/CycleReconciliation) — see
+// gainLossRoutes.js docblock for why this is NOT the same data source as
+// History Analysis's own gain/loss figures.
+export function useGainLossTracker(cycle_key: string) {
+  return useFetch(
+    () => gainLossApi.tracker(cycle_key),
+    [cycle_key],
+    { skip: !cycle_key }
+  );
+}
+
+export function useGainLossDetail(cycle_key: string, site_id: string) {
+  return useFetch(
+    () => gainLossApi.trackerDetail(cycle_key, site_id),
+    [cycle_key, site_id],
+    { skip: !cycle_key || !site_id }
   );
 }
 

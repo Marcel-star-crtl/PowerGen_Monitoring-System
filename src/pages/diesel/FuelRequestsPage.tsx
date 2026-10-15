@@ -18,12 +18,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/api/client';
 import { useCycles } from '@/hooks/useDiesel';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { Badge }    from '@/components/common/Badge';
-import { Button }   from '@/components/common/Button';
-import { Card }     from '@/components/common/Card';
 import { Modal }    from '@/components/common/Modal';
-import { Spinner }   from '@/components/common/Spinner';
-import { EmptyState } from '@/components/common/EmptyState';
+import {
+  PageHeader, CycleSelector, Btn, Tag, Card, SectionLabel, KpiCard, Spinner, EmptyState,
+} from '@/components/diesel/DieselComponents';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useAuthContext }  from '@/contexts/AuthContext';
 import {
@@ -33,13 +31,14 @@ import {
   FiBarChart2, FiList, FiActivity,
 } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
+import { status as statusTokens, urgency as urgencyTokens, neutral, brand, font } from '@/styles/dieselTokens';
 
 // ── Formatters — inlined to avoid path/export name mismatches ─────────────────
 // (defined after imports to satisfy import/first eslint rule)
 const formatFuelLevel = (level: number | null | undefined, capacity: number | null | undefined) => {
-  if (!level || !capacity) return { text: '—', percentage: 0, color: '#9ca3af' };
+  if (!level || !capacity) return { text: '—', percentage: 0, color: neutral[400] };
   const percentage = (level / capacity) * 100;
-  const color = percentage < 10 ? '#ef4444' : percentage < 25 ? '#f97316' : percentage < 50 ? '#eab308' : '#22c55e';
+  const color = percentage < 10 ? urgencyTokens.critical.fg : percentage < 25 ? urgencyTokens.high.fg : percentage < 50 ? '#eab308' : urgencyTokens.ok.fg;
   return { text: `${level.toFixed(0)} L (${Math.round(percentage)}%)`, percentage, color };
 };
 
@@ -100,32 +99,38 @@ interface BudgetAlert {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const LITER_TO_XAF = 828;
 
+// Bg/fg pairs sourced from the shared status/urgency tokens wherever a
+// matching tone exists (pending→warning, approved/refueled→success,
+// denied→danger, scheduled→info). Finance/HOB/CEO/purchase-made are
+// legitimately distinct approval-chain stages beyond that 5-tone scale, so
+// they keep their own literal colors rather than being forced onto a token
+// that doesn't carry the same meaning.
 const STATUS_CONFIG: Record<string, { label: string; bg: string; fg: string }> = {
-  pending_diesel_coordinator: { label: 'Awaiting Minka',   bg: '#fef3c7', fg: '#92400e' },
-  pending_operations_manager: { label: 'Awaiting Pascal',  bg: '#fef3c7', fg: '#92400e' },
-  pending_technical_director: { label: 'Awaiting Didier',  bg: '#fef3c7', fg: '#92400e' },
+  pending_diesel_coordinator: { label: 'Awaiting Minka',   bg: statusTokens.warning.bg, fg: statusTokens.warning.text },
+  pending_operations_manager: { label: 'Awaiting Pascal',  bg: statusTokens.warning.bg, fg: statusTokens.warning.text },
+  pending_technical_director: { label: 'Awaiting Didier',  bg: statusTokens.warning.bg, fg: statusTokens.warning.text },
   pending_finance:            { label: 'Awaiting Finance',  bg: '#ede9fe', fg: '#5b21b6' },
   pending_head_of_business:   { label: 'Awaiting HOB',     bg: '#e0e7ff', fg: '#3730a3' },
   pending_ceo:                { label: 'Awaiting CEO',      bg: '#fae8ff', fg: '#86198f' },
-  approved:                   { label: 'Approved',          bg: '#dcfce7', fg: '#166534' },
-  scheduled:                  { label: 'Scheduled',         bg: '#dbeafe', fg: '#1e40af' },
+  approved:                   { label: 'Approved',          bg: statusTokens.success.bg, fg: statusTokens.success.text },
+  scheduled:                  { label: 'Scheduled',         bg: statusTokens.info.bg, fg: statusTokens.info.text },
   purchase_made:              { label: 'Fuel Bought',       bg: '#ccfbf1', fg: '#134e4a' },
-  refueled:                   { label: 'Refueled',          bg: '#dcfce7', fg: '#166534' },
-  completed:                  { label: 'Completed',         bg: '#f3f4f6', fg: '#374151' },
-  denied:                     { label: 'Denied',            bg: '#fee2e2', fg: '#991b1b' },
+  refueled:                   { label: 'Refueled',          bg: statusTokens.success.bg, fg: statusTokens.success.text },
+  completed:                  { label: 'Completed',         bg: statusTokens.neutral.bg, fg: statusTokens.neutral.text },
+  denied:                     { label: 'Denied',            bg: statusTokens.danger.bg, fg: statusTokens.danger.text },
 };
 
 const URGENCY_CONFIG: Record<string, { bg: string; fg: string }> = {
-  low:      { bg: '#f3f4f6', fg: '#374151' },
-  medium:   { bg: '#dbeafe', fg: '#1e40af' },
-  high:     { bg: '#fef3c7', fg: '#92400e' },
-  critical: { bg: '#fee2e2', fg: '#991b1b' },
+  low:      { bg: statusTokens.neutral.bg, fg: statusTokens.neutral.text },
+  medium:   { bg: statusTokens.info.bg,    fg: statusTokens.info.text },
+  high:     { bg: statusTokens.warning.bg, fg: statusTokens.warning.text },
+  critical: { bg: statusTokens.danger.bg,  fg: statusTokens.danger.text },
 };
 
 const fmtDate = (d?: string) => !d ? '—' : new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 
 function StatusPill({ status }: { status: string }) {
-  const c = STATUS_CONFIG[status] || { label: status, bg: '#f3f4f6', fg: '#374151' };
+  const c = STATUS_CONFIG[status] || { label: status, bg: statusTokens.neutral.bg, fg: statusTokens.neutral.text };
   return (
     <span style={{
       display: 'inline-block', fontSize: 11, fontWeight: 700,
@@ -145,9 +150,9 @@ function UrgencyPill({ urgency }: { urgency: string }) {
   );
 }
 
-function ProgressBar({ pct, color = '#2563eb', height = 6 }: { pct: number; color?: string; height?: number }) {
+function ProgressBar({ pct, color = urgencyTokens.medium.fg, height = 6 }: { pct: number; color?: string; height?: number }) {
   return (
-    <div style={{ background: '#e5e7eb', borderRadius: 3, height, overflow: 'hidden' }}>
+    <div style={{ background: neutral[200], borderRadius: 3, height, overflow: 'hidden' }}>
       <div style={{ width: `${Math.min(pct, 100)}%`, background: color, height, borderRadius: 3, transition: 'width 0.3s' }} />
     </div>
   );
@@ -159,11 +164,11 @@ function ApprovalDots({ chain }: { chain: ApprovalStep[] }) {
       {chain.map(s => (
         <div key={s.level} title={`L${s.level}: ${s.approver.name} — ${s.status}`} style={{
           width: 8, height: 8, borderRadius: '50%',
-          background: s.status === 'approved' ? '#16a34a' : s.status === 'rejected' ? '#dc2626' : '#d1d5db',
+          background: s.status === 'approved' ? urgencyTokens.ok.fg : s.status === 'rejected' ? urgencyTokens.critical.fg : neutral[300],
           flexShrink: 0,
         }} />
       ))}
-      <span style={{ fontSize: 10, color: '#9ca3af', marginLeft: 2 }}>
+      <span style={{ fontSize: 10, color: neutral[400], marginLeft: 2 }}>
         {chain.filter(s => s.status === 'approved').length}/{chain.length}
       </span>
     </div>
@@ -177,18 +182,18 @@ function ApprovalTrail({ chain }: { chain: ApprovalStep[] }) {
       {chain.map(s => (
         <div key={s.level} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <div style={{ marginTop: 2, flexShrink: 0 }}>
-            {s.status === 'approved'  ? <FiCheckCircle size={14} color="#16a34a" /> :
-             s.status === 'rejected'  ? <FiXCircle     size={14} color="#dc2626" /> :
-                                        <FiClock        size={14} color="#9ca3af" />}
+            {s.status === 'approved'  ? <FiCheckCircle size={14} color={urgencyTokens.ok.fg} /> :
+             s.status === 'rejected'  ? <FiXCircle     size={14} color={urgencyTokens.critical.fg} /> :
+                                        <FiClock        size={14} color={neutral[400]} />}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', fontSize: 13 }}>
               <span style={{ fontWeight: 600 }}>L{s.level}: {s.approver.name}</span>
-              <span style={{ color: '#9ca3af', fontSize: 11 }}>{s.approver.role}</span>
-              {s.actionDate && <span style={{ color: '#9ca3af', fontSize: 11 }}>{fmtDate(s.actionDate)}</span>}
+              <span style={{ color: neutral[400], fontSize: 11 }}>{s.approver.role}</span>
+              {s.actionDate && <span style={{ color: neutral[400], fontSize: 11 }}>{fmtDate(s.actionDate)}</span>}
             </div>
             {s.comments && (
-              <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0', fontStyle: 'italic' }}>
+              <p style={{ fontSize: 12, color: neutral[500], margin: '2px 0 0', fontStyle: 'italic' }}>
                 "{s.comments}"
               </p>
             )}
@@ -225,33 +230,29 @@ function LifecycleRow({
   const isFullyApproved = ['approved','scheduled','purchase_made','refueled','completed'].includes(req.status);
 
   return (
-    <div style={{
-      background: '#fff', borderRadius: 10, marginBottom: 8,
-      border: canAct ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-      overflow: 'hidden',
-    }}>
+    <Card padded={false} style={{ marginBottom: 8, overflow: 'hidden', ...(canAct ? { border: `2px solid ${urgencyTokens.high.fg}` } : {}) }}>
       {/* ── Main row ── */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', gap: 12 }}>
-        
+
         {/* Site */}
         <div style={{ flex: 2, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: neutral[900], whiteSpace: 'nowrap' }}>
               {req.site_name || req.site_id}
             </span>
             <UrgencyPill urgency={req.urgency} />
             {canAct && (
-              <span style={{ fontSize: 10, fontWeight: 800, background: '#fef3c7', color: '#92400e', borderRadius: 4, padding: '1px 6px' }}>
+              <span style={{ fontSize: 10, fontWeight: 800, background: statusTokens.warning.bg, color: statusTokens.warning.text, borderRadius: 4, padding: '1px 6px' }}>
                 ↑ YOUR TURN
               </span>
             )}
             {req.cycle_refuel_count && req.cycle_refuel_count > 3 && (
-              <span style={{ fontSize: 10, fontWeight: 800, background: '#fee2e2', color: '#991b1b', borderRadius: 4, padding: '1px 6px' }}>
+              <span style={{ fontSize: 10, fontWeight: 800, background: statusTokens.danger.bg, color: statusTokens.danger.text, borderRadius: 4, padding: '1px 6px' }}>
                 ⚠ {req.cycle_refuel_count}×
               </span>
             )}
           </div>
-          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: neutral[400], marginTop: 2 }}>
             {req.site_id} · {req.cluster || '—'} · FUEL-{req._id.slice(-6).toUpperCase()} · {fmtDate(req.createdAt)}
           </div>
         </div>
@@ -260,16 +261,16 @@ function LifecycleRow({
         <div style={{ textAlign: 'right', minWidth: 88, flexShrink: 0 }}>
           {isFullyApproved ? (
             <>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#111827' }}>{approved} L</div>
-              <div style={{ fontSize: 10, color: '#9ca3af' }}>XAF {(approved * LITER_TO_XAF).toLocaleString()}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: neutral[900] }}>{approved} L</div>
+              <div style={{ fontSize: 10, color: neutral[400] }}>XAF {(approved * LITER_TO_XAF).toLocaleString()}</div>
               {refueled > 0 && (
-                <div style={{ fontSize: 10, color: '#059669', marginTop: 1 }}>✓ {refueled} L added</div>
+                <div style={{ fontSize: 10, color: statusTokens.success.text, marginTop: 1 }}>✓ {refueled} L added</div>
               )}
             </>
           ) : (
             <div style={{
-              fontSize: 10, color: '#d1d5db', background: '#f9fafb',
-              borderRadius: 6, padding: '4px 8px', border: '1px dashed #e5e7eb',
+              fontSize: 10, color: neutral[300], background: neutral[50],
+              borderRadius: 6, padding: '4px 8px', border: `1px dashed ${neutral[200]}`,
             }}>
               awaiting approval
             </div>
@@ -286,30 +287,30 @@ function LifecycleRow({
 
         {/* Budget bar */}
         <div style={{ minWidth: 100, flexShrink: 0 }}>
-          <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 3 }}>Budget used</div>
+          <div style={{ fontSize: 10, color: neutral[400], marginBottom: 3 }}>Budget used</div>
           <ProgressBar
             pct={budgetPct}
-            color={budgetPct > 90 ? '#dc2626' : budgetPct > 70 ? '#f59e0b' : '#2563eb'}
+            color={budgetPct > 90 ? urgencyTokens.critical.fg : budgetPct > 70 ? urgencyTokens.high.fg : urgencyTokens.medium.fg}
           />
-          <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>{budgetPct}%</div>
+          <div style={{ fontSize: 10, color: neutral[500], marginTop: 2 }}>{budgetPct}%</div>
         </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-          <button onClick={() => onView(req)} style={{ ...btnBase, background: '#f3f4f6', color: '#374151' }}>
+          <button onClick={() => onView(req)} style={{ ...btnBase, background: neutral[100], color: neutral[700] }}>
             <FiEye size={13} />
           </button>
           {canAct && (
             <>
-              <button onClick={() => onApprove(req._id)} style={{ ...btnBase, background: '#dcfce7', color: '#166534' }}>
+              <button onClick={() => onApprove(req._id)} style={{ ...btnBase, background: statusTokens.success.bg, color: statusTokens.success.text }}>
                 <FiCheckCircle size={13} />
               </button>
-              <button onClick={() => onReject(req._id)} style={{ ...btnBase, background: '#fee2e2', color: '#991b1b' }}>
+              <button onClick={() => onReject(req._id)} style={{ ...btnBase, background: statusTokens.danger.bg, color: statusTokens.danger.text }}>
                 <FiXCircle size={13} />
               </button>
             </>
           )}
-          <button onClick={() => setExpanded(e => !e)} style={{ ...btnBase, background: '#f3f4f6', color: '#374151' }}>
+          <button onClick={() => setExpanded(e => !e)} style={{ ...btnBase, background: neutral[100], color: neutral[700] }}>
             {expanded ? <FiChevronDown size={13} /> : <FiChevronRight size={13} />}
           </button>
         </div>
@@ -317,11 +318,11 @@ function LifecycleRow({
 
       {/* ── Expanded ── */}
       {expanded && (
-        <div style={{ borderTop: '1px solid #f3f4f6', padding: '12px 16px', background: '#fafafa' }}>
+        <div style={{ borderTop: `1px solid ${neutral[100]}`, padding: '12px 16px', background: neutral[50] }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-            
+
             <div>
-              <p style={sectionLabel}>Request Details</p>
+              <SectionLabel>Request Details</SectionLabel>
               <div style={detailGrid}>
                 <span style={detailKey}>Reason</span>
                 <span style={detailVal}>{req.request_reason}</span>
@@ -341,7 +342,7 @@ function LifecycleRow({
             </div>
 
             <div>
-              <p style={sectionLabel}>Budget Snapshot</p>
+              <SectionLabel>Budget Snapshot</SectionLabel>
               {req.budget_snapshot ? (
                 <div style={detailGrid}>
                   <span style={detailKey}>Cycle budget</span>
@@ -349,23 +350,23 @@ function LifecycleRow({
                   <span style={detailKey}>Used (all requests)</span>
                   <span style={detailVal}>{req.budget_snapshot.budget_liters_used} L</span>
                   <span style={detailKey}>Remaining</span>
-                  <span style={{ ...detailVal, color: req.budget_snapshot.budget_liters_remaining < 50 ? '#dc2626' : '#059669', fontWeight: 700 }}>
+                  <span style={{ ...detailVal, color: req.budget_snapshot.budget_liters_remaining < 50 ? urgencyTokens.critical.fg : statusTokens.success.text, fontWeight: 700 }}>
                     {req.budget_snapshot.budget_liters_remaining} L
                   </span>
                   <span style={detailKey}>XAF budget</span>
                   <span style={detailVal}>XAF {(req.budget_snapshot.budget_liters_total * LITER_TO_XAF).toLocaleString()}</span>
                 </div>
-              ) : <span style={{ fontSize: 12, color: '#9ca3af' }}>No budget data</span>}
+              ) : <span style={{ fontSize: 12, color: neutral[400] }}>No budget data</span>}
             </div>
 
             <div>
-              <p style={sectionLabel}>Approval Trail</p>
+              <SectionLabel>Approval Trail</SectionLabel>
               <ApprovalTrail chain={req.approvalChain || []} />
             </div>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -380,14 +381,14 @@ const resolveUrl = (p: any): string => {
 function PhotoThumb({ src, label }: { src: string; label: string }) {
   const [broken, setBroken] = useState(false);
   const url = resolveUrl(src);
-  if (broken) return <span style={{ fontSize: 11, color: '#9ca3af' }}>Unavailable</span>;
+  if (broken) return <span style={{ fontSize: 11, color: neutral[400] }}>Unavailable</span>;
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
       <img src={url} alt={label} onError={() => setBroken(true)} style={{
         width: 80, height: 80, objectFit: 'cover', borderRadius: 6,
-        border: '1px solid #e5e7eb', display: 'block',
+        border: `1px solid ${neutral[200]}`, display: 'block',
       }} />
-      <span style={{ fontSize: 10, color: '#9ca3af', display: 'block', textAlign: 'center', marginTop: 2 }}>{label}</span>
+      <span style={{ fontSize: 10, color: neutral[400], display: 'block', textAlign: 'center', marginTop: 2 }}>{label}</span>
     </a>
   );
 }
@@ -397,33 +398,11 @@ const btnBase: React.CSSProperties = {
   border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
-const sectionLabel: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
-  letterSpacing: '0.05em', marginBottom: 8,
-};
 const detailGrid: React.CSSProperties = {
   display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px',
 };
-const detailKey: React.CSSProperties = { fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap' };
-const detailVal: React.CSSProperties = { fontSize: 12, color: '#374151', fontWeight: 500 };
-
-// ── KPI card ──────────────────────────────────────────────────────────────────
-function KPI({ label, value, sub, color = '#111827', icon }: {
-  label: string; value: string | number; sub?: string; color?: string; icon?: React.ReactNode;
-}) {
-  return (
-    <Card>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <p style={{ fontSize: 12, color: '#9ca3af', margin: '0 0 4px' }}>{label}</p>
-          <p style={{ fontSize: 22, fontWeight: 800, color, margin: 0 }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>{sub}</p>}
-        </div>
-        {icon && <div style={{ color, opacity: 0.3 }}>{icon}</div>}
-      </div>
-    </Card>
-  );
-}
+const detailKey: React.CSSProperties = { fontSize: 12, color: neutral[400], whiteSpace: 'nowrap' };
+const detailVal: React.CSSProperties = { fontSize: 12, color: neutral[700], fontWeight: 500 };
 
 // ════════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -678,9 +657,9 @@ const FuelRequestsPage: React.FC = () => {
 
     if (!sorted.length) return (
       <EmptyState
-        icon={<FiDroplet size={48} color="#d1d5db" />}
+        icon="💧"
         title={`No fuel requests for cycle ${selectedKey}`}
-        description="Create a request from the Scheduled Refueling page"
+        desc="Create a request from the Scheduled Refueling page"
       />
     );
 
@@ -698,9 +677,9 @@ const FuelRequestsPage: React.FC = () => {
   const renderApprovals = () => {
     if (!pendingForMe.length) return (
       <EmptyState
-        icon={<FiCheckCircle size={48} color="#d1d5db" />}
+        icon="✅"
         title="No pending approvals for you"
-        description="You will be notified by email when a request reaches your level"
+        desc="You will be notified by email when a request reaches your level"
       />
     );
     return pendingForMe.map(r => (
@@ -718,42 +697,39 @@ const FuelRequestsPage: React.FC = () => {
     const items = consumption.length ? consumption : requests.filter(r => r.status === 'refueled' || r.status === 'completed');
     if (!items.length) return (
       <EmptyState
-        icon={<FiBarChart2 size={48} color="#d1d5db" />}
+        icon="📊"
         title="No consumption records"
-        description="Completed refuels will appear here"
+        desc="Completed refuels will appear here"
       />
     );
 
-    const getUrgencyColor = (u: string) =>
-      ({ low:'gray', medium:'blue', high:'orange', critical:'red' } as any)[u] || 'gray';
+    const getUrgencyTagVariant = (u: string) =>
+      ({ low: 'neutral', medium: 'info', high: 'warning', critical: 'danger' } as const)[u] || 'neutral';
 
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
         {items.map((r: any) => {
           const fuelInfo = r.fuel_data
             ? formatFuelLevel(r.fuel_data.closing_level, r.fuel_data.tank_capacity)
-            : { text: '—', percentage: 0, color: 'gray' };
+            : { text: '—', percentage: 0, color: neutral[400] };
           const mainPhotos = Array.isArray(r.photos) ? r.photos as string[] : [];
           return (
             <Card key={r._id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div>
                   <p style={{ fontWeight: 700, fontSize: 14, margin: 0 }}>{r.site_name || r.site_id}</p>
-                  <p style={{ fontSize: 11, color: '#9ca3af', margin: '2px 0 0' }}>{r.site_id}</p>
+                  <p style={{ fontSize: 11, color: neutral[400], margin: '2px 0 0' }}>{r.site_id}</p>
                 </div>
-                <Badge variant={getUrgencyColor(r.request_info?.request_urgency || r.urgency || 'medium')}>
+                <Tag variant={getUrgencyTagVariant(r.request_info?.request_urgency || r.urgency || 'medium')}>
                   {(r.request_info?.request_urgency || r.urgency || 'MEDIUM').toUpperCase()}
-                </Badge>
+                </Tag>
               </div>
 
               {/* Fuel bar */}
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 3 }}>Current Fuel Level</div>
-                <ProgressBar
-                  pct={fuelInfo.percentage}
-                  color={fuelInfo.color === 'red' ? '#ef4444' : fuelInfo.color === 'orange' ? '#f97316' : fuelInfo.color === 'yellow' ? '#eab308' : '#22c55e'}
-                />
-                <div style={{ fontSize: 11, color: '#374151', marginTop: 2 }}>{fuelInfo.text}</div>
+                <div style={{ fontSize: 11, color: neutral[400], marginBottom: 3 }}>Current Fuel Level</div>
+                <ProgressBar pct={fuelInfo.percentage} color={fuelInfo.color} />
+                <div style={{ fontSize: 11, color: neutral[700], marginTop: 2 }}>{fuelInfo.text}</div>
               </div>
 
               <div style={{ ...detailGrid, marginBottom: 10 }}>
@@ -764,14 +740,14 @@ const FuelRequestsPage: React.FC = () => {
                 <span style={detailKey}>Efficiency</span>
                 <span style={detailVal}>{r.metrics?.efficiency_rating || '—'}</span>
                 {r.metrics?.anomaly_detected && (
-                  <><span style={detailKey}>Anomaly</span><span style={{ ...detailVal, color: '#dc2626' }}>⚠ Detected</span></>
+                  <><span style={detailKey}>Anomaly</span><span style={{ ...detailVal, color: urgencyTokens.critical.fg }}>⚠ Detected</span></>
                 )}
               </div>
 
               {mainPhotos.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
                   {mainPhotos.slice(0, 3).map((u, i) => <PhotoThumb key={i} src={u} label={`Photo ${i+1}`} />)}
-                  {mainPhotos.length > 3 && <span style={{ fontSize: 11, color: '#9ca3af', alignSelf: 'center' }}>+{mainPhotos.length - 3} more</span>}
+                  {mainPhotos.length > 3 && <span style={{ fontSize: 11, color: neutral[400], alignSelf: 'center' }}>+{mainPhotos.length - 3} more</span>}
                 </div>
               )}
 
@@ -790,7 +766,7 @@ const FuelRequestsPage: React.FC = () => {
                 }
                 setViewConsumption(r);
               }}
-                style={{ ...btnBase, width: '100%', background: '#f3f4f6', color: '#374151', padding: '6px' }}
+                style={{ ...btnBase, width: '100%', background: neutral[100], color: neutral[700], padding: '6px' }}
               >
                 <FiEye size={13} style={{ marginRight: 4 }} /> View Full Details
               </button>
@@ -804,37 +780,40 @@ const FuelRequestsPage: React.FC = () => {
   const renderBudget = () => {
     if (!budgetAlerts.length && isManager) return (
       <EmptyState
-        icon={<FiBarChart2 size={48} color="#d1d5db" />}
+        icon="✅"
         title="All sites have healthy budgets"
-        description="Sites with less than 50 L remaining will appear here"
+        desc="Sites with less than 50 L remaining will appear here"
       />
     );
     if (!isManager) return (
       <EmptyState
-        icon={<FiBarChart2 size={48} color="#d1d5db" />}
+        icon="🔒"
         title="Budget data restricted"
-        description="Budget alerts are visible to diesel managers and admins"
+        desc="Budget alerts are visible to diesel managers and admins"
       />
     );
 
     return (
       <div>
-        <div style={{ marginBottom: 16, fontSize: 13, color: '#6b7280' }}>
+        <div style={{ marginBottom: 16, fontSize: 13, color: neutral[500] }}>
           {budgetAlerts.length} site{budgetAlerts.length !== 1 ? 's' : ''} with &lt; 50 L remaining in cycle {selectedKey}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
           {budgetAlerts.map(a => (
+            // alert_level is a 3-step escalation (exhausted > critical > warning)
+            // distinct from the shared urgency scale's semantics, so these
+            // stay their own literal colors rather than being forced onto it.
             <Card key={a.site_id} style={{ borderLeft: `4px solid ${a.alert_level === 'exhausted' ? '#dc2626' : a.alert_level === 'critical' ? '#f97316' : '#f59e0b'}` }}>
               <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{a.site_name}</div>
-              <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 10 }}>{a.site_id} · {a.cluster}</div>
+              <div style={{ fontSize: 11, color: neutral[400], marginBottom: 10 }}>{a.site_id} · {a.cluster}</div>
               <ProgressBar
                 pct={100 - a.pct_remaining}
                 color={a.alert_level === 'exhausted' ? '#dc2626' : a.alert_level === 'critical' ? '#f97316' : '#f59e0b'}
                 height={8}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12 }}>
-                <span style={{ color: '#9ca3af' }}>Used: {a.liters_used.toFixed(0)} L</span>
-                <span style={{ fontWeight: 700, color: a.alert_level === 'exhausted' ? '#dc2626' : '#374151' }}>
+                <span style={{ color: neutral[400] }}>Used: {a.liters_used.toFixed(0)} L</span>
+                <span style={{ fontWeight: 700, color: a.alert_level === 'exhausted' ? '#dc2626' : neutral[700] }}>
                   {a.liters_remaining.toFixed(0)} L left
                 </span>
               </div>
@@ -850,46 +829,31 @@ const FuelRequestsPage: React.FC = () => {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '0 0 60px' }}>
+    <div style={{ padding: '0 0 60px', fontFamily: font.ui }}>
 
       {/* ── Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111827', margin: 0 }}>Fuel Requests & Analytics</h1>
-          <p style={{ fontSize: 13, color: '#9ca3af', margin: '4px 0 0' }}>
-            Full lifecycle tracking — budget allocation → approval → purchase → refuel → consumption
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Cycle selector */}
-          <select
-            value={selectedKey}
-            onChange={e => setSelectedKey(e.target.value)}
-            aria-label="Select billing cycle"
-            style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 10px', fontSize: 13, color: '#374151' }}
-          >
-            {cycles.map(c => (
-              <option key={c.cycle_key} value={c.cycle_key}>
-                {c.label || c.cycle_key}{c.status && c.status !== 'open' ? ` (${c.status})` : ''}
-              </option>
-            ))}
-          </select>
-          {/* Export date range */}
-          <input type="date" value={exportStart} onChange={e => setExportStart(e.target.value)}
-            aria-label="Export range start date"
-            style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 8px', fontSize: 12 }} />
-          <span style={{ fontSize: 12, color: '#9ca3af' }}>→</span>
-          <input type="date" value={exportEnd} onChange={e => setExportEnd(e.target.value)}
-            aria-label="Export range end date"
-            style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 8px', fontSize: 12 }} />
-          <Button onClick={handleExport} variant="secondary" size="sm">
-            <FiDownload size={13} style={{ marginRight: 4 }} /> Export
-          </Button>
-          <Button onClick={loadAll} variant="ghost" size="sm">
-            <FiRefreshCw size={13} />
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="⛽ Fuel Requests & Analytics"
+        subtitle="Full lifecycle tracking — budget allocation → approval → purchase → refuel → consumption"
+        actions={
+          <>
+            <CycleSelector cycles={cycles} value={selectedKey} onChange={setSelectedKey} />
+            <input type="date" value={exportStart} onChange={e => setExportStart(e.target.value)}
+              aria-label="Export range start date"
+              style={{ border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '6px 8px', fontSize: 12 }} />
+            <span style={{ fontSize: 12, color: neutral[400] }}>→</span>
+            <input type="date" value={exportEnd} onChange={e => setExportEnd(e.target.value)}
+              aria-label="Export range end date"
+              style={{ border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '6px 8px', fontSize: 12 }} />
+            <Btn onClick={handleExport} variant="secondary" size="sm">
+              <FiDownload size={13} style={{ marginRight: 4 }} /> Export
+            </Btn>
+            <Btn onClick={loadAll} variant="ghost" size="sm">
+              <FiRefreshCw size={13} />
+            </Btn>
+          </>
+        }
+      />
 
       {/* ── KPI row ── */}
       <div style={{
@@ -897,40 +861,41 @@ const FuelRequestsPage: React.FC = () => {
         gridTemplateColumns: isMobile ? '1fr' : isNarrow ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
         gap: 12, marginBottom: 24,
       }}>
-        <KPI label="Total Requests"     value={requests.length}                    icon={<FiList size={28} />} />
-        <KPI label="Litres Requested"   value={`${totalLitersRequested} L`}        color="#2563eb" icon={<FiDroplet size={28} />} />
-        <KPI label="Litres Approved"    value={`${totalLitersApproved} L`}         color="#059669" icon={<FiTrendingUp size={28} />} />
-        <KPI label="Actually Refueled"  value={`${totalRefueled} L`}              color="#7c3aed" icon={<FiActivity size={28} />} />
-        <KPI label="My Pending Approvals" value={pendingForMe.length} color={pendingForMe.length > 0 ? '#d97706' : '#374151'} icon={<FiClock size={28} />}
+        <KpiCard label="Total Requests"      value={requests.length}             icon="📋" />
+        <KpiCard label="Litres Requested"    value={`${totalLitersRequested} L`} icon="💧" color={urgencyTokens.medium.fg} />
+        <KpiCard label="Litres Approved"     value={`${totalLitersApproved} L`}  icon="✅" color={statusTokens.success.text} />
+        <KpiCard label="Actually Refueled"   value={`${totalRefueled} L`}        icon="⛽" color="#7c3aed" />
+        <KpiCard label="My Pending Approvals" value={pendingForMe.length} icon="⏳"
+          color={pendingForMe.length > 0 ? urgencyTokens.high.fg : neutral[700]}
           sub={overRefuel > 0 ? `⚠ ${overRefuel} over-refueled` : denied > 0 ? `${denied} denied` : undefined} />
       </div>
 
       {/* ── Budget alert banner ── */}
       {budgetAlerts.length > 0 && (
         <div style={{
-          background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
+          background: urgencyTokens.critical.bg, border: `1px solid ${statusTokens.danger.border}`, borderRadius: 10,
           padding: '10px 16px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 10,
         }}>
-          <FiBell color="#dc2626" size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+          <FiBell color={urgencyTokens.critical.fg} size={16} style={{ marginTop: 2, flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <span style={{ fontWeight: 700, color: '#dc2626', fontSize: 13 }}>
+            <span style={{ fontWeight: 700, color: urgencyTokens.critical.fg, fontSize: 13 }}>
               Budget Alert — {budgetAlerts.length} site{budgetAlerts.length !== 1 ? 's' : ''} with &lt;50 L remaining
             </span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
               {budgetAlerts.slice(0, 6).map(a => (
                 <span key={a.site_id} style={{
                   fontSize: 11, fontWeight: 600, borderRadius: 6, padding: '2px 8px',
-                  background: a.alert_level === 'exhausted' ? '#fee2e2' : '#fef3c7',
-                  color: a.alert_level === 'exhausted' ? '#991b1b' : '#92400e',
+                  background: a.alert_level === 'exhausted' ? statusTokens.danger.bg : statusTokens.warning.bg,
+                  color: a.alert_level === 'exhausted' ? statusTokens.danger.text : statusTokens.warning.text,
                 }}>
                   {a.site_name} — {a.liters_remaining.toFixed(0)} L
                 </span>
               ))}
-              {budgetAlerts.length > 6 && <span style={{ fontSize: 11, color: '#9ca3af' }}>+{budgetAlerts.length - 6} more</span>}
+              {budgetAlerts.length > 6 && <span style={{ fontSize: 11, color: neutral[400] }}>+{budgetAlerts.length - 6} more</span>}
             </div>
           </div>
           <button onClick={() => setTab('budget')} style={{
-            ...btnBase, background: '#dc2626', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 10px', whiteSpace: 'nowrap',
+            ...btnBase, background: urgencyTokens.critical.fg, color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 10px', whiteSpace: 'nowrap',
           }}>
             View All
           </button>
@@ -938,7 +903,7 @@ const FuelRequestsPage: React.FC = () => {
       )}
 
       {/* ── Tabs ── */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid #e5e7eb', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: `1px solid ${neutral[200]}`, paddingBottom: 0 }}>
         {([
           { key: 'overview',    label: `Overview (${requests.length})`,            icon: <FiList size={14} />, badge: undefined as number | undefined },
           { key: 'approvals',   label: `My Approvals (${pendingForMe.length})`,    icon: <FiCheckCircle size={14} />, badge: pendingForMe.length as number | undefined },
@@ -948,14 +913,14 @@ const FuelRequestsPage: React.FC = () => {
           <button key={t.key} onClick={() => setTab(t.key as any)} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-            background: 'none', borderBottom: tab === t.key ? '2px solid #1e3a5f' : '2px solid transparent',
-            color: tab === t.key ? '#1e3a5f' : '#6b7280',
+            background: 'none', borderBottom: tab === t.key ? `2px solid ${brand.primary}` : '2px solid transparent',
+            color: tab === t.key ? brand.primary : neutral[500],
             marginBottom: -1, transition: 'color 0.15s',
           }}>
             {t.icon} {t.label}
             {t.badge ? (
               <span style={{
-                background: '#dc2626', color: '#fff', borderRadius: 10,
+                background: urgencyTokens.critical.fg, color: '#fff', borderRadius: 10,
                 fontSize: 10, fontWeight: 800, padding: '1px 5px', minWidth: 16, textAlign: 'center',
               }}>{t.badge}</span>
             ) : null}
@@ -965,7 +930,7 @@ const FuelRequestsPage: React.FC = () => {
 
       {/* ── Content ── */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}><Spinner size="lg" /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}><Spinner /></div>
       ) : (
         <>
           {tab === 'overview'    && renderOverview()}
@@ -982,9 +947,9 @@ const FuelRequestsPage: React.FC = () => {
           {approveId && (() => {
             const req = [...requests, ...pendingForMe].find(r => r._id === approveId);
             return req ? (
-              <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 14px', fontSize: 13 }}>
-                <div style={{ fontWeight: 700, color: '#111827' }}>{req.site_name || req.site_id}</div>
-                <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>
+              <div style={{ background: neutral[50], borderRadius: 8, padding: '10px 14px', fontSize: 13 }}>
+                <div style={{ fontWeight: 700, color: neutral[900] }}>{req.site_name || req.site_id}</div>
+                <div style={{ color: neutral[500], fontSize: 12, marginTop: 2 }}>
                   {req.liters_requested} L requested
                   {req.xaf_requested ? ` · XAF ${req.xaf_requested.toLocaleString()}` : ''}
                   {' · '}<StatusPill status={req.status} />
@@ -1002,7 +967,7 @@ const FuelRequestsPage: React.FC = () => {
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
                   Litres Approved
-                  <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>
+                  <span style={{ fontWeight: 400, color: neutral[400], marginLeft: 6 }}>
                     (leave blank to approve as-requested)
                   </span>
                 </label>
@@ -1015,10 +980,10 @@ const FuelRequestsPage: React.FC = () => {
                     const r = [...requests, ...pendingForMe].find(x => x._id === approveId);
                     return r ? `${r.liters_requested} L (as requested)` : 'Optional override';
                   })() : 'Optional override'}
-                  style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 14, boxSizing: 'border-box' as const }}
+                  style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '9px 12px', fontSize: 14, boxSizing: 'border-box' as const }}
                 />
                 {approveOverride && parseFloat(approveOverride) > 0 && (
-                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 3 }}>
+                  <div style={{ fontSize: 11, color: neutral[500], marginTop: 3 }}>
                     ≈ XAF {Math.round(parseFloat(approveOverride) * 828).toLocaleString()}
                   </div>
                 )}
@@ -1034,17 +999,19 @@ const FuelRequestsPage: React.FC = () => {
               rows={3}
               placeholder="Optional comments for the next approver..."
               aria-label="Approval comments"
-              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
+              style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '9px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
             />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => { setApproveId(null); setApproveComment(''); setApproveOverride(''); }} variant="secondary">
+            <Btn onClick={() => { setApproveId(null); setApproveComment(''); setApproveOverride(''); }} variant="secondary">
               Cancel
-            </Button>
-            <Button onClick={handleApprove} variant="success" loading={approving}>
+            </Btn>
+            {/* Btn has no "success" variant — primary + a green style override
+                stands in for it, matching the pattern used on other pages. */}
+            <Btn onClick={handleApprove} loading={approving} style={{ background: brand.success }}>
               <FiCheckCircle style={{ marginRight: 4 }} /> Approve
-            </Button>
+            </Btn>
           </div>
         </div>
       </Modal>
@@ -1056,9 +1023,9 @@ const FuelRequestsPage: React.FC = () => {
           {rejectId && (() => {
             const req = [...requests, ...pendingForMe].find(r => r._id === rejectId);
             return req ? (
-              <div style={{ background: '#fef2f2', borderRadius: 8, padding: '10px 14px', fontSize: 13, border: '1px solid #fecaca' }}>
-                <div style={{ fontWeight: 700, color: '#991b1b' }}>{req.site_name || req.site_id}</div>
-                <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>
+              <div style={{ background: statusTokens.danger.bg, borderRadius: 8, padding: '10px 14px', fontSize: 13, border: `1px solid ${statusTokens.danger.border}` }}>
+                <div style={{ fontWeight: 700, color: statusTokens.danger.text }}>{req.site_name || req.site_id}</div>
+                <div style={{ color: neutral[500], fontSize: 12, marginTop: 2 }}>
                   {req.liters_requested} L · {req.urgency.toUpperCase()}
                 </div>
               </div>
@@ -1067,7 +1034,7 @@ const FuelRequestsPage: React.FC = () => {
 
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
-              Reason for rejection <span style={{ color: '#dc2626' }}>*</span>
+              Reason for rejection <span style={{ color: urgencyTokens.critical.fg }}>*</span>
             </label>
             <textarea
               value={rejectReason}
@@ -1075,17 +1042,17 @@ const FuelRequestsPage: React.FC = () => {
               rows={4}
               placeholder="Explain why this request is being rejected. The requester will see this reason."
               aria-label="Reason for rejection"
-              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
+              style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '9px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
             />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => { setRejectId(null); setRejectReason(''); }} variant="secondary">
+            <Btn onClick={() => { setRejectId(null); setRejectReason(''); }} variant="secondary">
               Cancel
-            </Button>
-            <Button onClick={handleReject} variant="danger" loading={rejecting}>
+            </Btn>
+            <Btn onClick={handleReject} variant="danger" loading={rejecting}>
               <FiXCircle style={{ marginRight: 4 }} /> Reject
-            </Button>
+            </Btn>
           </div>
         </div>
       </Modal>
@@ -1099,7 +1066,7 @@ const FuelRequestsPage: React.FC = () => {
               <StatusPill status={viewReq.status} />
               <UrgencyPill urgency={viewReq.urgency} />
               {viewReqLoading && (
-                <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 8, fontStyle: 'italic' }}>
+                <span style={{ fontSize: 11, color: neutral[400], marginLeft: 8, fontStyle: 'italic' }}>
                   Loading full details…
                 </span>
               )}
@@ -1107,7 +1074,7 @@ const FuelRequestsPage: React.FC = () => {
             {/* Details grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
               <div>
-                <p style={sectionLabel}>Request</p>
+                <SectionLabel>Request</SectionLabel>
                 <div style={detailGrid}>
                   {[
                     ['Site', viewReq.site_name],
@@ -1130,12 +1097,12 @@ const FuelRequestsPage: React.FC = () => {
                     </React.Fragment>
                   ))}
                 </div>
-                <div style={{ marginTop: 12, padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 13 }}>
+                <div style={{ marginTop: 12, padding: 10, background: neutral[50], borderRadius: 8, fontSize: 13 }}>
                   <span style={{ fontWeight: 600 }}>Reason: </span>{viewReq.request_reason}
                 </div>
               </div>
               <div>
-                <p style={sectionLabel}>Budget Snapshot</p>
+                <SectionLabel>Budget Snapshot</SectionLabel>
                 {viewReq.budget_snapshot ? (
                   <>
                     <div style={detailGrid}>
@@ -1144,7 +1111,7 @@ const FuelRequestsPage: React.FC = () => {
                       <span style={detailKey}>Used (all)</span>
                       <span style={detailVal}>{viewReq.budget_snapshot.budget_liters_used} L</span>
                       <span style={detailKey}>Remaining</span>
-                      <span style={{ ...detailVal, color: viewReq.budget_snapshot.budget_liters_remaining < 50 ? '#dc2626' : '#059669', fontWeight: 700 }}>
+                      <span style={{ ...detailVal, color: viewReq.budget_snapshot.budget_liters_remaining < 50 ? urgencyTokens.critical.fg : statusTokens.success.text, fontWeight: 700 }}>
                         {viewReq.budget_snapshot.budget_liters_remaining} L
                       </span>
                     </div>
@@ -1157,9 +1124,9 @@ const FuelRequestsPage: React.FC = () => {
                       />
                     </div>
                   </>
-                ) : <span style={{ fontSize: 12, color: '#9ca3af' }}>No budget data</span>}
+                ) : <span style={{ fontSize: 12, color: neutral[400] }}>No budget data</span>}
 
-                <p style={{ ...sectionLabel, marginTop: 20 }}>Approval Trail</p>
+                <SectionLabel style={{ marginTop: 20 }}>Approval Trail</SectionLabel>
                 <ApprovalTrail chain={viewReq.approvalChain || []} />
               </div>
             </div>
@@ -1174,12 +1141,12 @@ const FuelRequestsPage: React.FC = () => {
               const guardPhotos       = Array.isArray(fc.guard_photos)       ? fc.guard_photos       : [];
               const allPhotos         = [...mainPhotos, ...measurePhotos, ...guardPhotos];
               return (
-                <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 20 }}>
-                  <p style={{ ...sectionLabel, marginBottom: 14, color: '#e53935' }}>⛽ Refueling Execution</p>
+                <div style={{ borderTop: `1px solid ${neutral[200]}`, paddingTop: 20 }}>
+                  <SectionLabel style={{ marginBottom: 14, color: brand.primary }}>⛽ Refueling Execution</SectionLabel>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
                     {/* Fuel Data */}
                     <div>
-                      <p style={sectionLabel}>Fuel Measurements</p>
+                      <SectionLabel>Fuel Measurements</SectionLabel>
                       <div style={detailGrid}>
                         {[
                           ['Opening Level',    f.opening_level   != null ? `${f.opening_level} L`   : null],
@@ -1201,7 +1168,7 @@ const FuelRequestsPage: React.FC = () => {
                     </div>
                     {/* Runtime & Truck */}
                     <div>
-                      <p style={sectionLabel}>Runtime & Truck</p>
+                      <SectionLabel>Runtime & Truck</SectionLabel>
                       <div style={detailGrid}>
                         {[
                           ['Opening Hours',  rt.opening_hours   != null ? `${rt.opening_hours} hrs`   : null],
@@ -1216,7 +1183,7 @@ const FuelRequestsPage: React.FC = () => {
                           </React.Fragment>
                         ))}
                       </div>
-                      <p style={{ ...sectionLabel, marginTop: 14 }}>Personnel</p>
+                      <SectionLabel style={{ marginTop: 14 }}>Personnel</SectionLabel>
                       <div style={detailGrid}>
                         {[
                           ['Guard Name', fc.guard_name],
@@ -1235,7 +1202,7 @@ const FuelRequestsPage: React.FC = () => {
                       const fp = (viewReq as any).fuel_purchase;
                       return (
                         <div>
-                          <p style={sectionLabel}>Purchase / Tom Card</p>
+                          <SectionLabel>Purchase / Tom Card</SectionLabel>
                           <div style={detailGrid}>
                             {[
                               ['Tom Card',      fp.tom_card_number || (viewReq as any).tom_card_number],
@@ -1260,7 +1227,7 @@ const FuelRequestsPage: React.FC = () => {
                   {/* Photos */}
                   {allPhotos.length > 0 && (
                     <div style={{ marginTop: 20 }}>
-                      <p style={sectionLabel}>Photos ({allPhotos.length})</p>
+                      <SectionLabel>Photos ({allPhotos.length})</SectionLabel>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
                         {allPhotos.map((photo: any, i: number) => {
                           const url     = typeof photo === 'string' ? photo : photo?.url || photo?.uri || photo?.path;
@@ -1273,11 +1240,11 @@ const FuelRequestsPage: React.FC = () => {
                                 src={url}
                                 alt={caption || `Photo ${i + 1}`}
                                 style={{ width: 120, height: 90, objectFit: 'cover', borderRadius: 8,
-                                  border: '1px solid #e5e7eb', display: 'block' }}
+                                  border: `1px solid ${neutral[200]}`, display: 'block' }}
                                 onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
                               {caption && (
-                                <span style={{ fontSize: 10, color: '#6b7280', textTransform: 'capitalize',
+                                <span style={{ fontSize: 10, color: neutral[500], textTransform: 'capitalize',
                                   display: 'block', textAlign: 'center', marginTop: 3 }}>
                                   {caption}
                                 </span>
@@ -1292,18 +1259,18 @@ const FuelRequestsPage: React.FC = () => {
                   {/* Workflow timeline */}
                   {fc.workflow && fc.workflow.length > 0 && (
                     <div style={{ marginTop: 20 }}>
-                      <p style={sectionLabel}>Workflow Timeline</p>
+                      <SectionLabel>Workflow Timeline</SectionLabel>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                         {fc.workflow.map((step: any, i: number) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', flexShrink: 0 }} />
-                            <span style={{ fontWeight: 600, color: '#374151', textTransform: 'capitalize' }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: urgencyTokens.ok.fg, flexShrink: 0 }} />
+                            <span style={{ fontWeight: 600, color: neutral[700], textTransform: 'capitalize' }}>
                               {(step.type || step.stage || '').replace(/_/g, ' ')}
                             </span>
-                            <span style={{ color: '#9ca3af' }}>
+                            <span style={{ color: neutral[400] }}>
                               {step.timestamp ? new Date(step.timestamp).toLocaleString() : ''}
                             </span>
-                            {step.note && <span style={{ color: '#6b7280' }}>— {step.note}</span>}
+                            {step.note && <span style={{ color: neutral[500] }}>— {step.note}</span>}
                           </div>
                         ))}
                       </div>
@@ -1323,24 +1290,26 @@ const FuelRequestsPage: React.FC = () => {
             {canEmergencyOverride && !['approved','denied','refueled','completed'].includes(viewReq.status) && (
               <div style={{
                 marginTop: 24, padding: 16, borderRadius: 10,
-                border: '1px dashed #dc2626', background: '#fef2f2',
+                border: `1px dashed ${urgencyTokens.critical.fg}`, background: urgencyTokens.critical.bg,
               }}>
-                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#991b1b' }}>
+                <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: statusTokens.danger.text }}>
                   ⚠️ Emergency Override
                 </p>
+                {/* Deliberately a shade darker than statusTokens.danger.text — this
+                    body copy needs to read as secondary to the heading above it. */}
                 <p style={{ margin: '0 0 10px', fontSize: 12, color: '#7f1d1d' }}>
                   Bypasses every remaining approval level immediately and marks this request
                   fully approved. Every approver and the requester will be notified, and a
                   permanent audit record is created with your name and the reason below.
                   Use only for genuine emergencies.
                 </p>
-                <Button
+                <Btn
                   size="sm"
                   variant="danger"
                   onClick={() => { setEmergencyId(viewReq._id); setEmergencyReason(''); setEmergencyLiters(''); }}
                 >
                   Emergency Override…
-                </Button>
+                </Btn>
               </div>
             )}
 
@@ -1351,13 +1320,13 @@ const FuelRequestsPage: React.FC = () => {
       {/* ── Emergency override modal ── */}
       <Modal isOpen={!!emergencyId} onClose={() => setEmergencyId(null)} title="⚠️ Emergency Approval Override" size="sm">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#7f1d1d' }}>
+          <div style={{ background: urgencyTokens.critical.bg, border: `1px solid ${statusTokens.danger.border}`, borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#7f1d1d' }}>
             This immediately approves the request and skips every pending approval level.
             This action is logged and broadcast to the full approval chain — it cannot be undone.
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5 }}>
-              Reason for override <span style={{ color: '#dc2626' }}>*</span>
+              Reason for override <span style={{ color: urgencyTokens.critical.fg }}>*</span>
             </label>
             <textarea
               value={emergencyReason}
@@ -1365,7 +1334,7 @@ const FuelRequestsPage: React.FC = () => {
               rows={4}
               placeholder="Explain the emergency — this is included in the audit trail and the notification sent to every approver."
               aria-label="Reason for emergency override"
-              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
+              style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '9px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
             />
           </div>
           <div>
@@ -1378,16 +1347,16 @@ const FuelRequestsPage: React.FC = () => {
               onChange={e => setEmergencyLiters(e.target.value)}
               placeholder="Leave blank to approve the full requested amount"
               aria-label="Emergency override liters approved"
-              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 14, boxSizing: 'border-box' as const }}
+              style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '9px 12px', fontSize: 14, boxSizing: 'border-box' as const }}
             />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => setEmergencyId(null)} variant="secondary">
+            <Btn onClick={() => setEmergencyId(null)} variant="secondary">
               Cancel
-            </Button>
-            <Button onClick={handleEmergencyOverride} variant="danger" loading={emergencyLoading} disabled={!emergencyReason.trim()}>
+            </Btn>
+            <Btn onClick={handleEmergencyOverride} variant="danger" loading={emergencyLoading} disabled={!emergencyReason.trim()}>
               Confirm Emergency Override
-            </Button>
+            </Btn>
           </div>
         </div>
       </Modal>
@@ -1410,7 +1379,7 @@ const FuelRequestsPage: React.FC = () => {
             <div style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
                 <div>
-                  <p style={sectionLabel}>Fuel Data</p>
+                  <SectionLabel>Fuel Data</SectionLabel>
                   <div style={detailGrid}>
                     {[
                       ['Opening Level', `${f?.opening_level ?? '—'} L`],
@@ -1431,7 +1400,7 @@ const FuelRequestsPage: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <p style={sectionLabel}>Runtime & Truck</p>
+                  <SectionLabel>Runtime & Truck</SectionLabel>
                   <div style={detailGrid}>
                     {[
                       ['Opening Hours', rt?.opening_hours != null ? `${rt.opening_hours} hrs` : null],
@@ -1448,7 +1417,7 @@ const FuelRequestsPage: React.FC = () => {
                       </React.Fragment>
                     ))}
                   </div>
-                  <p style={{ ...sectionLabel, marginTop: 16 }}>Personnel</p>
+                  <SectionLabel style={{ marginTop: 16 }}>Personnel</SectionLabel>
                   <div style={detailGrid}>
                     {[
                       ['Guard Name', r.guard_name], ['Guard No.', r.guard_number],
@@ -1462,7 +1431,7 @@ const FuelRequestsPage: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <p style={sectionLabel}>Metrics</p>
+                  <SectionLabel>Metrics</SectionLabel>
                   <div style={detailGrid}>
                     {[
                       ['Consumption Rate', r.metrics?.consumption_rate != null ? `${r.metrics.consumption_rate} L/hr` : null],
@@ -1471,24 +1440,24 @@ const FuelRequestsPage: React.FC = () => {
                     ].filter(([,v]) => v != null).map(([k,v]) => (
                       <React.Fragment key={k as string}>
                         <span style={detailKey}>{k}</span>
-                        <span style={{ ...detailVal, color: k === 'Anomaly' ? '#dc2626' : detailVal.color }}>{v}</span>
+                        <span style={{ ...detailVal, color: k === 'Anomaly' ? urgencyTokens.critical.fg : detailVal.color }}>{v}</span>
                       </React.Fragment>
                     ))}
                   </div>
                   {r.comments && (
                     <>
-                      <p style={{ ...sectionLabel, marginTop: 16 }}>Comments</p>
-                      <p style={{ fontSize: 13, color: '#374151' }}>{r.comments}</p>
+                      <SectionLabel style={{ marginTop: 16 }}>Comments</SectionLabel>
+                      <p style={{ fontSize: 13, color: neutral[700] }}>{r.comments}</p>
                     </>
                   )}
                 </div>
               </div>
               {/* Photos */}
               {(mainPhotos.length > 0 || guardPhotos.length > 0 || measurementPhotos.length > 0) && (
-                <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
+                <div style={{ borderTop: `1px solid ${neutral[200]}`, paddingTop: 12 }}>
                   {mainPhotos.length > 0 && (
                     <div style={{ marginBottom: 10 }}>
-                      <p style={sectionLabel}>Documentation ({mainPhotos.length})</p>
+                      <SectionLabel>Documentation ({mainPhotos.length})</SectionLabel>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {mainPhotos.map((u: any,i: number) => <PhotoThumb key={i} src={typeof u === 'string' ? u : u?.url || u?.uri || ''} label={`Photo ${i+1}`} />)}
                       </div>
@@ -1496,7 +1465,7 @@ const FuelRequestsPage: React.FC = () => {
                   )}
                   {guardPhotos.length > 0 && (
                     <div style={{ marginBottom: 10 }}>
-                      <p style={sectionLabel}>Guard ({guardPhotos.length})</p>
+                      <SectionLabel>Guard ({guardPhotos.length})</SectionLabel>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {guardPhotos.map((u: any,i: number) => <PhotoThumb key={i} src={typeof u === 'string' ? u : u?.url || u?.uri || ''} label={`Guard ${i+1}`} />)}
                       </div>
@@ -1504,7 +1473,7 @@ const FuelRequestsPage: React.FC = () => {
                   )}
                   {measurementPhotos.length > 0 && (
                     <div>
-                      <p style={sectionLabel}>Measurements ({measurementPhotos.length})</p>
+                      <SectionLabel>Measurements ({measurementPhotos.length})</SectionLabel>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {measurementPhotos.map((u: any,i: number) => <PhotoThumb key={i} src={typeof u === 'string' ? u : u?.url || u?.uri || ''} label={`Meas. ${i+1}`} />)}
                       </div>

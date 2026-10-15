@@ -21,46 +21,36 @@ import {
   useClusterHeatmap, useAlerts,
 } from '../../hooks/useDiesel';
 import {
-  CycleSelector, KpiCard, SeverityBadge, AlertCard,
+  CycleSelector, KpiCard, SectionLabel, Card, SeverityBadge, AlertCard,
   fmtNum, fmtPct, fmtDate, Spinner, ErrorBox, PageHeader, Btn,
 } from '../../components/diesel/DieselComponents';
 import { alertsApi, reconciliationApi, aiInsightsApi } from '../../api/dieselApi';
 import { useNotification } from '../../contexts/NotificationContext';
 import apiClient from '../../api/client';
+import { brand, ink as inkToken, urgency as urgencyTokens, neutral, status as statusTokens, font } from '../../styles/dieselTokens';
 
 // ── Brand colours ────────────────────────────────────────────────────────────
-const PRIMARY = '#e53935';
-const DARK    = '#222222';
-const GREEN   = '#16a34a';
-const AMBER   = '#f59e0b';
-const BLUE    = '#2563eb';
+// Sourced from the shared design tokens (dieselTokens.ts) rather than their
+// own hex literals, so this page's palette can't drift from the rest of the
+// redesigned diesel pages the way it had before this batch.
+const PRIMARY = brand.primary;
+const DARK    = inkToken;
+const GREEN   = urgencyTokens.ok.fg;
+const AMBER   = urgencyTokens.high.fg;
+const BLUE    = urgencyTokens.medium.fg;
 
 // ── RAG bar ──────────────────────────────────────────────────────────────────
 function UtilBar({ pct, label, sub }: { pct: number; label: string; sub?: string }) {
-  const color = pct >= 100 ? PRIMARY : pct >= 90 ? '#dc2626' : pct >= 75 ? AMBER : GREEN;
+  const color = pct >= 100 ? PRIMARY : pct >= 90 ? urgencyTokens.critical.fg : pct >= 75 ? AMBER : GREEN;
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
         <span style={{ fontWeight: 600 }}>{label}</span>
         <span style={{ color, fontWeight: 700 }}>{pct.toFixed(1)}%{sub ? ` · ${sub}` : ''}</span>
       </div>
-      <div style={{ background: '#e5e7eb', borderRadius: 4, height: 7, overflow: 'hidden' }}>
+      <div style={{ background: neutral[200], borderRadius: 4, height: 7, overflow: 'hidden' }}>
         <div style={{ width: `${Math.min(pct, 100)}%`, height: 7, background: color, borderRadius: 4, transition: 'width 0.6s' }} />
       </div>
-    </div>
-  );
-}
-
-// ── Stat strip card ───────────────────────────────────────────────────────────
-function StatBox({ label, value, sub, color = DARK, alert = false }: any) {
-  return (
-    <div style={{
-      background: '#fff', border: `1px solid ${alert ? PRIMARY : '#e5e7eb'}`,
-      borderTop: `3px solid ${color}`, borderRadius: 10, padding: '14px 18px', flex: 1, minWidth: 130,
-    }}>
-      <p style={{ fontSize: 11, color: '#9ca3af', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
-      <p style={{ fontSize: 22, fontWeight: 800, color, margin: 0 }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0' }}>{sub}</p>}
     </div>
   );
 }
@@ -178,7 +168,7 @@ export default function DieselDashboardPage() {
   })();
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1500, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1500, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="⛽ Diesel Operations Dashboard"
         subtitle={`Cycle ${selectedKey || '—'} · ${kpis?.total_sites || 0} sites · ${totalBudgetL.toLocaleString()} L budget`}
@@ -197,27 +187,46 @@ export default function DieselDashboardPage() {
 
       {kpiError && <ErrorBox message={kpiError} onRetry={refetchKpis} />}
 
-      {/* ── ROW 1: Core KPI strip ── */}
+      {/* ── ROW 1: KPI clusters — Budget / Activity / Risk, grouped and
+          labelled the way the redesign groups every dashboard's figures,
+          instead of one undifferentiated 9-card strip. ── */}
       {kpiLoading ? <Spinner /> : (
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-          <StatBox label="Budget (L)"          value={fmtNum(totalBudgetL)}             color={DARK} />
-          <StatBox label="Budget (XAF)"        value={`${(totalBudgetXAF/1e6).toFixed(1)}M`} color={DARK}
-            sub={`IHS Approved: ${((kpis?.budget_liters_approved_ihs||0)).toLocaleString()} L`} />
-          <StatBox label="CMS Consumed (L)"    value={fmtNum(cmsConsumed)}
-            sub={`${budgetUtilPct.toFixed(1)}% of budget`}
-            color={budgetUtilPct > 90 ? PRIMARY : budgetUtilPct > 75 ? AMBER : GREEN}
-            alert={budgetUtilPct > 90} />
-          <StatBox label="Field Added (L)"     value={fmtNum(kpis?.total_field_added)}  color={BLUE}
-            sub={!kpis?.total_sites ? '📡 Live (reconciliation not yet run)' : undefined} />
-          <StatBox label="Tom Card (L)"        value={fmtNum(kpis?.total_tomcard)}      color="#7c3aed" />
-          <StatBox label="Total RH"            value={fmtNum(kpis?.total_final_rh, 1)}  color={DARK} />
-          <StatBox label="Over CCPH"           value={kpis?.sites_over_ccph || 0}
-            color={(kpis?.sites_over_ccph || 0) > 0 ? PRIMARY : GREEN} alert={(kpis?.sites_over_ccph || 0) > 0} />
-          <StatBox label="Low Fuel"            value={kpis?.sites_low_fuel || 0}
-            color={(kpis?.sites_low_fuel || 0) > 0 ? PRIMARY : GREEN}  alert={(kpis?.sites_low_fuel || 0) > 0} />
-          <StatBox label="Theft Suspected"     value={kpis?.sites_theft_suspected || 0}
-            color={(kpis?.sites_theft_suspected || 0) > 0 ? PRIMARY : GREEN} alert={(kpis?.sites_theft_suspected || 0) > 0} />
-        </div>
+        <>
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>Budget</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+              <KpiCard label="Budget (L)" value={fmtNum(totalBudgetL)} sub="Cycle allocation" />
+              <KpiCard label="Budget (XAF)" value={`${(totalBudgetXAF / 1e6).toFixed(1)}M`}
+                sub={`IHS Approved: ${(kpis?.budget_liters_approved_ihs || 0).toLocaleString()} L`} />
+              <KpiCard label="CMS Consumed (L)" value={fmtNum(cmsConsumed)}
+                sub={`${budgetUtilPct.toFixed(1)}% of budget`}
+                tone={budgetUtilPct > 90 ? 'crit' : budgetUtilPct > 75 ? 'warn' : undefined} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <SectionLabel>Activity</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+              <KpiCard label="Field-Added Fuel" value={fmtNum(kpis?.total_field_added)} color={BLUE}
+                sub={!kpis?.total_sites ? '📡 Live (reconciliation not yet run)' : undefined} />
+              <KpiCard label="Tom Card Spend (L)" value={fmtNum(kpis?.total_tomcard)} color="#7c3aed" />
+              <KpiCard label="Total Runtime (h)" value={fmtNum(kpis?.total_final_rh, 1)} sub={`Across ${kpis?.total_sites || 0} sites`} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            <SectionLabel>Risk</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+              <KpiCard label="Over-CCPH Sites" value={kpis?.sites_over_ccph || 0}
+                tone={(kpis?.sites_over_ccph || 0) > 0 ? 'warn' : undefined} />
+              <KpiCard label="Low-Fuel Sites" value={kpis?.sites_low_fuel || 0}
+                tone={(kpis?.sites_low_fuel || 0) > 0 ? 'crit' : undefined} />
+              <KpiCard label="Theft Suspected" value={kpis?.sites_theft_suspected || 0}
+                sub={(kpis?.sites_theft_suspected || 0) > 0 ? 'Under investigation' : undefined}
+                tone={(kpis?.sites_theft_suspected || 0) > 0 ? 'crit' : undefined} />
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── AI Fleet Insights preview — the full briefing lives at
@@ -225,33 +234,33 @@ export default function DieselDashboardPage() {
           right on the main dashboard, not tucked away on a page someone
           has to think to visit. ── */}
       {(aiBriefingLoading || aiBriefing) && (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+        <Card style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>🧠 Fleet Intelligence Briefing</h3>
+            <SectionLabel style={{ marginBottom: 0 }}>🧠 Fleet Intelligence Briefing</SectionLabel>
             <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/ai-insights')}>Full Briefing →</Btn>
           </div>
           {aiBriefingLoading ? (
-            <div style={{ fontSize: 13, color: '#9ca3af' }}>Loading…</div>
+            <div style={{ fontSize: 13, color: neutral[400] }}>Loading…</div>
           ) : !aiBriefing?.ai_enabled ? (
-            <div style={{ fontSize: 13, color: '#6b7280' }}>
+            <div style={{ fontSize: 13, color: neutral[500] }}>
               {aiBriefing?.evidence?.alerts?.total_open ?? 0} open alert(s), {aiBriefing?.evidence?.budget_planning?.total_flagged ?? 0} budget-plan flag(s) this cycle.
               Set <code>GEMINI_API_KEY</code> for an AI-written summary — view the full briefing for the complete picture.
             </div>
           ) : (
-            <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13, color: neutral[700], lineHeight: 1.6 }}>
               {(aiBriefing.narrative || '').split('\n').find((l: string) => l.trim() && !l.startsWith('#')) || 'See full briefing for details.'}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* ── ROW 2: Fuel Request Stats + Budget Utilisation ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 20, marginBottom: 24 }}>
 
         {/* Fuel Request stats */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+        <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>⛽ Fuel Requests</h3>
+            <SectionLabel style={{ marginBottom: 0 }}>⛽ Fuel Requests</SectionLabel>
             <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/fuel-requests')}>View →</Btn>
           </div>
           {kpiLoading ? <Spinner size={24} /> : (
@@ -261,10 +270,10 @@ export default function DieselDashboardPage() {
                   { label: 'Pending Approval', value: fr.pending  || 0, color: AMBER },
                   { label: 'Fully Approved',   value: fr.approved || 0, color: GREEN },
                   { label: 'Disbursed',         value: fr.disbursed || 0, color: BLUE },
-                  { label: 'Denied',            value: fr.denied   || 0, color: '#9ca3af' },
+                  { label: 'Denied',            value: fr.denied   || 0, color: neutral[400] },
                 ].map(s => (
-                  <div key={s.label} style={{ background: '#f9fafb', borderRadius: 8, padding: '10px 12px', borderLeft: `3px solid ${s.color}` }}>
-                    <p style={{ fontSize: 10, color: '#9ca3af', margin: '0 0 4px', textTransform: 'uppercase' }}>{s.label}</p>
+                  <div key={s.label} style={{ background: neutral[50], borderRadius: 8, padding: '10px 12px', borderLeft: `3px solid ${s.color}` }}>
+                    <p style={{ fontSize: 10, color: neutral[400], margin: '0 0 4px', textTransform: 'uppercase' }}>{s.label}</p>
                     <p style={{ fontSize: 20, fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
                   </div>
                 ))}
@@ -272,15 +281,15 @@ export default function DieselDashboardPage() {
               {(fr.total_liters_approved || 0) > 0 && (
                 <>
                   <div style={{ fontSize: 12, marginBottom: 6 }}>
-                    <span style={{ color: '#6b7280' }}>Total Approved: </span>
+                    <span style={{ color: neutral[500] }}>Total Approved: </span>
                     <strong>{fmtNum(fr.total_liters_approved)} L</strong>
-                    <span style={{ color: '#9ca3af', marginLeft: 8 }}>
+                    <span style={{ color: neutral[400], marginLeft: 8 }}>
                       = XAF {Math.round(fr.total_xaf_approved || 0).toLocaleString()}
                     </span>
                   </div>
                   {(fr.total_xaf_disbursed || 0) > 0 && (
                     <div style={{ fontSize: 12, marginBottom: 10 }}>
-                      <span style={{ color: '#6b7280' }}>Total Disbursed: </span>
+                      <span style={{ color: neutral[500] }}>Total Disbursed: </span>
                       <strong style={{ color: GREEN }}>XAF {Math.round(fr.total_xaf_disbursed || 0).toLocaleString()}</strong>
                     </div>
                   )}
@@ -304,16 +313,16 @@ export default function DieselDashboardPage() {
               )}
             </>
           )}
-        </div>
+        </Card>
 
         {/* Budget utilisation by cluster */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+        <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>📊 Budget Utilisation by Cluster</h3>
+            <SectionLabel style={{ marginBottom: 0 }}>📊 Budget Utilisation by Cluster</SectionLabel>
             <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/site-budget-upload')}>Manage →</Btn>
           </div>
           {budgetLoading ? <Spinner size={24} /> : budgetAgg.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px 0', color: '#9ca3af', fontSize: 13 }}>
+            <div style={{ textAlign: 'center', padding: '20px 0', color: neutral[400], fontSize: 13 }}>
               No budget data for {selectedKey} — upload the Book11 file on the Site Budget page
             </div>
           ) : (
@@ -326,27 +335,27 @@ export default function DieselDashboardPage() {
                   sub={`${fmtNum(c.liters_used)} / ${fmtNum(c.budget_liters)} L used · ${fmtNum(c.liters_remaining)} L left`}
                 />
               ))}
-              <div style={{ marginTop: 10, padding: '8px 12px', background: '#f9fafb', borderRadius: 8, fontSize: 12, display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ marginTop: 10, padding: '8px 12px', background: neutral[50], borderRadius: 8, fontSize: 12, display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontWeight: 700 }}>TOTAL</span>
                 <span>
                   <strong style={{ color: budgetUtilPct > 90 ? PRIMARY : DARK }}>{budgetUtilPct.toFixed(1)}%</strong>
                   {' · '}{fmtNum(cmsConsumed)} / {fmtNum(totalBudgetL)} L
-                  {' · '}<span style={{ color: '#9ca3af' }}>XAF {(totalBudgetXAF/1e6).toFixed(2)}M budget</span>
+                  {' · '}<span style={{ color: neutral[400] }}>XAF {(totalBudgetXAF/1e6).toFixed(2)}M budget</span>
                 </span>
               </div>
             </>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── ROW 3: Daily trend + Cluster table ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
 
         {/* Daily trend chart */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>📈 Daily Consumption Trend (L)</h3>
+        <Card>
+          <SectionLabel>📈 Daily Consumption Trend (L)</SectionLabel>
           {trendLoading ? <Spinner size={28} /> : trend.length === 0 ? (
-            <p style={{ color: '#9ca3af', fontSize: 13, textAlign: 'center', padding: 20 }}>No CMS data uploaded yet for {selectedKey}</p>
+            <p style={{ color: neutral[400], fontSize: 13, textAlign: 'center', padding: 20 }}>No CMS data uploaded yet for {selectedKey}</p>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={trend}>
@@ -360,7 +369,7 @@ export default function DieselDashboardPage() {
                     <stop offset="95%" stopColor={GREEN} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke={neutral[100]} />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }}
                   tickFormatter={d => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} />
                 <YAxis tick={{ fontSize: 10 }} />
@@ -371,21 +380,21 @@ export default function DieselDashboardPage() {
               </AreaChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </Card>
 
         {/* Cluster breakdown table */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+        <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>🗂️ Cluster Breakdown</h3>
+            <SectionLabel style={{ marginBottom: 0 }}>🗂️ Cluster Breakdown</SectionLabel>
             <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/reconciliation')}>Detail →</Btn>
           </div>
           {clusterLoading || budgetLoading ? <Spinner size={28} /> : (
             <div style={{ overflowX: 'auto', maxHeight: 230, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb' }}>
+                  <tr style={{ background: neutral[50] }}>
                     {['Cluster', 'Sites', 'Budget (L)', 'CMS Cons', 'Used%', 'Alerts'].map(h => (
-                      <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 10, borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontWeight: 600, color: neutral[500], fontSize: 10, borderBottom: `1px solid ${neutral[200]}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -396,8 +405,8 @@ export default function DieselDashboardPage() {
                     return (
                       <tr key={c._id}
                         onClick={() => nav(`/diesel/reconciliation?cluster=${c._id}`)}
-                        style={{ cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                        style={{ cursor: 'pointer', borderBottom: `1px solid ${neutral[100]}` }}
+                        onMouseEnter={e => (e.currentTarget.style.background = neutral[50])}
                         onMouseLeave={e => (e.currentTarget.style.background = '')}>
                         <td style={{ padding: '8px 10px', fontWeight: 700 }}>
                           <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: CLUSTER_COLORS[i % CLUSTER_COLORS.length], marginRight: 6 }} />
@@ -408,13 +417,13 @@ export default function DieselDashboardPage() {
                         <td style={{ padding: '8px 10px' }}>{fmtNum(c.total_cms_consumed || 0)}</td>
                         <td style={{ padding: '8px 10px' }}>
                           <span style={{ color, fontWeight: 700 }}>{pct}%</span>
-                          <div style={{ background: '#e5e7eb', borderRadius: 3, height: 4, width: 50, display: 'inline-block', marginLeft: 6, verticalAlign: 'middle' }}>
+                          <div style={{ background: neutral[200], borderRadius: 3, height: 4, width: 50, display: 'inline-block', marginLeft: 6, verticalAlign: 'middle' }}>
                             <div style={{ width: `${Math.min(pct, 100)}%`, height: 4, background: color, borderRadius: 3 }} />
                           </div>
                         </td>
                         <td style={{ padding: '8px 10px' }}>
                           {c.total_alerts > 0
-                            ? <span style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 10, padding: '2px 8px', fontWeight: 700, fontSize: 10 }}>{c.total_alerts}</span>
+                            ? <span style={{ background: statusTokens.danger.bg, color: statusTokens.danger.text, borderRadius: 10, padding: '2px 8px', fontWeight: 700, fontSize: 10 }}>{c.total_alerts}</span>
                             : <span style={{ color: GREEN, fontSize: 12 }}>✓</span>}
                         </td>
                       </tr>
@@ -424,15 +433,13 @@ export default function DieselDashboardPage() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── ROW 4: Budget bar chart (SiteBudget aggregate) ── */}
       {budgetAgg.length > 0 && (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 24 }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>
-            💰 Budget vs Approved Requests vs CMS Consumed — by Cluster
-          </h3>
+        <Card style={{ marginBottom: 24 }}>
+          <SectionLabel>💰 Budget vs Approved Requests vs CMS Consumed — by Cluster</SectionLabel>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={budgetAgg.map(c => ({
               cluster: c._id,
@@ -440,17 +447,17 @@ export default function DieselDashboardPage() {
               'CMS Consumed': Math.round(c.budget_liters ? (c.utilisation_pct / 100) * c.budget_liters : 0),
               'Requests Used': Math.round(c.liters_used      || 0),
             }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <CartesianGrid strokeDasharray="3 3" stroke={neutral[100]} />
               <XAxis dataKey="cluster" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: any) => fmtNum(v) + ' L'} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="Budget (L)"    fill="#e5e7eb" radius={[3,3,0,0]} />
+              <Bar dataKey="Budget (L)"    fill={neutral[200]} radius={[3,3,0,0]} />
               <Bar dataKey="CMS Consumed"  fill={BLUE}    radius={[3,3,0,0]} />
               <Bar dataKey="Requests Used" fill={GREEN}   radius={[3,3,0,0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
       )}
 
       {/* ── ROW 5: Alert severity pills + alert cards ── */}
@@ -464,12 +471,12 @@ export default function DieselDashboardPage() {
               </div>
             ) : null
           )}
-          <span style={{ fontSize: 13, color: '#6b7280', alignSelf: 'center' }}>open alerts</span>
+          <span style={{ fontSize: 13, color: neutral[500], alignSelf: 'center' }}>open alerts</span>
         </div>
       )}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
+      <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>🔔 Open Alerts</h3>
+          <SectionLabel style={{ marginBottom: 0 }}>🔔 Open Alerts</SectionLabel>
           <Btn variant="ghost" size="sm" onClick={() => nav('/diesel/alerts')}>View All →</Btn>
         </div>
         {alertLoading ? <Spinner size={28} /> : alerts.length === 0 ? (
@@ -479,7 +486,7 @@ export default function DieselDashboardPage() {
             <AlertCard key={a._id} alert={a} compact onAcknowledge={handleAcknowledge} onResolve={handleResolve} />
           ))
         )}
-      </div>
+      </Card>
     </div>
   );
 }

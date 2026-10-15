@@ -18,9 +18,10 @@ import {
   useTomCardMappings, useFileUpload, useReconciliation, useTomCardUnmapped,
 } from '../../hooks/useDiesel';
 import {
-  PageHeader, CycleSelector, UploadZone, KpiCard,
+  PageHeader, CycleSelector, UploadZone, KpiCard, Card, SectionLabel,
   fmtNum, fmtDate, Spinner, ErrorBox, EmptyState, Btn,
 } from '../../components/diesel/DieselComponents';
+import { neutral, ink, status as statusTokens, urgency as urgencyTokens, font } from '../../styles/dieselTokens';
 
 // CLUSTER_CARDS moved inside component — see useState below
 
@@ -28,9 +29,9 @@ const EMPTY_FORM = { card_num: '', card_label: '', cluster: '', site_id: '', tru
 
 // ── RAG colour for budget utilisation ─────────────────────────────────────────
 function budgetRAG(usedPct: number): { bar: string; text: string } {
-  if (usedPct >= 95) return { bar: '#dc2626', text: '#991b1b' };
-  if (usedPct >= 75) return { bar: '#f59e0b', text: '#92400e' };
-  return { bar: '#16a34a', text: '#166534' };
+  if (usedPct >= 95) return { bar: urgencyTokens.critical.fg, text: statusTokens.danger.text };
+  if (usedPct >= 75) return { bar: urgencyTokens.high.fg, text: statusTokens.warning.text };
+  return { bar: urgencyTokens.ok.fg, text: statusTokens.success.text };
 }
 
 // ── Cluster Budget Summary panel ──────────────────────────────────────────────
@@ -54,12 +55,12 @@ function ClusterBudgetSummary({
   const totalBudgetL = clusterCards.reduce((s: number, c: any) => s + (c.budget_liters || 0), 0);
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+    <Card style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>
+        <SectionLabel style={{ marginBottom: 0, fontSize: 15, textTransform: 'none', letterSpacing: 0, color: ink, fontWeight: 700 }}>
           📊 Cluster Budget vs Actual
-        </h3>
-        <div style={{ fontSize: 12, color: '#6b7280' }}>
+        </SectionLabel>
+        <div style={{ fontSize: 12, color: neutral[500] }}>
           Total budget: <strong>{fmtNum(totalBudgetL)} L</strong>
           {' · '}XAF {(totalBudgetXAF / 1_000_000).toFixed(1)}M
         </div>
@@ -68,11 +69,11 @@ function ClusterBudgetSummary({
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
-            <tr style={{ background: '#f9fafb' }}>
+            <tr style={{ background: neutral[50] }}>
               {['Cluster', 'Vendor', 'Card #', 'Budget (L)', 'Budget (XAF)', 'Purchased (L)', 'Remaining (L)', 'Used %', 'Card Limit (XAF)'].map(h => (
                 <th key={h} style={{
                   padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700,
-                  color: '#6b7280', borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap',
+                  color: neutral[500], borderBottom: `2px solid ${neutral[200]}`, whiteSpace: 'nowrap',
                 }}>{h}</th>
               ))}
             </tr>
@@ -85,39 +86,39 @@ function ClusterBudgetSummary({
               const { bar, text } = budgetRAG(usedPct);
 
               return (
-                <tr key={c.cluster} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <tr key={c.cluster} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
                   <td style={{ padding: '10px 12px', fontWeight: 700 }}>{c.cluster}</td>
                   <td style={{ padding: '10px 12px' }}>
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                      background: c.vendor === 'TRADEX' ? '#fef3c7' : '#e0f2fe',
-                      color:      c.vendor === 'TRADEX' ? '#92400e'  : '#0369a1',
+                      background: c.vendor === 'TRADEX' ? statusTokens.warning.bg : statusTokens.info.bg,
+                      color:      c.vendor === 'TRADEX' ? statusTokens.warning.text : statusTokens.info.text,
                     }}>{c.vendor}</span>
                   </td>
-                  <td style={{ padding: '10px 12px', color: '#6b7280', fontFamily: 'monospace' }}>
+                  <td style={{ padding: '10px 12px', color: neutral[500], fontFamily: 'monospace' }}>
                     #{c.card_num}
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>
                     {fmtNum(c.budget_liters)}
                   </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#6b7280' }}>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', color: neutral[500] }}>
                     {(c.budget_xaf / 1_000_000).toFixed(2)}M
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                     {purchased > 0
-                      ? <span style={{ color: '#374151', fontWeight: 600 }}>{fmtNum(purchased)}</span>
-                      : <span style={{ color: '#d1d5db' }}>—</span>
+                      ? <span style={{ color: neutral[700], fontWeight: 600 }}>{fmtNum(purchased)}</span>
+                      : <span style={{ color: neutral[300] }}>—</span>
                     }
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                     <span style={{
                       fontWeight: 700,
-                      color: remaining < c.budget_liters * 0.1 ? '#dc2626' : '#374151',
+                      color: remaining < c.budget_liters * 0.1 ? urgencyTokens.critical.fg : neutral[700],
                     }}>{fmtNum(remaining)}</span>
                   </td>
                   <td style={{ padding: '10px 12px', minWidth: 110 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ flex: 1, background: '#e5e7eb', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                      <div style={{ flex: 1, background: neutral[200], borderRadius: 3, height: 6, overflow: 'hidden' }}>
                         <div style={{ width: `${Math.min(usedPct, 100)}%`, height: 6, background: bar, borderRadius: 3 }} />
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 700, color: text, minWidth: 30, textAlign: 'right' }}>
@@ -125,7 +126,7 @@ function ClusterBudgetSummary({
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: '#6b7280' }}>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 11, color: neutral[500] }}>
                     {(c.new_limit_xaf / 1_000_000).toFixed(2)}M
                   </td>
                 </tr>
@@ -133,12 +134,12 @@ function ClusterBudgetSummary({
             })}
           </tbody>
           <tfoot>
-            <tr style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
+            <tr style={{ borderTop: `2px solid ${neutral[200]}`, background: neutral[50] }}>
               <td colSpan={3} style={{ padding: '10px 12px', fontWeight: 700 }}>TOTAL</td>
               <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
                 {fmtNum(totalBudgetL)}
               </td>
-              <td style={{ padding: '10px 12px', textAlign: 'right', color: '#6b7280', fontWeight: 600 }}>
+              <td style={{ padding: '10px 12px', textAlign: 'right', color: neutral[500], fontWeight: 600 }}>
                 {(totalBudgetXAF / 1_000_000).toFixed(1)}M
               </td>
               <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700 }}>
@@ -155,8 +156,8 @@ function ClusterBudgetSummary({
 
       {/* Recharge note */}
       <div style={{
-        marginTop: 12, fontSize: 11, color: '#6b7280',
-        background: '#f8fafc', borderRadius: 6, padding: '8px 12px',
+        marginTop: 12, fontSize: 11, color: neutral[500],
+        background: neutral[50], borderRadius: 6, padding: '8px 12px',
         lineHeight: 1.6,
       }}>
         <strong>ℹ Card limit notes:</strong> Most clusters are recharged at 80% of budget (Pouma 1 at 100%).
@@ -164,7 +165,7 @@ function ClusterBudgetSummary({
         Pouma 2 uses TRADEX (card #5807) — the only non-TOTAL card in the fleet.
         "New limit" column reflects the updated limit set on 26/06/2026.
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -290,7 +291,7 @@ export default function TomCardPage() {
   });
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="💳 Tom Card Reconciliation"
         subtitle="July 2026 — diesel fuel card statements vs field-recorded fuel per cluster"
@@ -317,7 +318,7 @@ export default function TomCardPage() {
             value={unmappedCount}
             icon="❓"
             alert={unmappedCount > 0}
-            color={unmappedCount > 0 ? '#dc2626' : '#1a1a2e'}
+            color={unmappedCount > 0 ? urgencyTokens.critical.fg : ink}
           />
         </div>
       )}
@@ -327,24 +328,24 @@ export default function TomCardPage() {
 
       {/* ── Card distribution reference ── */}
       <div style={{
-        background: '#f0f9ff', border: '1px solid #bae6fd',
+        background: statusTokens.info.bg, border: `1px solid ${statusTokens.info.border}`,
         borderRadius: 10, padding: '14px 18px', marginBottom: 20,
       }}>
-        <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#0369a1' }}>
+        <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: statusTokens.info.text }}>
           📋 GRATO Card Distribution — July 2026
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {CLUSTER_CARDS.map(cc => (
             <div key={cc.cluster} style={{
-              background: cc.vendor === 'TRADEX' ? '#fef3c7' : '#e0f2fe',
-              border: `1px solid ${cc.vendor === 'TRADEX' ? '#fde68a' : '#7dd3fc'}`,
+              background: cc.vendor === 'TRADEX' ? statusTokens.warning.bg : statusTokens.info.bg,
+              border: `1px solid ${cc.vendor === 'TRADEX' ? statusTokens.warning.border : statusTokens.info.border}`,
               borderRadius: 8, padding: '6px 12px', fontSize: 12,
             }}>
               <div style={{ fontWeight: 700 }}>{cc.cluster}</div>
-              <div style={{ color: '#6b7280', marginTop: 1 }}>
+              <div style={{ color: neutral[500], marginTop: 1 }}>
                 #{cc.card_num} · {cc.vendor} · <strong>{fmtNum(cc.budget_liters)} L</strong>
               </div>
-              <div style={{ color: '#9ca3af', fontSize: 10, marginTop: 1 }}>
+              <div style={{ color: neutral[400], fontSize: 10, marginTop: 1 }}>
                 Budget: XAF {(cc.budget_xaf / 1_000_000).toFixed(2)}M · Limit: XAF {(cc.new_limit_xaf / 1_000_000).toFixed(2)}M
               </div>
             </div>
@@ -354,10 +355,10 @@ export default function TomCardPage() {
 
       {unmappedCount > 0 && (
         <div style={{
-          background: '#fffbeb', border: '1px solid #fde68a',
+          background: statusTokens.warning.bg, border: `1px solid ${statusTokens.warning.border}`,
           borderRadius: 10, padding: '12px 18px', marginBottom: 12,
         }}>
-          <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
+          <p style={{ margin: 0, fontSize: 13, color: statusTokens.warning.text }}>
             ⚠️ {unmappedCount} transaction(s) on this page not linked to a cluster/site.
             Add a mapping below or upload a statement with a matching card number.
           </p>
@@ -371,17 +372,17 @@ export default function TomCardPage() {
           no way to tell which mapping actually matters. */}
       {!!(unmapped as any)?.length && (
         <div style={{
-          background: '#fff', border: '1px solid #fde68a', borderRadius: 10,
+          background: '#fff', border: `1px solid ${statusTokens.warning.border}`, borderRadius: 10,
           padding: '16px 18px', marginBottom: 20,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#92400e' }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: statusTokens.warning.text }}>
               🛢️ Needs mapping — {(unmapped as any).length} card/station(s), {fmtNum((unmapped as any).reduce((s: number, r: any) => s + (r.total_liters || 0), 0))} L not reconciled
             </h3>
           </div>
           <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ textAlign: 'left', color: '#92400e', borderBottom: '1px solid #fde68a' }}>
+              <tr style={{ textAlign: 'left', color: statusTokens.warning.text, borderBottom: `1px solid ${statusTokens.warning.border}` }}>
                 <th style={{ padding: '4px 8px' }}>Card #</th>
                 <th style={{ padding: '4px 8px' }}>Station</th>
                 <th style={{ padding: '4px 8px' }}>Confidence</th>
@@ -392,7 +393,7 @@ export default function TomCardPage() {
             </thead>
             <tbody>
               {(unmapped as any).slice(0, 10).map((row: any) => (
-                <tr key={`${row.card_num}-${row.station_name}`} style={{ borderBottom: '1px solid #fef3c7' }}>
+                <tr key={`${row.card_num}-${row.station_name}`} style={{ borderBottom: `1px solid ${statusTokens.warning.bg}` }}>
                   <td style={{ padding: '4px 8px', fontFamily: 'monospace' }}>{row.card_num}</td>
                   <td style={{ padding: '4px 8px' }}>{row.station_name || '—'}</td>
                   <td style={{ padding: '4px 8px' }}>
@@ -423,9 +424,9 @@ export default function TomCardPage() {
         <div>
           <UploadZone accept=".csv,.xlsx" label="Upload Tom Card statement" onFile={handleFile} uploading={uploading} />
           {result && (
-            <div style={{ marginTop: 16, background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: 10, padding: '14px 18px' }}>
-              <p style={{ fontWeight: 600, color: '#166534', margin: '0 0 6px' }}>✅ Imported</p>
-              <p style={{ fontSize: 13, color: '#166534', margin: 0 }}>
+            <div style={{ marginTop: 16, background: statusTokens.success.bg, border: `1px solid ${statusTokens.success.border}`, borderRadius: 10, padding: '14px 18px' }}>
+              <p style={{ fontWeight: 600, color: statusTokens.success.text, margin: '0 0 6px' }}>✅ Imported</p>
+              <p style={{ fontSize: 13, color: statusTokens.success.text, margin: 0 }}>
                 {(result as any).data?.rows_imported} new transactions,{' '}
                 {(result as any).data?.rows_duplicate || 0} duplicates skipped.
                 Total: {fmtNum((result as any).data?.total_liters)} L
@@ -436,8 +437,8 @@ export default function TomCardPage() {
 
           {/* By cluster purchased totals */}
           {Object.keys(clusterTotals).length > 0 && (
-            <div style={{ marginTop: 20, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>Purchased vs Budget by Cluster</h3>
+            <Card style={{ marginTop: 20 }}>
+              <SectionLabel>Purchased vs Budget by Cluster</SectionLabel>
               {CLUSTER_CARDS.map(cc => {
                 const purchased = clusterTotals[cc.cluster] || 0;
                 const pct = cc.budget_liters > 0 ? Math.round((purchased / cc.budget_liters) * 100) : 0;
@@ -446,44 +447,44 @@ export default function TomCardPage() {
                   <div key={cc.cluster} style={{ marginBottom: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
                       <span style={{ fontWeight: 600 }}>{cc.cluster}</span>
-                      <span style={{ color: '#6b7280' }}>
+                      <span style={{ color: neutral[500] }}>
                         {purchased > 0 ? `${fmtNum(purchased)} / ${fmtNum(cc.budget_liters)} L` : `— / ${fmtNum(cc.budget_liters)} L`}
                       </span>
                     </div>
-                    <div style={{ background: '#e5e7eb', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+                    <div style={{ background: neutral[200], borderRadius: 3, height: 6, overflow: 'hidden' }}>
                       <div style={{ width: `${Math.min(pct, 100)}%`, height: 6, background: bar, borderRadius: 3 }} />
                     </div>
                   </div>
                 );
               })}
-            </div>
+            </Card>
           )}
 
           {/* By station */}
           {(sum.by_station || []).length > 0 && (
-            <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>By Station</h3>
+            <Card style={{ marginTop: 16 }}>
+              <SectionLabel>By Station</SectionLabel>
               {(sum.by_station || []).map((s: any) => (
-                <div key={s._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f3f4f6', fontSize: 12 }}>
+                <div key={s._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${neutral[100]}`, fontSize: 12 }}>
                   <span>{s._id}</span>
                   <strong>{fmtNum(s.total_liters)} L</strong>
                 </div>
               ))}
-            </div>
+            </Card>
           )}
         </div>
 
         {/* ── Card mappings ── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
+        <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Card → Site Mapping</h3>
+            <SectionLabel style={{ marginBottom: 0 }}>Card → Site Mapping</SectionLabel>
             <Btn variant="ghost" size="sm" onClick={() => { setShowMappingForm(v => !v); setForm({ ...EMPTY_FORM }); }}>
               {showMappingForm ? 'Cancel' : '+ Add'}
             </Btn>
           </div>
 
           {showMappingForm && (
-            <div style={{ background: '#f9fafb', borderRadius: 8, padding: 14, marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ background: neutral[50], borderRadius: 8, padding: 14, marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {/* Cluster dropdown */}
               <div>
                 <label style={labelStyle} htmlFor="tomcard-cluster">Cluster *</label>
@@ -495,7 +496,7 @@ export default function TomCardPage() {
 
               {/* Budget context note */}
               {selectedClusterInfo && (
-                <div style={{ fontSize: 11, background: '#eff6ff', borderRadius: 6, padding: '6px 10px', color: '#1e40af' }}>
+                <div style={{ fontSize: 11, background: statusTokens.info.bg, borderRadius: 6, padding: '6px 10px', color: statusTokens.info.text }}>
                   Budget: <strong>{fmtNum(selectedClusterInfo.budget_liters)} L</strong>
                   {' · '}XAF {(selectedClusterInfo.budget_xaf/1_000_000).toFixed(2)}M
                   {' · '}Card limit: XAF {(selectedClusterInfo.new_limit_xaf/1_000_000).toFixed(2)}M
@@ -569,7 +570,7 @@ export default function TomCardPage() {
           )}
 
           {mappingsLoading ? <Spinner size={24} /> : maps.length === 0 ? (
-            <p style={{ fontSize: 12, color: '#9ca3af' }}>
+            <p style={{ fontSize: 12, color: neutral[400] }}>
               No mappings yet. Card-to-site links let the reconciliation engine split bulk
               purchases across multiple sites in the same cluster.
             </p>
@@ -578,17 +579,17 @@ export default function TomCardPage() {
               {maps.map((m: any) => {
                 const cc = CLUSTER_CARDS.find(c => c.card_num === m.card_num);
                 return (
-                  <div key={m._id} style={{ padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 12 }}>
+                  <div key={m._id} style={{ padding: '8px 0', borderBottom: `1px solid ${neutral[100]}`, fontSize: 12 }}>
                     <p style={{ margin: 0, fontWeight: 600 }}>
                       #{m.card_num}{m.card_label ? ` — ${m.card_label}` : ''}
-                      {cc && <span style={{ fontSize: 10, color: '#9ca3af', marginLeft: 6 }}>({cc.vendor})</span>}
+                      {cc && <span style={{ fontSize: 10, color: neutral[400], marginLeft: 6 }}>({cc.vendor})</span>}
                     </p>
-                    <p style={{ margin: 0, color: '#6b7280' }}>
+                    <p style={{ margin: 0, color: neutral[500] }}>
                       {m.cluster}{m.site_id ? ` › ${m.site_id}` : ' (cluster-wide)'}
                       {m.truck_plate ? ` · ${m.truck_plate}` : ''}
                     </p>
                     {cc && (
-                      <p style={{ margin: '2px 0 0', fontSize: 10, color: '#9ca3af' }}>
+                      <p style={{ margin: '2px 0 0', fontSize: 10, color: neutral[400] }}>
                         Budget: {fmtNum(cc.budget_liters)} L · Limit: XAF {(cc.new_limit_xaf/1_000_000).toFixed(2)}M
                       </p>
                     )}
@@ -597,49 +598,49 @@ export default function TomCardPage() {
               })}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── Transactions table ── */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-        <h3 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 600 }}>
-          Transactions {list.length > 0 && <span style={{ fontSize: 12, color: '#9ca3af', marginLeft: 6 }}>({list.length})</span>}
-        </h3>
+      <Card>
+        <SectionLabel>
+          Transactions {list.length > 0 && <span style={{ fontSize: 12, color: neutral[400], marginLeft: 6 }}>({list.length})</span>}
+        </SectionLabel>
         {txnsLoading ? <Spinner /> : list.length === 0 ? (
           <EmptyState icon="🧾" title="No transactions" desc="Upload a Tom Card statement to see transactions here" />
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
               <thead>
-                <tr style={{ background: '#f9fafb' }}>
+                <tr style={{ background: neutral[50] }}>
                   {['Date', 'Card', 'Station', 'Reg.', 'Liters', 'CFA', 'Cluster', 'Site', 'Mapping'].map(h => (
                     <th key={h} style={{
                       padding: '8px 12px', textAlign: 'left', fontSize: 11,
-                      fontWeight: 600, color: '#6b7280', borderBottom: '1px solid #e5e7eb',
+                      fontWeight: 600, color: neutral[500], borderBottom: `1px solid ${neutral[200]}`,
                     }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {list.map((t: any) => (
-                  <tr key={t._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <tr key={t._id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
                     <td style={{ padding: '8px 12px' }}>{fmtDate(t.date)}</td>
                     <td style={{ padding: '8px 12px', fontWeight: 600, fontFamily: 'monospace' }}>#{t.card_num}</td>
                     <td style={{ padding: '8px 12px' }}>{t.station_name}</td>
-                    <td style={{ padding: '8px 12px', color: '#9ca3af' }}>{t.registration_num}</td>
+                    <td style={{ padding: '8px 12px', color: neutral[400] }}>{t.registration_num}</td>
                     <td style={{ padding: '8px 12px', fontWeight: 600 }}>{fmtNum(t.quantity_l, 1)}</td>
-                    <td style={{ padding: '8px 12px', color: '#6b7280' }}>{fmtNum(t.amount_cfa)}</td>
+                    <td style={{ padding: '8px 12px', color: neutral[500] }}>{fmtNum(t.amount_cfa)}</td>
                     <td style={{ padding: '8px 12px' }}>{t.cluster || '—'}</td>
-                    <td style={{ padding: '8px 12px', color: '#6b7280', fontSize: 11 }}>{t.site_id || '—'}</td>
+                    <td style={{ padding: '8px 12px', color: neutral[500], fontSize: 11 }}>{t.site_id || '—'}</td>
                     <td style={{ padding: '8px 12px' }}>
                       <span style={{
                         fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
                         background:
-                          t.mapping_confidence === 'mapped'        ? '#dcfce7' :
-                          t.mapping_confidence === 'station_match' ? '#fef9c3' : '#fee2e2',
+                          t.mapping_confidence === 'mapped'        ? statusTokens.success.bg :
+                          t.mapping_confidence === 'station_match' ? statusTokens.warning.bg : statusTokens.danger.bg,
                         color:
-                          t.mapping_confidence === 'mapped'        ? '#166534' :
-                          t.mapping_confidence === 'station_match' ? '#854d0e' : '#991b1b',
+                          t.mapping_confidence === 'mapped'        ? statusTokens.success.text :
+                          t.mapping_confidence === 'station_match' ? statusTokens.warning.text : statusTokens.danger.text,
                       }}>
                         {t.mapping_confidence}
                       </span>
@@ -650,20 +651,20 @@ export default function TomCardPage() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
 
 // ── Shared form styles ────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
-  fontSize: 11, color: '#6b7280', display: 'block', marginBottom: 3,
+  fontSize: 11, color: neutral[500], display: 'block', marginBottom: 3,
 };
 const selectStyle: React.CSSProperties = {
-  width: '100%', boxSizing: 'border-box', border: '1px solid #e5e7eb',
+  width: '100%', boxSizing: 'border-box', border: `1px solid ${neutral[200]}`,
   borderRadius: 6, padding: '7px 10px', fontSize: 12, background: '#fff',
 };
 const inputStyle: React.CSSProperties = {
-  width: '100%', boxSizing: 'border-box', border: '1px solid #e5e7eb',
+  width: '100%', boxSizing: 'border-box', border: `1px solid ${neutral[200]}`,
   borderRadius: 6, padding: '7px 10px', fontSize: 12,
 };

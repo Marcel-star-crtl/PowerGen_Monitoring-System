@@ -8,7 +8,7 @@ import {
   FiFileText, FiAlertCircle, FiUpload, FiTruck,
   FiMap, FiMapPin, FiClipboard, FiList, FiTrendingUp, FiColumns, FiClock, FiBell, FiDollarSign, FiStar,
   FiUsers, FiCalendar, FiDroplet, FiDownload, FiTool,
-  FiPackage, FiLayers, FiRefreshCw, FiCreditCard, FiCpu, FiActivity,
+  FiPackage, FiLayers, FiRefreshCw, FiCreditCard, FiCpu, FiActivity, FiSearch,
 } from 'react-icons/fi';
 
 
@@ -39,6 +39,22 @@ interface NavItem {
   icon: React.ReactNode;
   roles: string[];
   dividerBefore?: boolean; // renders a visual section separator above this item
+  // Section header text shown above the divider (e.g. "Monthly Close").
+  // Optional — items that just want a plain unlabeled divider (used
+  // elsewhere for other roles) can set dividerBefore without this.
+  groupLabel?: string;
+  // Set ONLY for items whose page route is mounted under a DIFFERENT
+  // top-level portal than some of the roles that can see it — e.g. these
+  // diesel-analytics pages are registered in App.tsx only under
+  // "/diesel/*", but finance/head_of_business/ceo/supervisor/admin also
+  // have permission to view them from their OWN portal ("/finance",
+  // "/hob", etc). A relative `to="ai-insights"` would resolve against
+  // whatever portal is currently mounted, landing on a URL like
+  // "/finance/ai-insights" that has no matching route and instantly
+  // bounces back via that portal's catch-all redirect. basePath forces
+  // an ABSOLUTE link (e.g. "/diesel/ai-insights") so it lands on the
+  // route that actually exists, no matter which portal the viewer is on.
+  basePath?: string;
 }
 
 const navigationItems: NavItem[] = [
@@ -164,13 +180,22 @@ const navigationItems: NavItem[] = [
   },
 
   // ========== DIESEL MANAGER NAVIGATION ==========
+  // Regrouped into named sections (Daily Operations / Planning & Analysis /
+  // Monthly Close / Tom Card & Budgets / Reference) to match the redesign —
+  // every item below keeps its original name/path/icon/roles/basePath
+  // exactly; only the order and the dividerBefore/groupLabel markers changed,
+  // so no route or permission behavior is affected.
+
+  // ── Daily Operations ──
   {
     name: 'Fuel Planning',
     path: 'fuel-planning',
     icon: <FiBarChart2 className="h-5 w-5" />,
     roles: ['diesel_manager', 'admin', 'supervisor'],
+    basePath: '/diesel', // only mounted under /diesel — see NavItem.basePath comment
+    dividerBefore: true,
+    groupLabel: 'Daily Operations',
   },
-  // ── Existing fuel-request workflow (unchanged) ──
   {
     name: 'Refuel',
     path: 'fuel-requests',
@@ -201,45 +226,6 @@ const navigationItems: NavItem[] = [
   //   icon: <FiBarChart2 className="h-5 w-5" />,
   //   roles: ['diesel_manager'],
   // },
-
-  // ── New: reconciliation system ──
-  {
-    name: 'Reconciliation',           // divider separates old workflow from new system
-    path: 'reconciliation-dashboard',
-    icon: <FiActivity className="h-5 w-5" />,
-    roles: ['diesel_manager'],
-    dividerBefore: true,
-  },
-  {
-    name: 'AI Fleet Insights',
-    path: 'ai-insights',
-    icon: <FiCpu className="h-5 w-5" />,
-    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
-  },
-  {
-    name: 'Historical Data',
-    path: 'historical-data',
-    icon: <FiClock className="h-5 w-5" />,
-    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
-  },
-  {
-    name: 'Site & Cluster Stock',
-    path: 'site-stock',
-    icon: <FiPackage className="h-5 w-5" />,
-    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
-  },
-  {
-    name: 'Tank Audits',
-    path: 'tank-audits',
-    icon: <FiClipboard className="h-5 w-5" />,
-    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
-  },
-  {
-    name: 'CMS vs Field Data',
-    path: 'data-sources',
-    icon: <FiColumns className="h-5 w-5" />,
-    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
-  },
   {
     name: 'Upload CMS Data',
     path: 'cms-upload',
@@ -251,6 +237,40 @@ const navigationItems: NavItem[] = [
     path: 'grato-upload',
     icon: <FiUpload className="h-5 w-5" />,
     roles: ['diesel_manager'],
+  },
+  {
+    name: 'Tank Level Upload',
+    path: 'tank-level',
+    icon: <FiDroplet className="h-5 w-5" />,
+    roles: ['diesel_manager', 'data_collector'],
+  },
+
+  // ── Planning & Analysis ──
+  {
+    name: 'Gain/Loss Tracker',
+    path: 'gain-loss-tracker',
+    icon: <FiTrendingUp className="h-5 w-5" />,
+    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
+    dividerBefore: true,
+    groupLabel: 'Planning & Analysis',
+  },
+  {
+    name: 'AI Fleet Insights',
+    path: 'ai-insights',
+    icon: <FiCpu className="h-5 w-5" />,
+    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
+  },
+
+  // ── Monthly Close ──
+  {
+    name: 'Reconciliation',
+    path: 'reconciliation-dashboard',
+    icon: <FiActivity className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+    dividerBefore: true,
+    groupLabel: 'Monthly Close',
   },
   {
     name: 'Site Reconciliation',
@@ -265,6 +285,70 @@ const navigationItems: NavItem[] = [
     roles: ['diesel_manager'],
   },
   {
+    name: 'Validation Upload',
+    path: 'validation',
+    icon: <FiBell className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+  {
+    name: 'Tank Audits',
+    path: 'tank-audits',
+    icon: <FiClipboard className="h-5 w-5" />,
+    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
+  },
+  {
+    name: 'CMS vs Field Data',
+    path: 'data-sources',
+    icon: <FiColumns className="h-5 w-5" />,
+    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
+  },
+  {
+    name: 'Historical Data',
+    path: 'historical-data',
+    icon: <FiClock className="h-5 w-5" />,
+    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
+  },
+  {
+    name: 'History Analysis',
+    path: 'historical-analysis',
+    icon: <FiBarChart2 className="h-5 w-5" />,
+    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
+  },
+  {
+    name: 'Site & Cluster Stock',
+    path: 'site-stock',
+    icon: <FiPackage className="h-5 w-5" />,
+    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
+  },
+  {
+    name: 'Recon Reports',
+    path: 'recon-reports',
+    icon: <FiDownload className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+  },
+
+  // ── Tom Card & Budgets ──
+  {
+    name: 'Tom Card',
+    path: 'tomcard',
+    icon: <FiCreditCard className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+    dividerBefore: true,
+    groupLabel: 'Tom Card & Budgets',
+  },
+  {
+    name: 'Tom Card Cycle Budget',
+    path: 'tomcard-cycle-budget',
+    icon: <FiCreditCard className="h-5 w-5" />,
+    roles: ['diesel_manager', 'finance'],
+    basePath: '/diesel',
+  },
+  {
     name: 'Site Budget Upload',
     path: 'site-budget',
     icon: <FiBell className="h-5 w-5" />,
@@ -275,54 +359,38 @@ const navigationItems: NavItem[] = [
     path: 'budget-planning',
     icon: <FiTrendingUp className="h-5 w-5" />,
     roles: ['diesel_manager', 'admin', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
   },
+
+  // ── Reference ──
   {
-    name: 'Tank Level Upload',
-    path: 'tank-level',
-    icon: <FiDroplet className="h-5 w-5" />,
-    roles: ['diesel_manager', 'data_collector'],
+    name: 'Generator Ledger',
+    path: 'generators',
+    icon: <FiCpu className="h-5 w-5" />,
+    roles: ['diesel_manager'],
+    dividerBefore: true,
+    groupLabel: 'Reference',
   },
   {
     name: 'Live Site Map',
     path: 'sites-map',
     icon: <FiMap className="h-5 w-5" />,
     roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
   },
   {
     name: 'Site Directory',
     path: 'site-directory',
     icon: <FiList className="h-5 w-5" />,
     roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
   },
   {
-    name: 'Tom Card Cycle Budget',
-    path: 'tomcard-cycle-budget',
-    icon: <FiCreditCard className="h-5 w-5" />,
-    roles: ['diesel_manager', 'finance'],
-  },
-  {
-    name: 'Validation Upload',
-    path: 'validation',
-    icon: <FiBell className="h-5 w-5" />,
-    roles: ['diesel_manager'],
-  },
-  {
-    name: 'Tom Card',
-    path: 'tomcard',
-    icon: <FiCreditCard className="h-5 w-5" />,
-    roles: ['diesel_manager'],
-  },
-  {
-    name: 'Generator Ledger',
-    path: 'generators',
-    icon: <FiCpu className="h-5 w-5" />,
-    roles: ['diesel_manager'],
-  },
-  {
-    name: 'Recon Reports',
-    path: 'recon-reports',
-    icon: <FiDownload className="h-5 w-5" />,
-    roles: ['diesel_manager'],
+    name: 'Technician Integrity',
+    path: 'technician-integrity',
+    icon: <FiSearch className="h-5 w-5" />,
+    roles: ['diesel_manager', 'admin', 'supervisor', 'finance', 'head_of_business', 'ceo'],
+    basePath: '/diesel',
   },
 
   // ========== DATA COLLECTOR NAVIGATION ==========
@@ -449,15 +517,26 @@ export const Sidebar: React.FC = () => {
           {filteredNav.map((item) => (
             <React.Fragment key={`${item.roles.join('-')}-${item.path}`}>
 
-              {/* Section divider — only rendered when dividerBefore is true */}
+              {/* Section divider — only rendered when dividerBefore is true.
+                  groupLabel adds a small uppercase heading under the line
+                  for named sections (e.g. "Monthly Close"); a divider with
+                  no groupLabel renders as a plain separator, unchanged. */}
               {item.dividerBefore && (
                 <div className="pt-3 pb-1">
                   <div className="border-t border-white/10" />
+                  {item.groupLabel && (
+                    <div
+                      className="px-3 pt-2 pb-1 font-semibold uppercase tracking-wider"
+                      style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}
+                    >
+                      {item.groupLabel}
+                    </div>
+                  )}
                 </div>
               )}
 
               <NavLink
-                to={item.path}
+                to={item.basePath ? `${item.basePath}/${item.path}` : item.path}
                 end={item.path === ''}
                 className={({ isActive }) =>
                   classNames(

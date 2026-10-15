@@ -8,13 +8,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useCycles }         from '@/hooks/useDiesel';
 import { dieselManagerAPI }  from '@/api/endpoints/dieselManager';
-import { Card }              from '@/components/common/Card';
-import { Select }            from '@/components/common/Select';
-import { Spinner }           from '@/components/common/Spinner';
-import { EmptyState }        from '@/components/common/EmptyState';
-import { Badge }             from '@/components/common/Badge';
+import {
+  PageHeader, Card, Spinner, EmptyState, KpiCard, SectionLabel, ApprovalChain,
+} from '@/components/diesel/DieselComponents';
+import type { ApprovalStep } from '@/components/diesel/DieselComponents';
+import { neutral, ink, status as statusTokens, urgency as urgencyTokens, brand, font } from '@/styles/dieselTokens';
 import { formatDate, formatNumber } from '@/utils/formatters';
-import { FiDroplet, FiTrendingUp, FiBarChart2, FiCalendar, FiCamera,
+import { FiDroplet, FiBarChart2, FiCalendar, FiCamera,
          FiDollarSign, FiTruck, FiUser, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import apiClient from '@/api/client';
 
@@ -28,9 +28,9 @@ function Row({ label, value, bold }: { label: string; value: React.ReactNode; bo
   if (!value && value !== 0) return null;
   return (
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-      padding:'6px 0', borderBottom:'1px solid #f3f4f6', fontSize:13 }}>
-      <span style={{ color:'#6b7280', flexShrink:0, marginRight:16 }}>{label}</span>
-      <span style={{ fontWeight: bold ? 700 : 500, color:'#111827', textAlign:'right' }}>{value}</span>
+      padding:'6px 0', borderBottom:`1px solid ${neutral[100]}`, fontSize:13 }}>
+      <span style={{ color:neutral[500], flexShrink:0, marginRight:16 }}>{label}</span>
+      <span style={{ fontWeight: bold ? 700 : 500, color:ink, textAlign:'right' }}>{value}</span>
     </div>
   );
 }
@@ -40,7 +40,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
     <div style={{ marginBottom:16 }}>
       <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
         {icon}
-        <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'#6b7280' }}>{title}</span>
+        <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:neutral[500] }}>{title}</span>
       </div>
       {children}
     </div>
@@ -58,9 +58,9 @@ function PhotoGrid({ photos }: { photos: any[] }) {
         return (
           <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display:'block' }}>
             <img src={url} alt={cat || `Photo ${i+1}`}
-              style={{ width:100, height:75, objectFit:'cover', borderRadius:6, border:'1px solid #e5e7eb' }}
+              style={{ width:100, height:75, objectFit:'cover', borderRadius:6, border:`1px solid ${neutral[200]}` }}
               onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
-            {cat && <div style={{ fontSize:10, color:'#6b7280', textAlign:'center', marginTop:2, textTransform:'capitalize' }}>{cat}</div>}
+            {cat && <div style={{ fontSize:10, color:neutral[500], textAlign:'center', marginTop:2, textTransform:'capitalize' }}>{cat}</div>}
           </a>
         );
       })}
@@ -84,16 +84,16 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
   ];
 
   const statusColor: Record<string,string> = {
-    refueled:'#16a34a', completed:'#16a34a', approved:'#2563eb',
-    scheduled:'#2563eb', purchase_made:'#d97706', denied:'#dc2626',
+    refueled: statusTokens.success.text, completed: statusTokens.success.text, approved: statusTokens.info.text,
+    scheduled: statusTokens.info.text, purchase_made: statusTokens.warning.text, denied: statusTokens.danger.text,
   };
-  const sc = statusColor[req?.status] || '#6b7280';
+  const sc = statusColor[req?.status] || neutral[500];
 
   return (
-    <div style={{ border:'1px solid #e5e7eb', borderRadius:12, overflow:'hidden', marginBottom:14, background:'#fff' }}>
+    <div style={{ border:`1px solid ${neutral[200]}`, borderRadius:12, overflow:'hidden', marginBottom:14, background:'#fff' }}>
       {/* Header — always visible */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
-        padding:'14px 18px', background:'#f9fafb', cursor:'pointer', userSelect:'none' }}
+        padding:'14px 18px', background:neutral[50], cursor:'pointer', userSelect:'none' }}
         onClick={() => setOpen(o => !o)}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <div style={{ width:32, height:32, borderRadius:16, background:sc+'22', display:'flex',
@@ -101,11 +101,11 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
             <FiDroplet size={16} color={sc} />
           </div>
           <div>
-            <div style={{ fontWeight:700, fontSize:14, color:'#111827' }}>
+            <div style={{ fontWeight:700, fontSize:14, color:ink }}>
               Refueling #{event.index}
-              {req && <span style={{ marginLeft:8, fontSize:12, color:'#6b7280' }}>FUEL-{req._id?.slice(-6).toUpperCase()}</span>}
+              {req && <span style={{ marginLeft:8, fontSize:12, color:neutral[500] }}>FUEL-{req._id?.slice(-6).toUpperCase()}</span>}
             </div>
-            <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>
+            <div style={{ fontSize:12, color:neutral[500], marginTop:2 }}>
               {fmtDt(fc?.record_date || req?.approved_at)}
               {req?.assigned_to?.fullName && ` · ${req.assigned_to.fullName}`}
             </div>
@@ -113,17 +113,17 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <div style={{ textAlign:'right' }}>
-            <div style={{ fontSize:20, fontWeight:800, color:'#e53935' }}>
+            <div style={{ fontSize:20, fontWeight:800, color:brand.primary }}>
               {fmtL(f.fuel_added || req?.liters_actually_added || req?.liters_approved)}
             </div>
-            <div style={{ fontSize:11, color:'#9ca3af' }}>
+            <div style={{ fontSize:11, color:neutral[400] }}>
               {fmtXAF(fp?.total_cost_xaf || (req?.liters_approved || 0) * (req?.xaf_per_liter || 828))}
             </div>
           </div>
           <div style={{ padding:'3px 10px', borderRadius:6, background:sc+'15', border:`1px solid ${sc}40` }}>
             <span style={{ fontSize:11, fontWeight:700, color:sc, textTransform:'uppercase' }}>{req?.status || '—'}</span>
           </div>
-          {open ? <FiChevronUp size={16} color="#9ca3af" /> : <FiChevronDown size={16} color="#9ca3af" />}
+          {open ? <FiChevronUp size={16} color={neutral[400]} /> : <FiChevronDown size={16} color={neutral[400]} />}
         </div>
       </div>
 
@@ -134,7 +134,7 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
 
             {/* Column 1 — Request */}
             <div>
-              <Section title="Request" icon={<FiCalendar size={13} color="#6b7280" />}>
+              <Section title="Request" icon={<FiCalendar size={13} color={neutral[500]} />}>
                 <Row label="Requested by"  value={req?.requested_by_name || req?.requested_by?.fullName} />
                 <Row label="Assigned to"   value={req?.assigned_to?.fullName} />
                 <Row label="Litres requested" value={fmtL(req?.liters_requested)} />
@@ -142,7 +142,7 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
                 <Row label="Actually added"   value={fmtL(f.fuel_added || req?.liters_actually_added)} bold />
                 {(req?.liters_balance_returned > 0) && (
                   <Row label="Balance returned" value={
-                    <span style={{ color:'#2563eb' }}>{fmtL(req.liters_balance_returned)}</span>
+                    <span style={{ color: urgencyTokens.medium.fg }}>{fmtL(req.liters_balance_returned)}</span>
                   } />
                 )}
                 <Row label="Urgency"      value={req?.urgency?.toUpperCase()} />
@@ -150,31 +150,22 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
                 <Row label="Reason"       value={req?.request_reason} />
               </Section>
 
-              <Section title="Approval chain" icon={<FiUser size={13} color="#6b7280" />}>
-                {(req?.approvalChain || []).map((step: any) => (
-                  <div key={step.level} style={{ display:'flex', alignItems:'center', gap:8,
-                    padding:'4px 0', fontSize:12 }}>
-                    <span style={{ width:20, height:20, borderRadius:10, flexShrink:0,
-                      background: step.status==='approved' ? '#16a34a' : step.status==='denied' ? '#dc2626' : '#e5e7eb',
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:10, fontWeight:700, color: step.status==='pending' ? '#9ca3af' : '#fff' }}>
-                      {step.level}
-                    </span>
-                    <span style={{ flex:1, color:'#374151' }}>
-                      {step.approver?.name || step.name}
-                    </span>
-                    <span style={{ color: step.status==='approved' ? '#16a34a' : step.status==='denied' ? '#dc2626' : '#9ca3af',
-                      fontSize:10, fontWeight:600, textTransform:'uppercase' }}>
-                      {step.status}
-                    </span>
-                  </div>
-                ))}
-              </Section>
+              {(req?.approvalChain || []).length > 0 && (
+                <Section title="Approval chain" icon={<FiUser size={13} color={neutral[500]} />}>
+                  <ApprovalChain
+                    ariaLabel="Fuel request approval chain"
+                    steps={(req.approvalChain as any[]).map((step): ApprovalStep => ({
+                      label: step.approver?.name || step.name,
+                      state: step.status === 'approved' ? 'done' : step.status === 'denied' ? 'rejected' : 'pending',
+                    }))}
+                  />
+                </Section>
+              )}
             </div>
 
             {/* Column 2 — Form submission data */}
             <div>
-              <Section title="Fuel measurements (form)" icon={<FiDroplet size={13} color="#6b7280" />}>
+              <Section title="Fuel measurements (form)" icon={<FiDroplet size={13} color={neutral[500]} />}>
                 <Row label="Opening level"    value={fmtL(f.opening_level)} />
                 <Row label="Closing level"    value={fmtL(f.closing_level)} bold />
                 <Row label="Fuel added"       value={fmtL(f.fuel_added)} bold />
@@ -188,7 +179,7 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
                 <Row label="Dip stick after"  value={f.dip_stick_after_cm  != null ? `${f.dip_stick_after_cm} cm`  : null} />
                 <Row label="Dip stick rise"   value={
                   f.dip_stick_before_cm != null && f.dip_stick_after_cm != null
-                    ? <span style={{ color:'#16a34a', fontWeight:700 }}>
+                    ? <span style={{ color: statusTokens.success.text, fontWeight:700 }}>
                         +{(f.dip_stick_after_cm - f.dip_stick_before_cm).toFixed(1)} cm
                       </span>
                     : null
@@ -197,7 +188,7 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
                 <Row label="Tank notes"      value={f.tank_observations} />
               </Section>
 
-              <Section title="Runtime data" icon={<FiBarChart2 size={13} color="#6b7280" />}>
+              <Section title="Runtime data" icon={<FiBarChart2 size={13} color={neutral[500]} />}>
                 <Row label="Opening hours"  value={rt.opening_hours  != null ? `${fmt(rt.opening_hours)} hrs`  : null} />
                 <Row label="Closing hours"  value={rt.closing_hours  != null ? `${fmt(rt.closing_hours)} hrs`  : null} />
                 <Row label="Runtime hours"  value={rt.runtime_hours  != null ? `${fmt(rt.runtime_hours)} hrs`  : null} bold />
@@ -206,7 +197,7 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
                 <Row label="Efficiency"     value={fc?.metrics?.efficiency_rating} />
               </Section>
 
-              <Section title="Personnel" icon={<FiUser size={13} color="#6b7280" />}>
+              <Section title="Personnel" icon={<FiUser size={13} color={neutral[500]} />}>
                 <Row label="Guard name"     value={fc?.guard_name} />
                 <Row label="Guard number"   value={fc?.guard_number} />
                 <Row label="FSE"            value={fc?.fse_name} />
@@ -216,7 +207,7 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
 
             {/* Column 3 — Purchase */}
             <div>
-              <Section title="Purchase / Tom Card" icon={<FiDollarSign size={13} color="#6b7280" />}>
+              <Section title="Purchase / Tom Card" icon={<FiDollarSign size={13} color={neutral[500]} />}>
                 <Row label="Tom Card #"    value={fp?.tom_card_number} bold />
                 <Row label="Cluster"       value={fp?.cluster} />
                 <Row label="Vendor"        value={fp?.supplier || fp?.fuel_vendor} />
@@ -228,7 +219,7 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
                 <Row label="Purchase date" value={fmtDt(fp?.purchase_date)} />
               </Section>
 
-              <Section title="Truck & transport" icon={<FiTruck size={13} color="#6b7280" />}>
+              <Section title="Truck & transport" icon={<FiTruck size={13} color={neutral[500]} />}>
                 <Row label="Truck plate"      value={fp?.truck_plate_number || rt.truck_plate_number} />
                 <Row label="Arrived station"  value={fmtDt(fp?.arrival_time)} />
                 <Row label="Left station"     value={fmtDt(fp?.departure_time)} />
@@ -238,7 +229,7 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
 
               {/* Budget impact */}
               {req?.budget_snapshot && (
-                <Section title="Budget impact" icon={<FiBarChart2 size={13} color="#6b7280" />}>
+                <Section title="Budget impact" icon={<FiBarChart2 size={13} color={neutral[500]} />}>
                   <Row label="Cycle budget"   value={fmtL(req.budget_snapshot.budget_liters)} />
                   <Row label="Used before"    value={fmtL((req.budget_snapshot.liters_used || 0) - (f.fuel_added || req?.liters_approved || 0))} />
                   <Row label="Used after"     value={fmtL(req.budget_snapshot.liters_used)} bold />
@@ -252,11 +243,11 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
 
           {/* Photos — full width */}
           {allPhotos.length > 0 && (
-            <div style={{ borderTop:'1px solid #f3f4f6', paddingTop:16, marginTop:4 }}>
+            <div style={{ borderTop:`1px solid ${neutral[100]}`, paddingTop:16, marginTop:4 }}>
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
-                <FiCamera size={13} color="#6b7280" />
+                <FiCamera size={13} color={neutral[500]} />
                 <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.06em',
-                  textTransform:'uppercase', color:'#6b7280' }}>
+                  textTransform:'uppercase', color:neutral[500] }}>
                   Photos ({allPhotos.length})
                 </span>
               </div>
@@ -266,20 +257,20 @@ function RefuelEventCard({ event, index }: { event: any; index: number }) {
 
           {/* Workflow timeline */}
           {fc?.workflow_history && fc.workflow_history.length > 0 && (
-            <div style={{ borderTop:'1px solid #f3f4f6', paddingTop:16, marginTop:16 }}>
+            <div style={{ borderTop:`1px solid ${neutral[100]}`, paddingTop:16, marginTop:16 }}>
               <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.06em',
-                textTransform:'uppercase', color:'#6b7280', marginBottom:10 }}>
+                textTransform:'uppercase', color:neutral[500], marginBottom:10 }}>
                 Workflow Timeline
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                 {fc.workflow_history.map((step: any, i: number) => (
                   <div key={i} style={{ display:'flex', alignItems:'center', gap:10, fontSize:12 }}>
-                    <div style={{ width:8, height:8, borderRadius:4, background:'#16a34a', flexShrink:0 }} />
-                    <span style={{ fontWeight:600, color:'#374151', textTransform:'capitalize', minWidth:120 }}>
+                    <div style={{ width:8, height:8, borderRadius:4, background:statusTokens.success.text, flexShrink:0 }} />
+                    <span style={{ fontWeight:600, color:neutral[700], textTransform:'capitalize', minWidth:120 }}>
                       {(step.status || step.type || '').replace(/_/g,' ')}
                     </span>
-                    <span style={{ color:'#9ca3af' }}>{fmtDt(step.timestamp)}</span>
-                    {step.note && <span style={{ color:'#6b7280' }}>— {step.note}</span>}
+                    <span style={{ color:neutral[400] }}>{fmtDt(step.timestamp)}</span>
+                    {step.note && <span style={{ color:neutral[500] }}>— {step.note}</span>}
                   </div>
                 ))}
               </div>
@@ -390,37 +381,46 @@ const ConsumptionPage: React.FC = () => {
   const site = sites.find(s => (s.IHS_ID_SITE || s.site_id) === selectedSite);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Fuel Consumption — Site History</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Select a site to see every refueling event for the cycle — purchase, form data, measurements, photos
-        </p>
-      </div>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: font.ui }}>
+      <PageHeader
+        title="⛽ Fuel Consumption — Site History"
+        subtitle="Select a site to see every refueling event for the cycle — purchase, form data, measurements, photos"
+      />
 
       {/* Filters */}
-      <Card>
+      <Card style={{ marginBottom: 20 }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
-          <Select label="Cycle" value={cycleKey} onChange={e => setCycleKey(e.target.value)}
-            options={cycles.map(c => ({ value: c.cycle_key, label: `${c.label}${c.status !== 'open' ? ` (${c.status})` : ''}` }))}
-            fullWidth />
-          <Select label="Site" value={selectedSite} onChange={e => setSelectedSite(e.target.value)}
-            options={[
-              { value: '', label: sitesLoading ? 'Loading sites…' : 'Select a site…' },
-              ...sites.map(s => ({
-                value: s.IHS_ID_SITE || s.site_id,
-                label: `${s.Site_Name || s.site_name || s.IHS_ID_SITE} (${s.IHS_ID_SITE || s.site_id})`,
-              })),
-            ]}
-            fullWidth />
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: neutral[500], marginBottom: 6 }}>Cycle</div>
+            <select value={cycleKey} onChange={e => setCycleKey(e.target.value)}
+              aria-label="Select cycle"
+              style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, boxSizing: 'border-box' }}>
+              {cycles.map(c => (
+                <option key={c.cycle_key} value={c.cycle_key}>{c.label}{c.status !== 'open' ? ` (${c.status})` : ''}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: neutral[500], marginBottom: 6 }}>Site</div>
+            <select value={selectedSite} onChange={e => setSelectedSite(e.target.value)}
+              aria-label="Select site"
+              style={{ width: '100%', border: `1px solid ${neutral[200]}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, boxSizing: 'border-box' }}>
+              <option value="">{sitesLoading ? 'Loading sites…' : 'Select a site…'}</option>
+              {sites.map(s => (
+                <option key={s.IHS_ID_SITE || s.site_id} value={s.IHS_ID_SITE || s.site_id}>
+                  {`${s.Site_Name || s.site_name || s.IHS_ID_SITE} (${s.IHS_ID_SITE || s.site_id})`}
+                </option>
+              ))}
+            </select>
+          </div>
           {site && (
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-              <div style={{ fontSize:11, color:'#6b7280', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em' }}>Site Details</div>
-              <div style={{ fontSize:13, color:'#374151' }}>
+              <div style={{ fontSize:11, color:neutral[500], fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em' }}>Site Details</div>
+              <div style={{ fontSize:13, color:neutral[700] }}>
                 <span style={{ fontWeight:700 }}>{site.Site_Name || site.site_name}</span>
-                <span style={{ color:'#9ca3af', marginLeft:8 }}>{site.GRATO_Cluster || site.cluster || ''}</span>
+                <span style={{ color:neutral[400], marginLeft:8 }}>{site.GRATO_Cluster || site.cluster || ''}</span>
               </div>
-              <div style={{ fontSize:12, color:'#6b7280' }}>
+              <div style={{ fontSize:12, color:neutral[500] }}>
                 CCPH: <strong>{site.CCPH || site.ccph || '—'} L/h</strong>
                 {site.Tank_Capacity && <span style={{ marginLeft:12 }}>Tank: <strong>{site.Tank_Capacity} L</strong></span>}
               </div>
@@ -430,35 +430,27 @@ const ConsumptionPage: React.FC = () => {
       </Card>
 
       {!selectedSite ? (
-        <EmptyState icon={<FiDroplet className="h-16 w-16 text-gray-400" />}
-          title="Select a site"
-          description="Choose a cycle and site to see the full refueling history" />
+        <EmptyState icon="💧" title="Select a site" desc="Choose a cycle and site to see the full refueling history" />
       ) : loading ? (
-        <div className="flex items-center justify-center h-48"><Spinner size="lg" /></div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}><Spinner /></div>
       ) : (
         <>
           {/* Site budget */}
           {siteBudget && (
-            <Card>
-              <h2 style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Budget — {cycleKey}</h2>
+            <Card style={{ marginBottom: 20 }}>
+              <SectionLabel>Budget — {cycleKey}</SectionLabel>
               <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isNarrow ? 'repeat(3,1fr)' : 'repeat(5,1fr)', gap:12 }}>
-                {[
-                  { label:'Budget (L)',     value: formatNumber(siteBudget.budget_liters, 0),    color:'#374151' },
-                  { label:'Used (L)',       value: formatNumber(siteBudget.liters_used || 0, 0),  color:'#2563eb' },
-                  { label:'Committed (L)', value: formatNumber(siteBudget.liters_committed || 0, 0), color:'#d97706' },
-                  { label:'Remaining (L)', value: formatNumber(Math.max(0,(siteBudget.budget_liters||0)-(siteBudget.liters_used||0)-(siteBudget.liters_committed||0)),0),
-                    color: ((siteBudget.budget_liters||0)-(siteBudget.liters_used||0)) < 50 ? '#dc2626' : '#16a34a' },
-                  { label:'XAF per L',     value: `XAF ${siteBudget.xaf_per_liter || 828}`,     color:'#374151' },
-                ].map(s => (
-                  <div key={s.label} style={{ textAlign:'center', padding:'10px', background:'#f9fafb', borderRadius:8 }}>
-                    <div style={{ fontSize:20, fontWeight:800, color:s.color }}>{s.value}</div>
-                    <div style={{ fontSize:11, color:'#6b7280', marginTop:3 }}>{s.label}</div>
-                  </div>
-                ))}
+                <KpiCard label="Budget (L)" value={formatNumber(siteBudget.budget_liters, 0)} />
+                <KpiCard label="Used (L)" value={formatNumber(siteBudget.liters_used || 0, 0)} color={urgencyTokens.medium.fg} />
+                <KpiCard label="Committed (L)" value={formatNumber(siteBudget.liters_committed || 0, 0)} color={urgencyTokens.high.fg} />
+                <KpiCard label="Remaining (L)"
+                  value={formatNumber(Math.max(0,(siteBudget.budget_liters||0)-(siteBudget.liters_used||0)-(siteBudget.liters_committed||0)),0)}
+                  tone={((siteBudget.budget_liters||0)-(siteBudget.liters_used||0)) < 50 ? 'crit' : 'ok'} />
+                <KpiCard label="XAF per L" value={`XAF ${siteBudget.xaf_per_liter || 828}`} />
               </div>
               {siteBudget.in_deficit && (
-                <div style={{ marginTop:10, padding:'8px 12px', background:'#fff5f5', border:'1px solid #fca5a5',
-                  borderRadius:8, fontSize:13, color:'#dc2626' }}>
+                <div style={{ marginTop:10, padding:'8px 12px', background: urgencyTokens.critical.bg, border: `1px solid ${statusTokens.danger.border}`,
+                  borderRadius:8, fontSize:13, color: urgencyTokens.critical.fg }}>
                   ⚠️ Site is in <strong>budget deficit</strong> — {formatNumber(siteBudget.deficit_liters,1)}L over allocation.
                 </div>
               )}
@@ -467,34 +459,20 @@ const ConsumptionPage: React.FC = () => {
 
           {/* Summary KPIs */}
           {summary && (
-            <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : isNarrow ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:14 }}>
-              {[
-                { label:'Refueling Events',    value: summary.count,                              color:'#374151', icon:<FiCalendar size={22} color="#6b7280" /> },
-                { label:'Total Fuel Added',    value: `${formatNumber(summary.totalAdded,1)} L`,  color:'#2563eb', icon:<FiDroplet size={22} color="#2563eb" /> },
-                { label:'Total Consumed',      value: `${formatNumber(summary.totalConsumed,1)} L`,color:'#d97706',icon:<FiTrendingUp size={22} color="#d97706" /> },
-                { label:'Total Cost',          value: fmtXAF(summary.totalCost),                  color:'#16a34a', icon:<FiDollarSign size={22} color="#16a34a" /> },
-              ].map(s => (
-                <Card key={s.label}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <div>
-                      <div style={{ fontSize:12, color:'#6b7280' }}>{s.label}</div>
-                      <div style={{ fontSize:22, fontWeight:800, color:s.color, marginTop:4 }}>{s.value}</div>
-                    </div>
-                    {s.icon}
-                  </div>
-                </Card>
-              ))}
+            <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : isNarrow ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:14, marginBottom: 20 }}>
+              <KpiCard label="Refueling Events" value={summary.count} icon="📅" />
+              <KpiCard label="Total Fuel Added" value={`${formatNumber(summary.totalAdded,1)} L`} color={urgencyTokens.medium.fg} icon="💧" />
+              <KpiCard label="Total Consumed" value={`${formatNumber(summary.totalConsumed,1)} L`} color={urgencyTokens.high.fg} icon="📈" />
+              <KpiCard label="Total Cost" value={fmtXAF(summary.totalCost)} color={statusTokens.success.text} icon="💰" />
             </div>
           )}
 
           {/* Refueling events */}
           {events.length === 0 ? (
-            <EmptyState icon={<FiDroplet className="h-12 w-12 text-gray-400" />}
-              title="No refueling records"
-              description={`No completed refueling events found for this site in cycle ${cycleKey}`} />
+            <EmptyState icon="💧" title="No refueling records" desc={`No completed refueling events found for this site in cycle ${cycleKey}`} />
           ) : (
             <div>
-              <h2 style={{ fontWeight:700, fontSize:15, marginBottom:14, color:'#111827' }}>
+              <h2 style={{ fontWeight:700, fontSize:15, marginBottom:14, color:ink }}>
                 {events.length} Refueling Event{events.length !== 1 ? 's' : ''} — {site?.Site_Name || selectedSite}
               </h2>
               {events.map((ev, i) => <RefuelEventCard key={ev.fuel_request?._id || i} event={ev} index={i} />)}

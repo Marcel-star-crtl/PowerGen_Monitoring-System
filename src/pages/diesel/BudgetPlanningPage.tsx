@@ -15,8 +15,8 @@ import {
 import { Modal } from '@/components/common/Modal';
 import { useCycles } from '../../hooks/useDiesel';
 import { budgetPlanningApi, sitesDirectoryApi } from '../../api/dieselApi';
-import { PageHeader, Spinner, ErrorBox, EmptyState, Btn, CycleSelector } from '../../components/diesel/DieselComponents';
-import { neutral, ink, urgency } from '../../styles/dieselTokens';
+import { PageHeader, Spinner, ErrorBox, EmptyState, Btn, CycleSelector, Card, SectionLabel, KpiCard } from '../../components/diesel/DieselComponents';
+import { neutral, ink, urgency, status as statusTokens, font } from '../../styles/dieselTokens';
 
 type PlanSite = {
   site_id: string;
@@ -203,7 +203,7 @@ export default function BudgetPlanningPage() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="🧮 Automated Budget Planning"
         subtitle="Projects your verified engineering formula forward, cross-checked against each site's real recent consumption. Nothing is written until you review and commit."
@@ -214,8 +214,8 @@ export default function BudgetPlanningPage() {
           up front rather than requiring a generated plan first. Distinct
           from the per-site chart below: this is the whole-fleet picture,
           for spotting an overall trend before drilling into any one site. */}
-      <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Fleet-Wide Consumption Trend</div>
+      <Card style={{ marginBottom: 20 }}>
+        <SectionLabel>Fleet-Wide Consumption Trend</SectionLabel>
         {fleetTrendLoading ? (
           <Spinner />
         ) : fleetTrend.length === 0 ? (
@@ -238,14 +238,14 @@ export default function BudgetPlanningPage() {
             </ResponsiveContainer>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Individual site trend — search any site directly, no need to
           generate a full plan first. The plan table's own 📈 button
           (further down) does the same thing for sites already in a
           generated plan; this is for checking one site on its own. */}
-      <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16, marginBottom: 20, position: 'relative' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>View an Individual Site's Trend</div>
+      <Card style={{ marginBottom: 20, position: 'relative' }}>
+        <SectionLabel>View an Individual Site's Trend</SectionLabel>
         <input
           value={siteSearch}
           onChange={e => setSiteSearch(e.target.value)}
@@ -279,10 +279,10 @@ export default function BudgetPlanningPage() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ── Cycle selection / generation ── */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 20, border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16 }}>
+      <Card style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: neutral[500], marginBottom: 4, textTransform: 'uppercase' }}>Target Cycle</div>
           <CycleSelector cycles={cycles} value={selectedKey} onChange={setSelectedKey} />
@@ -304,14 +304,14 @@ export default function BudgetPlanningPage() {
             Cycle "{selectedKey}" doesn't exist yet — you can preview a plan now, but committing requires the cycle to be created first.
           </div>
         )}
-      </div>
+      </Card>
 
       {error && <ErrorBox message={error} />}
 
       {commitResult && (
         <div style={{
           border: `1px solid ${urgency.ok.fg}`, background: urgency.ok.bg, borderRadius: 10,
-          padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#166534',
+          padding: '12px 16px', marginBottom: 20, fontSize: 13, color: statusTokens.success.text,
         }}>
           ✓ Committed {commitResult.written} site budget(s) to {commitResult.cycle_key}.
           {commitResult.errors?.length > 0 && ` ${commitResult.errors.length} error(s) — see console.`}
@@ -323,20 +323,13 @@ export default function BudgetPlanningPage() {
       {!loading && plan && (
         <>
           {/* ── Summary ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 20 }}>
-            {[
-              { label: 'Plannable Sites', value: plan.summary.plannable },
-              { label: 'No Engineering Data', value: plan.summary.unplannable },
-              { label: 'High Confidence', value: plan.summary.high_confidence, color: CONFIDENCE_COLOR.high },
-              { label: 'Medium Confidence', value: plan.summary.medium_confidence, color: CONFIDENCE_COLOR.medium },
-              { label: 'Low Confidence', value: plan.summary.low_confidence, color: CONFIDENCE_COLOR.low },
-              { label: 'Flagged for Review', value: plan.summary.flagged_for_review, color: urgency.high.fg },
-            ].map(box => (
-              <div key={box.label} style={{ border: `1px solid ${neutral[200]}`, borderRadius: 10, padding: 12 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: neutral[400], textTransform: 'uppercase', marginBottom: 4 }}>{box.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: box.color || ink }}>{box.value}</div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+            <KpiCard label="Plannable Sites" value={plan.summary.plannable} />
+            <KpiCard label="No Engineering Data" value={plan.summary.unplannable} />
+            <KpiCard label="High Confidence" value={plan.summary.high_confidence} color={CONFIDENCE_COLOR.high} />
+            <KpiCard label="Medium Confidence" value={plan.summary.medium_confidence} color={CONFIDENCE_COLOR.medium} />
+            <KpiCard label="Low Confidence" value={plan.summary.low_confidence} color={CONFIDENCE_COLOR.low} />
+            <KpiCard label="Flagged for Review" value={plan.summary.flagged_for_review} color={urgency.high.fg} />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -361,7 +354,7 @@ export default function BudgetPlanningPage() {
           </div>
 
           {/* ── Site table ── */}
-          <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, overflow: 'auto', maxHeight: 560, marginBottom: 16 }}>
+          <Card padded={false} style={{ overflow: 'auto', maxHeight: 560, marginBottom: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead style={{ position: 'sticky', top: 0, background: neutral[50], zIndex: 1 }}>
                 <tr>
@@ -372,7 +365,7 @@ export default function BudgetPlanningPage() {
               </thead>
               <tbody>
                 {filtered.map(s => (
-                  <tr key={s.site_id} style={{ borderBottom: `1px solid ${neutral[100]}`, background: s.flag ? '#fffbeb' : undefined }}>
+                  <tr key={s.site_id} style={{ borderBottom: `1px solid ${neutral[100]}`, background: s.flag ? statusTokens.warning.bg : undefined }}>
                     <td style={{ padding: '7px 10px' }}>
                       <div style={{ fontWeight: 600 }}>{s.site_name || s.site_id}</div>
                       <div style={{ color: neutral[400], fontSize: 10 }}>{s.site_id}</div>
@@ -395,7 +388,7 @@ export default function BudgetPlanningPage() {
                       <span style={{ color: CONFIDENCE_COLOR[s.confidence || ''] || neutral[500], fontWeight: 700, textTransform: 'capitalize' }}>
                         {s.confidence || '—'}
                       </span>
-                      {s.flag && <div title={s.flag} style={{ fontSize: 10, color: '#92400e', marginTop: 2, maxWidth: 220 }}>{s.flag}</div>}
+                      {s.flag && <div title={s.flag} style={{ fontSize: 10, color: statusTokens.warning.text, marginTop: 2, maxWidth: 220 }}>{s.flag}</div>}
                     </td>
                     <td style={{ padding: '7px 10px' }}>
                       <input
@@ -423,15 +416,15 @@ export default function BudgetPlanningPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
 
           {unplannable.length > 0 && (
-            <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 14, marginBottom: 20, fontSize: 12 }}>
+            <Card style={{ marginBottom: 20, fontSize: 12 }}>
               <div style={{ fontWeight: 700, marginBottom: 6 }}>{unplannable.length} site(s) skipped — no engineering data on file</div>
               <div style={{ color: neutral[500] }}>
                 {unplannable.slice(0, 15).map(s => s.site_id).join(', ')}{unplannable.length > 15 ? ` … and ${unplannable.length - 15} more` : ''}
               </div>
-            </div>
+            </Card>
           )}
 
           <Btn variant="primary" onClick={handleCommit} loading={committing} disabled={sites.length === 0}>
@@ -492,7 +485,7 @@ export default function BudgetPlanningPage() {
                 exactly: which blend weights were applied, and why,
                 rather than leaving the recommended figure looking like a
                 black box. */}
-            <div style={{ marginTop: 16, border: `1px solid ${neutral[200]}`, borderRadius: 10, padding: 14 }}>
+            <Card style={{ marginTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>How this number was calculated</div>
 
               <div style={{ fontSize: 12, color: neutral[600], marginBottom: 4 }}>
@@ -553,11 +546,11 @@ export default function BudgetPlanningPage() {
               </div>
 
               {viewingHistorySite.flag && (
-                <div style={{ marginTop: 10, fontSize: 11, color: '#92400e', background: '#fffbeb', borderRadius: 6, padding: '6px 10px' }}>
+                <div style={{ marginTop: 10, fontSize: 11, color: statusTokens.warning.text, background: statusTokens.warning.bg, borderRadius: 6, padding: '6px 10px' }}>
                   ⚠ {viewingHistorySite.flag}
                 </div>
               )}
-            </div>
+            </Card>
 
             <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 12, color: neutral[600] }}>
               <div>Confidence: <strong style={{ color: CONFIDENCE_COLOR[viewingHistorySite.confidence || ''] }}>{viewingHistorySite.confidence || '—'}</strong></div>

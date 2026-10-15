@@ -13,9 +13,9 @@ import * as XLSX from 'xlsx';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { sitesDirectoryApi } from '../../api/dieselApi';
 import {
-  PageHeader, Spinner, ErrorBox, EmptyState, Btn,
+  PageHeader, Spinner, ErrorBox, EmptyState, Btn, Card, SectionLabel,
 } from '../../components/diesel/DieselComponents';
-import { neutral, ink } from '../../styles/dieselTokens';
+import { neutral, ink, font } from '../../styles/dieselTokens';
 
 type SiteRow = {
   IHS_ID_SITE: string;
@@ -202,15 +202,15 @@ export default function SiteDirectoryPage() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="📋 Site Directory"
         subtitle="Filter and extract site data at any point — not tied to a billing cycle. Filter, then export exactly the columns you need."
       />
 
       {/* ── Filters ── */}
-      <div style={{
-        border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16, marginBottom: 16,
+      <Card style={{
+        marginBottom: 16,
         display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : 'repeat(4, 1fr)', gap: 12,
       }}>
         <div>
@@ -278,12 +278,12 @@ export default function SiteDirectoryPage() {
           </Btn>
           <Btn variant="secondary" size="sm" onClick={resetFilters}>Reset</Btn>
         </div>
-      </div>
+      </Card>
 
       {/* ── Export column picker ── */}
-      <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+      <Card style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: ink }}>Export Columns</span>
+          <SectionLabel style={{ marginBottom: 0, fontSize: 13, textTransform: 'none', letterSpacing: 0, color: ink, fontWeight: 700 }}>Export Columns</SectionLabel>
           <Btn variant="primary" size="sm" onClick={handleExport} disabled={sites.length === 0 || selectedFields.size === 0}>
             ⬇ Export {sites.length} site{sites.length === 1 ? '' : 's'} to Excel
           </Btn>
@@ -307,7 +307,7 @@ export default function SiteDirectoryPage() {
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
       {error && <ErrorBox message={error} onRetry={runQuery} />}
 
@@ -316,7 +316,7 @@ export default function SiteDirectoryPage() {
       ) : !hasSearched || sites.length === 0 ? (
         <EmptyState icon="📋" title="No sites match these filters" desc="Try widening your filters, or reset them to see the full directory." />
       ) : (
-        <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 12, overflow: 'auto', maxHeight: 520 }}>
+        <Card padded={false} style={{ overflow: 'auto', maxHeight: 520 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, background: neutral[50], zIndex: 1 }}>
               <tr>
@@ -342,7 +342,7 @@ export default function SiteDirectoryPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
 
       <div style={{ marginTop: 12, fontSize: 12, color: neutral[500] }}>

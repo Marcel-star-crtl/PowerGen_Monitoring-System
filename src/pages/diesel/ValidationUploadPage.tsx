@@ -35,9 +35,10 @@ import {
   useFileUpload, useValidationUploads, useValidationStats,
 } from '../../hooks/useDiesel';
 import {
-  PageHeader, UploadZone, KpiCard,
-  fmtNum, fmtDate, Spinner, ErrorBox, EmptyState, Btn, StatusPill, 
+  PageHeader, UploadZone, KpiCard, Card, SectionLabel,
+  fmtNum, fmtDate, Spinner, ErrorBox, EmptyState, Btn, StatusPill,
 } from '../../components/diesel/DieselComponents';
+import { neutral, ink, status as statusTokens, urgency as urgencyTokens, font } from '../../styles/dieselTokens';
 
 export default function ValidationUploadPage() {
   const { isNarrow } = useBreakpoint();
@@ -65,7 +66,7 @@ export default function ValidationUploadPage() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="✅ GRATO Validation Upload"
         subtitle="Upload the monthly Validation Template — updates each site's contractual CPH and KVA from the validated figures, and imports the visit-level Main sheet."
@@ -83,7 +84,7 @@ export default function ValidationUploadPage() {
           />
 
           {/* Info box — same blue-info convention as GratoUploadPage's box */}
-          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '10px 14px', marginTop: 12, fontSize: 12, color: '#0369a1', lineHeight: 1.6 }}>
+          <div style={{ background: statusTokens.info.bg, border: `1px solid ${statusTokens.info.border}`, borderRadius: 8, padding: '10px 14px', marginTop: 12, fontSize: 12, color: statusTokens.info.text, lineHeight: 1.6 }}>
             <strong>What this upload does:</strong><br />
             • <strong>Validation sheet</strong> → updates each site's contractual CPH and KVA
             (<strong>Final DG CPH</strong> / <strong>Final DG</strong>) for the cycle derived from
@@ -98,15 +99,15 @@ export default function ValidationUploadPage() {
 
           {importResult && (
             <div style={{
-              marginTop: 14, background: '#dcfce7', border: '1px solid #bbf7d0',
+              marginTop: 14, background: statusTokens.success.bg, border: `1px solid ${statusTokens.success.border}`,
               borderRadius: 10, padding: '14px 18px',
             }}>
-              <p style={{ fontWeight: 600, color: '#166534', margin: '0 0 10px' }}>✅ Import Complete</p>
+              <p style={{ fontWeight: 600, color: statusTokens.success.text, margin: '0 0 10px' }}>✅ Import Complete</p>
 
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#166534', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: statusTokens.success.text, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
                 Validation sheet
               </p>
-              <div style={{ fontSize: 12, color: '#166534', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: statusTokens.success.text, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginBottom: 10 }}>
                 <span>Rows processed:</span><strong>{importResult.validation.rows_total}</strong>
                 <span>Imported:</span><strong>{importResult.validation.rows_imported}</strong>
                 <span>Skipped (dup):</span><strong>{importResult.validation.rows_skipped}</strong>
@@ -114,17 +115,17 @@ export default function ValidationUploadPage() {
                 <span>Cycle(s) touched:</span><strong>{importResult.validation.cycles_touched?.join(', ') || '—'}</strong>
               </div>
 
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#166534', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: statusTokens.success.text, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 0.4 }}>
                 Main sheet
               </p>
-              <div style={{ fontSize: 12, color: '#166534', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+              <div style={{ fontSize: 12, color: statusTokens.success.text, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                 <span>Rows processed:</span><strong>{importResult.main.rows_total}</strong>
                 <span>Imported:</span><strong>{importResult.main.rows_imported}</strong>
                 <span>Skipped (dup):</span><strong>{importResult.main.rows_skipped}</strong>
                 <span>Technician links:</span><strong>{importResult.main.technician_links}</strong>
               </div>
 
-              <div style={{ marginTop: 10, fontSize: 12, color: importResult.error_count > 0 ? '#dc2626' : '#166534' }}>
+              <div style={{ marginTop: 10, fontSize: 12, color: importResult.error_count > 0 ? statusTokens.danger.text : statusTokens.success.text }}>
                 Errors: <strong>{importResult.error_count}</strong>
               </div>
 
@@ -132,7 +133,7 @@ export default function ValidationUploadPage() {
                 <details style={{ marginTop: 8 }}>
                   <summary style={{ fontSize: 11, cursor: 'pointer' }}>Show errors</summary>
                   {importResult.errors.map((e: string, i: number) => (
-                    <p key={i} style={{ fontSize: 11, color: '#7f1d1d', margin: '2px 0' }}>{e}</p>
+                    <p key={i} style={{ fontSize: 11, color: statusTokens.danger.text, margin: '2px 0' }}>{e}</p>
                   ))}
                 </details>
               )}
@@ -141,9 +142,9 @@ export default function ValidationUploadPage() {
         </div>
 
         {/* ── Upload history ── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18, overflow: 'hidden' }}>
+        <Card style={{ padding: 18, overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Upload History</h3>
+            <SectionLabel style={{ marginBottom: 0 }}>Upload History</SectionLabel>
             <Btn size="sm" variant="ghost" onClick={refetchUploads}>↻ Refresh</Btn>
           </div>
           {uploadsLoading ? <Spinner size={24} /> : uploadList.length === 0 ? (
@@ -152,9 +153,9 @@ export default function ValidationUploadPage() {
             <div style={{ maxHeight: 380, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb' }}>
+                  <tr style={{ background: neutral[50] }}>
                     {['Filename', 'Status', 'Main Rows', 'Validation Rows', 'Budgets Updated', 'Cycles', 'Uploaded By', 'When'].map(h => (
-                      <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, color: '#6b7280', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, color: neutral[500], borderBottom: `1px solid ${neutral[200]}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -162,7 +163,7 @@ export default function ValidationUploadPage() {
                   {uploadList.map((u: any) => (
                     <tr
                       key={u._id}
-                      style={{ borderBottom: '1px solid #f3f4f6', cursor: u.validation_cycles_touched?.length ? 'pointer' : 'default' }}
+                      style={{ borderBottom: `1px solid ${neutral[100]}`, cursor: u.validation_cycles_touched?.length ? 'pointer' : 'default' }}
                       onClick={() => u.validation_cycles_touched?.[0] && setStatsCycle(u.validation_cycles_touched[0])}
                     >
                       <td style={{ padding: '6px 10px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.filename}</td>
@@ -170,23 +171,23 @@ export default function ValidationUploadPage() {
                       <td style={{ padding: '6px 10px', textAlign: 'center' }}>{u.main_rows_imported}/{u.main_rows_total}</td>
                       <td style={{ padding: '6px 10px', textAlign: 'center' }}>{u.validation_rows_imported}/{u.validation_rows_total}</td>
                       <td style={{ padding: '6px 10px', textAlign: 'center' }}>{u.site_budgets_updated}</td>
-                      <td style={{ padding: '6px 10px', color: '#6b7280' }}>{(u.validation_cycles_touched || []).join(', ') || '—'}</td>
-                      <td style={{ padding: '6px 10px', color: '#6b7280' }}>{u.uploaded_by?.fullName || '—'}</td>
-                      <td style={{ padding: '6px 10px', color: '#9ca3af', fontSize: 11 }}>{fmtDate(u.createdAt)}</td>
+                      <td style={{ padding: '6px 10px', color: neutral[500] }}>{(u.validation_cycles_touched || []).join(', ') || '—'}</td>
+                      <td style={{ padding: '6px 10px', color: neutral[500] }}>{u.uploaded_by?.fullName || '—'}</td>
+                      <td style={{ padding: '6px 10px', color: neutral[400], fontSize: 11 }}>{fmtDate(u.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── Stats for the selected cycle ── */}
       {statsCycle && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Validation Summary — {statsCycle}</h2>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: ink }}>Validation Summary — {statsCycle}</h2>
             <Btn size="sm" variant="ghost" onClick={refetchStats}>↻ Refresh</Btn>
           </div>
 
@@ -194,99 +195,100 @@ export default function ValidationUploadPage() {
 
           {statsData && !statsLoading && (
             <>
-              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14, marginBottom: 24 }}>
                 <KpiCard label="Sites Validated" value={statsData.totals?.sites || 0} icon="📍" />
                 <KpiCard label="Total Final RH" value={fmtNum(statsData.totals?.total_final_rh, 0)} icon="⏱️" />
                 <KpiCard label="Total Final Consumption (L)" value={fmtNum(statsData.totals?.total_final_cons)} icon="⛽" />
                 <KpiCard label="Total Management Amount" value={fmtNum(statsData.totals?.total_management_amount, 0)} icon="💰" />
-                <KpiCard label="DG KVA Mismatches" value={statsData.totals?.dg_check_mismatches || 0} icon="⚠️" />
+                <KpiCard label="DG KVA Mismatches" value={statsData.totals?.dg_check_mismatches || 0} icon="⚠️"
+                  tone={(statsData.totals?.dg_check_mismatches || 0) > 0 ? 'warn' : undefined} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
                 {/* By cluster */}
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
-                  <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>Final Consumption by Cluster (L)</h3>
+                <Card>
+                  <SectionLabel>Final Consumption by Cluster (L)</SectionLabel>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={statsData.by_cluster || []} margin={{ left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={neutral[100]} />
                       <XAxis dataKey="cluster" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={55} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <Tooltip formatter={(v: any) => fmtNum(v) + ' L'} />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="total_final_cons" fill="#2563eb" name="Final Cons (L)" radius={[4,4,0,0]} />
+                      <Bar dataKey="total_final_cons" fill={urgencyTokens.medium.fg} name="Final Cons (L)" radius={[4,4,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
+                </Card>
 
                 {/* DG KVA mismatches */}
-                <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
-                  <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>
-                    DG KVA Mismatches
-                    <span style={{ marginLeft: 8, background: '#fee2e2', color: '#991b1b', borderRadius: 8, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
+                <Card>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+                    <SectionLabel style={{ marginBottom: 0 }}>DG KVA Mismatches</SectionLabel>
+                    <span style={{ marginLeft: 8, background: statusTokens.danger.bg, color: statusTokens.danger.text, borderRadius: 8, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
                       {statsData.dg_check_mismatches?.length || 0}
                     </span>
-                  </h3>
+                  </div>
                   {(!statsData.dg_check_mismatches || statsData.dg_check_mismatches.length === 0) ? (
                     <EmptyState icon="✅" title="No mismatches" desc="SBC-recorded KVA matched the validated value for every site" />
                   ) : (
                     <div style={{ maxHeight: 200, overflowY: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                         <thead>
-                          <tr style={{ background: '#f9fafb' }}>
+                          <tr style={{ background: neutral[50] }}>
                             {['Site', 'SBC KVA', 'Final KVA', 'Resolution'].map(h => (
-                              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
+                              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, color: neutral[500], borderBottom: `1px solid ${neutral[200]}` }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {statsData.dg_check_mismatches.map((m: any) => (
-                            <tr key={m.site_id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <tr key={m.site_id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
                               <td style={{ padding: '6px 10px', fontWeight: 600 }}>{m.site_id}</td>
-                              <td style={{ padding: '6px 10px', textAlign: 'right' }}>{m.sbc_dg_kva}</td>
-                              <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600, color: '#dc2626' }}>{m.final_dg_kva}</td>
-                              <td style={{ padding: '6px 10px', color: '#6b7280', fontSize: 11 }}>{m.dg_comment}</td>
+                              <td style={{ padding: '6px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{m.sbc_dg_kva}</td>
+                              <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600, color: urgencyTokens.critical.fg, fontVariantNumeric: 'tabular-nums' }}>{m.final_dg_kva}</td>
+                              <td style={{ padding: '6px 10px', color: neutral[500], fontSize: 11 }}>{m.dg_comment}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   )}
-                </div>
+                </Card>
               </div>
 
               {/* CMS vs Field top variances */}
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
-                <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 600 }}>Largest CMS vs Field RH Variances</h3>
+              <Card>
+                <SectionLabel>Largest CMS vs Field RH Variances</SectionLabel>
                 {(!statsData.cms_vs_field_top || statsData.cms_vs_field_top.length === 0) ? (
                   <EmptyState icon="✅" title="No variances" desc="CMS and field RH agreed for every validated site" />
                 ) : (
                   <div style={{ overflowX: 'auto', maxHeight: 420, overflowY: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                      <thead style={{ position: 'sticky', top: 0, background: '#f9fafb' }}>
+                      <thead style={{ position: 'sticky', top: 0, background: neutral[50] }}>
                         <tr>
                           {['Site', 'CMS RH', 'Final RH', 'Variance', 'Comment'].map(h => (
-                            <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 11, color: '#6b7280', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                            <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 11, color: neutral[500], borderBottom: `1px solid ${neutral[200]}`, whiteSpace: 'nowrap' }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {statsData.cms_vs_field_top.map((r: any) => (
-                          <tr key={r.site_id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                          <tr key={r.site_id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
                             <td style={{ padding: '6px 10px', fontWeight: 600, fontSize: 11 }}>{r.site_id}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'right' }}>{r.cms_rh != null ? fmtNum(r.cms_rh) : '—'}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'right' }}>{fmtNum(r.final_rh)}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.cms_rh != null ? fmtNum(r.cms_rh) : '—'}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtNum(r.final_rh)}</td>
                             <td style={{
-                              padding: '6px 10px', textAlign: 'right', fontWeight: 600,
-                              color: Math.abs(r.cms_vs_field) > 50 ? '#dc2626' : '#374151',
+                              padding: '6px 10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+                              color: Math.abs(r.cms_vs_field) > 50 ? urgencyTokens.critical.fg : neutral[700],
                             }}>{fmtNum(r.cms_vs_field)}</td>
-                            <td style={{ padding: '6px 10px', color: '#6b7280', fontSize: 11 }}>{r.cms_vs_field_comment || '—'}</td>
+                            <td style={{ padding: '6px 10px', color: neutral[500], fontSize: 11 }}>{r.cms_vs_field_comment || '—'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 )}
-              </div>
+              </Card>
             </>
           )}
         </>

@@ -170,6 +170,31 @@ export interface ClusterSummary {
   total_alerts: number;
 }
 
+// ─── Technician Integrity ────────────────────────────────────────────────────
+// Fleet-wide, per-technician cut of the same flagged-visit/variance data
+// Reconciliation already computes per site — see technicianIntegrityService.js
+// on the backend. "Flagged" = this visit's site+cycle has a data-quality
+// alert (rh_mismatch / consumption_over_ccph / theft_suspected /
+// refuel_mismatch); avg_variance_pct is that site-cycle's cons_variance_pct,
+// averaged across the technician's visits.
+export interface TechnicianIntegrityRow {
+  technician: string | null; // User._id, when name resolution matched a system account
+  technician_name: string;
+  visits: number;
+  flagged_count: number;
+  flagged_rate_pct: number;
+  avg_variance_pct: number | null;
+  pattern: 'above' | 'normal';
+}
+export interface TechnicianIntegritySummary {
+  cycle_key: string;
+  visits_analyzed: number;
+  fleet_avg_flagged_rate_pct: number;
+  highest_outlier: TechnicianIntegrityRow | null;
+  technicians: TechnicianIntegrityRow[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
 // ─── CMS ─────────────────────────────────────────────────────────────────────
 export interface CmsUpload {
   _id: string;

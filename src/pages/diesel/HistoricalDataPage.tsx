@@ -12,9 +12,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts';
-import { historicalDataApi } from '../../api/dieselApi';
+import { historicalDataApi, reportsApi } from '../../api/dieselApi';
 import { PageHeader, Spinner, ErrorBox, EmptyState, Btn } from '../../components/diesel/DieselComponents';
-import { neutral, ink, urgency } from '../../styles/dieselTokens';
+import { neutral, ink, urgency, font } from '../../styles/dieselTokens';
 
 function fmt(n: number | null | undefined, decimals = 0) {
   if (n == null) return '—';
@@ -28,10 +28,44 @@ function monthLabel(key: string) {
 }
 const CLUSTER_COLORS = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#db2777'];
 
+// Extra-fuel (ad-hoc/emergency) request decision status — shared between
+// the Complete Monthly Summary table and the Ad-Hoc Month-by-Month
+// section, since both now surface the same isolated, per-request detail
+// rather than only a merged total. Kept as one lookup so the two views
+// can't drift into describing the same status differently.
+const EXTRA_FUEL_STATUS: Record<string, { label: string; fg: string; bg: string }> = {
+  approved: { label: 'Approved', fg: '#16a34a', bg: '#f0fdf4' },
+  rejected: { label: 'Rejected (0 L)', fg: '#dc2626', bg: '#fef2f2' },
+  delivered: { label: 'Delivered (confirmed)', fg: '#2563eb', bg: '#eff6ff' },
+  pending: { label: 'Pending — no decision recorded', fg: '#d97706', bg: '#fffbeb' },
+};
+function extraFuelStatusMeta(status: string) {
+  return EXTRA_FUEL_STATUS[status] || EXTRA_FUEL_STATUS.pending;
+}
+
 export default function HistoricalDataPage() {
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 152 — same export as History Analysis's own button; kept here
+  // too since this page's own Complete Monthly Summary is one of the four
+  // reports the workbook covers, and it's the one report that lives only
+  // on this page, not on History Analysis.
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  async function handleExportExcel() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const filename = `PowerGen_Historical_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      await reportsApi.downloadFile(historicalDataApi.exportExcelPath(), filename);
+    } catch (err: any) {
+      setExportError(err?.message || 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const [selectedMonth, setSelectedMonth] = useState('');
   const [reserves, setReserves] = useState<any[]>([]);
@@ -48,6 +82,7 @@ export default function HistoricalDataPage() {
   const [adhoc, setAdhoc] = useState<any>(null);
   const [adhocLoading, setAdhocLoading] = useState(true);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [expandedAdhocSite, setExpandedAdhocSite] = useState<string | null>(null);
 
   const [midCycle, setMidCycle] = useState<any>(null);
   const [midCycleLoading, setMidCycleLoading] = useState(true);
@@ -70,6 +105,7 @@ export default function HistoricalDataPage() {
   const [fullSummaryLoading, setFullSummaryLoading] = useState(true);
   const [fullSummaryMonth, setFullSummaryMonth] = useState('2026-07');
   const [fullSummaryQuery, setFullSummaryQuery] = useState('');
+  const [expandedExtraFuelSite, setExpandedExtraFuelSite] = useState<string | null>(null);
 
   const [tomCard, setTomCard] = useState<any>(null);
   const [tomCardLoading, setTomCardLoading] = useState(true);
@@ -250,10 +286,18 @@ export default function HistoricalDataPage() {
   }));
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1300, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="📜 Historical Data (Recovered)"
         subtitle="Real budget, consumption, and reserve data recovered from email archives — December 2025 onward, from before this system existed."
+        actions={
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <Btn size="sm" onClick={handleExportExcel} loading={exporting}>
+              📊 Export to Excel
+            </Btn>
+            {exportError && <span style={{ fontSize: 11, color: urgency.critical.fg }}>{exportError}</span>}
+          </div>
+        }
       />
 
       {/* ── Complete Monthly Summary — request, approved, extra fuel, consumed, reserve, per site. Debit/credit is fleet-level only, shown separately, not fabricated per site. ── */}
@@ -266,7 +310,7 @@ export default function HistoricalDataPage() {
           </select>
         </div>
         <div style={{ fontSize: 12, color: neutral[600], marginBottom: 10 }}>
-          Every column reflects real recovered data for the selected month — a blank cell means that specific source genuinely doesn't cover this site this month, not zero. "Extra Fuel" only has real values for late July–early August 2026 (the recovered shortage-response window). Debit/credit is fleet-wide, not per-site — shown as its own line below the table, not blended into it.
+          Every column reflects real recovered data for the selected month — a blank cell means that specific source genuinely doesn't cover this site this month, not zero. "Extra Fuel" covers every month December 2025 through August 2026 now — a site can have more than one separate request that month; click its figure to see each one isolated, before it was merged into the total shown here. Debit/credit is fleet-wide, not per-site — shown as its own line below the table, not blended into it.
         </div>
 
         {fullSummaryLoading ? <Spinner /> : !fullSummary?.sites?.length ? (
@@ -297,29 +341,92 @@ export default function HistoricalDataPage() {
                 <tbody>
                   {fullSummary.sites
                     .filter((s: any) => !fullSummaryQuery.trim() || (s.site_name || '').toLowerCase().includes(fullSummaryQuery.toLowerCase()) || s.site_id.toLowerCase().includes(fullSummaryQuery.toLowerCase()))
-                    .map((s: any) => (
-                      <tr key={s.site_id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
-                        <td style={{ padding: '6px 9px' }}>
-                          <div style={{ fontWeight: 600 }}>{s.site_name || s.site_id}</div>
-                          <div style={{ color: neutral[400], fontSize: 10 }}>{s.site_id}</div>
-                        </td>
-                        <td style={{ padding: '6px 9px' }}>{s.cluster || '—'}</td>
-                        <td style={{ padding: '6px 9px' }}>{s.requested_l != null ? fmt(s.requested_l) : '—'}</td>
-                        <td style={{ padding: '6px 9px' }}>{s.approved_l != null ? fmt(s.approved_l) : '—'}</td>
-                        <td style={{ padding: '6px 9px', color: s.extra_fuel_l ? urgency.high.fg : neutral[400], fontWeight: s.extra_fuel_l ? 700 : 400 }}>
-                          {s.extra_fuel_l != null ? `${fmt(s.extra_fuel_l)}${s.extra_fuel_requests ? ` (${s.extra_fuel_requests})` : ''}` : '—'}
-                        </td>
-                        <td style={{ padding: '6px 9px' }}>{s.consumed_l != null ? fmt(s.consumed_l) : '—'}</td>
-                        <td style={{ padding: '6px 9px', fontWeight: 700, color: s.reserve_l != null && s.reserve_l < 0 ? urgency.critical.fg : ink }}>
-                          {s.reserve_l != null ? fmt(s.reserve_l) : '—'}
-                        </td>
-                        <td style={{ padding: '6px 9px' }}>
-                          {s.fully_exhausted === true ? <span style={{ color: urgency.critical.fg, fontWeight: 700 }}>Exhausted</span>
-                            : s.fully_exhausted === false ? <span style={{ color: urgency.ok.fg, fontWeight: 700 }}>Has Reserve</span>
-                            : '—'}
-                        </td>
-                      </tr>
-                    ))}
+                    .map((s: any) => {
+                      const hasDetail = (s.extra_fuel_detail || []).length > 0;
+                      const isExpanded = expandedExtraFuelSite === s.site_id;
+                      return (
+                        <React.Fragment key={s.site_id}>
+                          <tr style={{ borderBottom: isExpanded ? 'none' : `1px solid ${neutral[100]}` }}>
+                            <td style={{ padding: '6px 9px' }}>
+                              <div style={{ fontWeight: 600 }}>{s.site_name || s.site_id}</div>
+                              <div style={{ color: neutral[400], fontSize: 10 }}>{s.site_id}</div>
+                            </td>
+                            <td style={{ padding: '6px 9px' }}>{s.cluster || '—'}</td>
+                            <td style={{ padding: '6px 9px' }}>{s.requested_l != null ? fmt(s.requested_l) : '—'}</td>
+                            <td style={{ padding: '6px 9px' }}>{s.approved_l != null ? fmt(s.approved_l) : '—'}</td>
+                            <td style={{ padding: '6px 9px' }}>
+                              {s.extra_fuel_l == null ? <span style={{ color: neutral[400] }}>—</span> : (
+                                <button
+                                  onClick={() => hasDetail && setExpandedExtraFuelSite(isExpanded ? null : s.site_id)}
+                                  title={hasDetail ? 'Click to see each request isolated, before merging' : undefined}
+                                  style={{
+                                    background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', textAlign: 'left',
+                                    cursor: hasDetail ? 'pointer' : 'default', color: urgency.high.fg, fontWeight: 700,
+                                  }}
+                                >
+                                  <div>
+                                    {fmt(s.extra_fuel_l)}{s.extra_fuel_requests ? ` (${s.extra_fuel_requests})` : ''}
+                                    {hasDetail && <span style={{ marginLeft: 5, color: neutral[400], fontWeight: 400 }}>{isExpanded ? '▲' : '▼'}</span>}
+                                  </div>
+                                  {(s.extra_fuel_approved_count || s.extra_fuel_delivered_count || s.extra_fuel_rejected_count || s.extra_fuel_pending_count) ? (
+                                    <div style={{ fontSize: 10, fontWeight: 400, marginTop: 1, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                      {!!s.extra_fuel_approved_count && <span style={{ color: EXTRA_FUEL_STATUS.approved.fg }}>{s.extra_fuel_approved_count} appr.</span>}
+                                      {!!s.extra_fuel_delivered_count && <span style={{ color: EXTRA_FUEL_STATUS.delivered.fg }}>{s.extra_fuel_delivered_count} deliv.</span>}
+                                      {!!s.extra_fuel_rejected_count && <span style={{ color: EXTRA_FUEL_STATUS.rejected.fg }}>{s.extra_fuel_rejected_count} rej.</span>}
+                                      {!!s.extra_fuel_pending_count && <span style={{ color: neutral[400] }}>{s.extra_fuel_pending_count} pending</span>}
+                                    </div>
+                                  ) : null}
+                                </button>
+                              )}
+                            </td>
+                            <td style={{ padding: '6px 9px' }}>{s.consumed_l != null ? fmt(s.consumed_l) : '—'}</td>
+                            <td style={{ padding: '6px 9px', fontWeight: 700, color: s.reserve_l != null && s.reserve_l < 0 ? urgency.critical.fg : ink }}>
+                              {s.reserve_l != null ? fmt(s.reserve_l) : '—'}
+                            </td>
+                            <td style={{ padding: '6px 9px' }}>
+                              {s.fully_exhausted === true ? <span style={{ color: urgency.critical.fg, fontWeight: 700 }}>Exhausted</span>
+                                : s.fully_exhausted === false ? <span style={{ color: urgency.ok.fg, fontWeight: 700 }}>Has Reserve</span>
+                                : '—'}
+                            </td>
+                          </tr>
+                          {isExpanded && hasDetail && (
+                            <tr style={{ borderBottom: `1px solid ${neutral[100]}` }}>
+                              <td colSpan={8} style={{ padding: '2px 9px 10px 30px', background: neutral[50] }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: neutral[500], textTransform: 'uppercase', margin: '6px 0 4px' }}>
+                                  Isolated — every request for {s.site_name || s.site_id} this month, before merging into the total above
+                                </div>
+                                <table style={{ width: '100%', maxWidth: 620, borderCollapse: 'collapse', fontSize: 11 }}>
+                                  <thead>
+                                    <tr>
+                                      {['Round', 'Date', 'Requested (L)', 'Approved (L)', 'Delivered (L)', 'Status'].map(h => (
+                                        <th key={h} style={{ textAlign: 'left', padding: '4px 8px', color: neutral[400], fontWeight: 600 }}>{h}</th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {s.extra_fuel_detail.map((d: any, i: number) => {
+                                      const meta = extraFuelStatusMeta(d.status);
+                                      return (
+                                        <tr key={i}>
+                                          <td style={{ padding: '3px 8px' }}>{d.request_round || '—'}</td>
+                                          <td style={{ padding: '3px 8px' }}>{String(d.planned_date).slice(0, 10)}</td>
+                                          <td style={{ padding: '3px 8px' }}>{fmt(d.requested_l)}</td>
+                                          <td style={{ padding: '3px 8px' }}>{d.approved_l != null ? fmt(d.approved_l) : '—'}</td>
+                                          <td style={{ padding: '3px 8px' }}>{d.delivered_l != null ? fmt(d.delivered_l) : '—'}</td>
+                                          <td style={{ padding: '3px 8px' }}>
+                                            <span style={{ color: meta.fg, background: meta.bg, borderRadius: 6, padding: '2px 6px', fontWeight: 600, fontSize: 10 }}>{meta.label}</span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -743,9 +850,12 @@ export default function HistoricalDataPage() {
                     Reflects the real, checked coverage of the recovered source data — not every month's ad-hoc/extra
                     fuel requests were recoverable as structured data (e.g. April's "2nd Extra Fuel Request" email
                     thread exists but has no attachment, only a dispute over data quality). Where a month's source
-                    tracked approval and actual delivery separately from the request itself (currently only March
-                    2026), those figures are shown alongside the request — other months only ever had the request
-                    figure to recover in the first place.
+                    tracked approval and actual delivery separately from the request itself (December 2025 through
+                    July 2026 now, plus March in full detail), those figures are shown alongside the request —
+                    months without that column in the source only ever had the request figure to recover in the
+                    first place. A site can be asked for extra fuel more than once in the same month, across
+                    separate rounds — click a site below to see each of its requests isolated, exactly as
+                    submitted, before they were merged into the row's total.
                   </div>
                   <div style={{ border: `1px solid ${neutral[200]}`, borderRadius: 10, overflow: 'hidden' }}>
                     {(adhoc.by_month || []).map((m: any) => (
@@ -772,25 +882,71 @@ export default function HistoricalDataPage() {
                               <thead>
                                 <tr>
                                   {(m.has_approval_data
-                                    ? ['Site', 'Cluster', 'Requested (L)', 'Approved (L)', 'Delivered (L)', 'Requests', 'Dates']
-                                    : ['Site', 'Cluster', 'Total (L)', 'Requests', 'Dates']
+                                    ? ['Site', 'Cluster', 'Requested (L)', 'Approved (L)', 'Delivered (L)', 'Requests', '']
+                                    : ['Site', 'Cluster', 'Total (L)', 'Requests', 'Dates', '']
                                   ).map(h => (
                                     <th key={h} style={{ textAlign: 'left', padding: '6px 8px', borderBottom: `1px solid ${neutral[200]}`, color: neutral[500] }}>{h}</th>
                                   ))}
                                 </tr>
                               </thead>
                               <tbody>
-                                {(m.sites || []).map((s: any) => (
-                                  <tr key={s.site_id} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
-                                    <td style={{ padding: '5px 8px' }}>{s.site_name || s.site_id}</td>
-                                    <td style={{ padding: '5px 8px' }}>{s.cluster || '—'}</td>
-                                    <td style={{ padding: '5px 8px', fontWeight: 700 }}>{fmt(s.total_l)}</td>
-                                    {m.has_approval_data && <td style={{ padding: '5px 8px' }}>{s.approved_l != null ? fmt(s.approved_l) : '—'}</td>}
-                                    {m.has_approval_data && <td style={{ padding: '5px 8px' }}>{s.delivered_l != null ? fmt(s.delivered_l) : '—'}</td>}
-                                    <td style={{ padding: '5px 8px' }}>{s.request_count}</td>
-                                    <td style={{ padding: '5px 8px', color: neutral[400] }}>{(s.dates || []).join(', ')}</td>
-                                  </tr>
-                                ))}
+                                {(m.sites || []).map((s: any) => {
+                                  const rowKey = `${m.month_key}::${s.site_id}`;
+                                  const isOpen = expandedAdhocSite === rowKey;
+                                  const canExpand = s.request_count > 1 || m.has_approval_data;
+                                  return (
+                                    <React.Fragment key={s.site_id}>
+                                      <tr
+                                        style={{ borderBottom: isOpen ? 'none' : `1px solid ${neutral[100]}`, cursor: canExpand ? 'pointer' : 'default' }}
+                                        onClick={() => canExpand && setExpandedAdhocSite(isOpen ? null : rowKey)}
+                                      >
+                                        <td style={{ padding: '5px 8px' }}>{s.site_name || s.site_id}</td>
+                                        <td style={{ padding: '5px 8px' }}>{s.cluster || '—'}</td>
+                                        <td style={{ padding: '5px 8px', fontWeight: 700 }}>{fmt(s.total_l)}</td>
+                                        {m.has_approval_data && <td style={{ padding: '5px 8px' }}>{s.approved_l != null ? fmt(s.approved_l) : '—'}</td>}
+                                        {m.has_approval_data && <td style={{ padding: '5px 8px' }}>{s.delivered_l != null ? fmt(s.delivered_l) : '—'}</td>}
+                                        <td style={{ padding: '5px 8px' }}>{s.request_count}</td>
+                                        {!m.has_approval_data && <td style={{ padding: '5px 8px', color: neutral[400] }}>{(s.dates || []).join(', ')}</td>}
+                                        <td style={{ padding: '5px 8px', color: neutral[400] }}>{canExpand ? (isOpen ? '▲ isolated view' : '▼ isolated view') : ''}</td>
+                                      </tr>
+                                      {isOpen && (
+                                        <tr style={{ borderBottom: `1px solid ${neutral[100]}` }}>
+                                          <td colSpan={m.has_approval_data ? 7 : 6} style={{ padding: '2px 8px 10px 24px', background: neutral[50] }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: neutral[500], textTransform: 'uppercase', margin: '6px 0 4px' }}>
+                                              Isolated — each individual request, before it was merged into the row above
+                                            </div>
+                                            <table style={{ width: '100%', maxWidth: 600, borderCollapse: 'collapse', fontSize: 11 }}>
+                                              <thead>
+                                                <tr>
+                                                  {['Round', 'Date', 'Requested (L)', 'Approved (L)', 'Delivered (L)', 'Status'].map(h => (
+                                                    <th key={h} style={{ textAlign: 'left', padding: '4px 8px', color: neutral[400], fontWeight: 600 }}>{h}</th>
+                                                  ))}
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {(s.requests || []).map((r: any, i: number) => {
+                                                  const meta = extraFuelStatusMeta(r.status);
+                                                  return (
+                                                    <tr key={i}>
+                                                      <td style={{ padding: '3px 8px' }}>{r.request_round || '—'}</td>
+                                                      <td style={{ padding: '3px 8px' }}>{r.date}</td>
+                                                      <td style={{ padding: '3px 8px' }}>{fmt(r.requested_l)}</td>
+                                                      <td style={{ padding: '3px 8px' }}>{r.approved_l != null ? fmt(r.approved_l) : '—'}</td>
+                                                      <td style={{ padding: '3px 8px' }}>{r.delivered_l != null ? fmt(r.delivered_l) : '—'}</td>
+                                                      <td style={{ padding: '3px 8px' }}>
+                                                        <span style={{ color: meta.fg, background: meta.bg, borderRadius: 6, padding: '2px 6px', fontWeight: 600, fontSize: 10 }}>{meta.label}</span>
+                                                      </td>
+                                                    </tr>
+                                                  );
+                                                })}
+                                              </tbody>
+                                            </table>
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
@@ -905,6 +1061,33 @@ export default function HistoricalDataPage() {
                         ))}
                       </tbody>
                     </table>
+                    {c.allocations.some((a: any) => a.extra_round1_approved_l != null || a.extra_round2_approved_l != null || a.extra_round3_approved_l != null) && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, color: neutral[500] }}>
+                          Mid-cycle extra-fuel rounds — cluster-level approvals recorded as they happened during this cycle
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                          <thead>
+                            <tr>
+                              {['Cluster', '1st Round (L)', '2nd Round (L)', '3rd Round (L)', 'Note'].map(h => (
+                                <th key={h} style={{ textAlign: 'left', padding: '5px 8px', borderBottom: `1px solid ${neutral[200]}`, color: neutral[500] }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {c.allocations.map((a: any) => (
+                              <tr key={a.cluster} style={{ borderBottom: `1px solid ${neutral[100]}` }}>
+                                <td style={{ padding: '4px 8px' }}>{a.cluster}</td>
+                                <td style={{ padding: '4px 8px' }}>{a.extra_round1_approved_l != null ? fmt(a.extra_round1_approved_l) : '—'}</td>
+                                <td style={{ padding: '4px 8px' }}>{a.extra_round2_approved_l != null ? fmt(a.extra_round2_approved_l) : '—'}</td>
+                                <td style={{ padding: '4px 8px' }}>{a.extra_round3_approved_l != null ? fmt(a.extra_round3_approved_l) : '—'}</td>
+                                <td style={{ padding: '4px 8px', color: neutral[400], fontSize: 10 }}>{a.extra_rounds_comment || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

@@ -4,7 +4,7 @@
  */
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { brand, neutral, ink, status as statusTokens, urgency as urgencyTokens, type as typeScale, radius as radiusTokens } from '../../styles/dieselTokens';
+import { brand, neutral, ink, status as statusTokens, urgency as urgencyTokens, type as typeScale, radius as radiusTokens, shadow as shadowTokens, font } from '../../styles/dieselTokens';
 import type { AlertSeverity, AlertType, CycleReconciliation, DieselAlert } from '../../types/diesel.types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -195,7 +195,7 @@ export function VarianceCell({ value, pct, invertColor }: { value: number | null
   else if (abs > 0.05) color = urgencyTokens.high.fg;
   else color = invertColor ? urgencyTokens.critical.fg : urgencyTokens.ok.fg;
   return (
-    <span style={{ color, fontWeight: abs > 0.05 ? 600 : 400 }}>
+    <span style={{ color, fontWeight: abs > 0.05 ? 600 : 400, fontFamily: font.mono }}>
       {value > 0 ? '+' : ''}{fmtNum(value, 0)} L
       {pct !== null && pct !== undefined && <span style={{ fontSize: 11, marginLeft: 4 }}>({fmtPct(pct)})</span>}
     </span>
@@ -203,18 +203,46 @@ export function VarianceCell({ value, pct, invertColor }: { value: number | null
 }
 
 // ─── KpiCard ──────────────────────────────────────────────────────────────────
-interface KpiCardProps { label: string; value: string | number; sub?: string; color?: string; icon?: string; alert?: boolean }
-export function KpiCard({ label, value, sub, color = ink, icon, alert }: KpiCardProps) {
+// `tone` is the KPI-tile risk wash from the redesign (risk-ok/risk-warn/
+// risk-crit in the prototype) — a border colour + a light background tint
+// so a risk count (over-CCPH sites, low-fuel sites, …) reads as a severity
+// at a glance, not just a plain number. `alert` (a flat 2px red border,
+// no wash) is kept as-is for any existing caller — `tone` is additive, not
+// a replacement, so nothing already using this component changes look.
+export type KpiTone = 'ok' | 'warn' | 'crit';
+const KPI_TONE_STYLE: Record<KpiTone, { border: string; bg: string }> = {
+  ok:   { border: urgencyTokens.ok.fg,       bg: urgencyTokens.ok.bg },
+  warn: { border: urgencyTokens.high.fg,     bg: urgencyTokens.high.bg },
+  crit: { border: urgencyTokens.critical.fg, bg: urgencyTokens.critical.bg },
+};
+interface KpiCardProps { label: string; value: string | number; sub?: string; color?: string; icon?: string; alert?: boolean; tone?: KpiTone }
+export function KpiCard({ label, value, sub, color = ink, icon, alert, tone }: KpiCardProps) {
+  const toneStyle = tone ? KPI_TONE_STYLE[tone] : null;
   return (
-    <div style={{ background: '#fff', border: alert ? '2px solid #dc2626' : `1px solid ${neutral[200]}`, borderRadius: 12, padding: '18px 22px', flex: 1, minWidth: 140 }}>
+    <div style={{
+      background: toneStyle?.bg || '#fff',
+      border: toneStyle ? `1px solid ${toneStyle.border}` : alert ? '2px solid #dc2626' : `1px solid ${neutral[200]}`,
+      borderRadius: 12, boxShadow: shadowTokens.card, padding: '18px 22px', flex: 1, minWidth: 140,
+    }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <p style={{ fontSize: 12, color: neutral[500], margin: '0 0 6px', fontWeight: 500 }}>{label}</p>
-          <p style={{ fontSize: 26, fontWeight: 700, color, margin: 0 }}>{value}</p>
+          <p style={{ fontSize: 26, fontWeight: 700, color: toneStyle ? toneStyle.border : color, margin: 0, fontVariantNumeric: 'tabular-nums', fontFamily: font.mono }}>{value}</p>
           {sub && <p style={{ fontSize: 11, color: neutral[400], margin: '4px 0 0' }}>{sub}</p>}
         </div>
         {icon && <span style={{ fontSize: 24 }}>{icon}</span>}
       </div>
+    </div>
+  );
+}
+
+// ─── SectionLabel ─────────────────────────────────────────────────────────────
+// The small uppercase group header the prototype uses above a KPI cluster
+// or in place of a card's <h3> ("BUDGET", "Daily consumption trend", …).
+export function SectionLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: neutral[400], marginBottom: 10, ...style }}>
+      {children}
     </div>
   );
 }
@@ -585,6 +613,139 @@ export function EmptyState({ icon = '📭', title, desc }: { icon?: string; titl
       <div style={{ fontSize: 48, marginBottom: 12 }}>{icon}</div>
       <p style={{ fontWeight: 600, color: neutral[700], margin: '0 0 6px' }}>{title}</p>
       {desc && <p style={{ fontSize: 13, margin: 0 }}>{desc}</p>}
+    </div>
+  );
+}
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
+// Generic content card — the same chrome KpiCard already uses (border,
+// radius, resting shadow), pulled out so a new screen's body panels (a
+// framing note, a chart, a table wrapper) get consistent chrome without
+// re-declaring the same inline style object on every page.
+export function Card({ children, padded = true, style }: { children: React.ReactNode; padded?: boolean; style?: React.CSSProperties }) {
+  return (
+    <div style={{ background: '#fff', border: `1px solid ${neutral[200]}`, borderRadius: 12, boxShadow: shadowTokens.card, padding: padded ? '18px 22px' : 0, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+// ─── Tag ──────────────────────────────────────────────────────────────────────
+// A generic label with five semantic variants, for short arbitrary phrases
+// StatusPill's fixed keyword map (completed/open/pending/…) doesn't cover —
+// e.g. "Gain — within contract", "Approved · en route". StatusPill stays as
+// the right choice wherever one of its exact keywords applies; Tag is for
+// everything else that still needs a success/warning/danger/info/neutral
+// read at a glance.
+export type TagVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+const TAG_STYLE: Record<TagVariant, { bg: string; text: string }> = {
+  success: statusTokens.success,
+  warning: statusTokens.warning,
+  danger:  statusTokens.danger,
+  info:    statusTokens.info,
+  neutral: statusTokens.neutral,
+};
+export function Tag({ variant = 'neutral', dot, children }: { variant?: TagVariant; dot?: boolean; children: React.ReactNode }) {
+  const s = TAG_STYLE[variant];
+  return (
+    <span style={{ background: s.bg, color: s.text, padding: '2px 10px', borderRadius: radiusTokens.pill, fontSize: typeScale.small - 1, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+      {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.text, display: 'inline-block', flexShrink: 0 }} />}
+      {children}
+    </span>
+  );
+}
+
+// ─── Timeline ─────────────────────────────────────────────────────────────────
+// A vertical list of dated events (visit history, delivery history, review
+// history) — the event-log layout several pages need, so it's built once
+// instead of hand-rolled per page.
+export interface TimelineEvent {
+  title: string;
+  sub?: string;
+  tone?: 'neutral' | 'ok' | 'warn' | 'crit';
+}
+const TIMELINE_DOT: Record<NonNullable<TimelineEvent['tone']>, string> = {
+  neutral: neutral[400],
+  ok:      urgencyTokens.ok.fg,
+  warn:    urgencyTokens.high.fg,
+  crit:    urgencyTokens.critical.fg,
+};
+export function Timeline({ events }: { events: TimelineEvent[] }) {
+  return (
+    <div>
+      {events.map((e, i) => (
+        <div key={i} style={{ display: 'flex', gap: 10, paddingBottom: i < events.length - 1 ? 14 : 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+            <span style={{ width: 9, height: 9, borderRadius: '50%', background: TIMELINE_DOT[e.tone || 'neutral'], marginTop: 3, flexShrink: 0 }} />
+            {i < events.length - 1 && <span style={{ width: 1, flex: 1, background: neutral[200], marginTop: 2 }} />}
+          </div>
+          <div style={{ paddingBottom: 2 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: ink }}>{e.title}</p>
+            {e.sub && <p style={{ margin: '2px 0 0', fontSize: 11.5, color: neutral[500] }}>{e.sub}</p>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── ApprovalChain ────────────────────────────────────────────────────────────
+// A horizontal step chain showing where a request sits in a fixed approval
+// sequence (e.g. Supervisor → Finance → Head of Business → CEO) — done /
+// current / rejected states, so the whole chain's status reads at a glance
+// instead of a status pill plus a mental model of the order it implies.
+export interface ApprovalStep {
+  label: string;
+  state: 'done' | 'current' | 'pending' | 'rejected';
+}
+const STEP_STYLE: Record<ApprovalStep['state'], { bg: string; text: string; border: string }> = {
+  done:     { bg: urgencyTokens.ok.bg,       text: urgencyTokens.ok.fg,       border: urgencyTokens.ok.fg },
+  current:  { bg: urgencyTokens.medium.bg,   text: urgencyTokens.medium.fg,   border: urgencyTokens.medium.fg },
+  pending:  { bg: neutral[100],              text: neutral[400],             border: neutral[200] },
+  rejected: { bg: urgencyTokens.critical.bg, text: urgencyTokens.critical.fg, border: urgencyTokens.critical.fg },
+};
+export function ApprovalChain({ steps, ariaLabel }: { steps: ApprovalStep[]; ariaLabel?: string }) {
+  return (
+    <div role="list" aria-label={ariaLabel} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0 }}>
+      {steps.map((s, i) => (
+        <React.Fragment key={i}>
+          <span
+            role="listitem"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: radiusTokens.pill,
+              background: STEP_STYLE[s.state].bg, color: STEP_STYLE[s.state].text,
+              border: `1px solid ${STEP_STYLE[s.state].border}`,
+            }}
+          >
+            {s.state === 'done' && '✓'}
+            {s.state === 'rejected' && '✕'}
+            {s.label}
+          </span>
+          {i < steps.length - 1 && (
+            <span aria-hidden="true" style={{ width: 14, height: 1, background: neutral[300], flexShrink: 0 }} />
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+// ─── DetailGrid ───────────────────────────────────────────────────────────────
+// The label/value grid SiteDetailDrawer already builds inline — pulled out
+// so a new detail panel (e.g. the Gain/Loss Tracker's per-site drawer) gets
+// the same layout without copy-pasting the markup again. SiteDetailDrawer
+// itself is left as-is for now rather than risking a refactor of a working,
+// in-use component outside this batch's scope.
+export function DetailGrid({ rows }: { rows: Array<[string, React.ReactNode]> }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px' }}>
+      {rows.map(([label, value], i) => (
+        <div key={`${label}-${i}`} style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: 8 }}>
+          <p style={{ fontSize: 11, color: neutral[400], margin: '0 0 2px' }}>{label}</p>
+          <p style={{ fontSize: 13, fontWeight: 500, margin: 0, color: ink }}>{value ?? '—'}</p>
+        </div>
+      ))}
     </div>
   );
 }

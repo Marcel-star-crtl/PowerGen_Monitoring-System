@@ -24,9 +24,10 @@ import {
   useCycles, useFileUpload, useSiteBudgets, useSiteBudgetUploads,
 } from '../../hooks/useDiesel';
 import {
-  PageHeader, CycleSelector, UploadZone, KpiCard,
+  PageHeader, CycleSelector, UploadZone, Card, SectionLabel,
   fmtNum, fmtDate, Spinner, ErrorBox, EmptyState, Btn, StatusPill,
 } from '../../components/diesel/DieselComponents';
+import { neutral, status as statusTokens, font } from '../../styles/dieselTokens';
 
 export default function SiteBudgetUploadPage() {
   const { isNarrow } = useBreakpoint();
@@ -105,7 +106,7 @@ export default function SiteBudgetUploadPage() {
   if (cyclesLoading) return <Spinner />;
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', fontFamily: font.ui }}>
       <PageHeader
         title="💰 Site Budget Upload"
         subtitle="Upload the Book11 Budget file at the start of each cycle — sets each site's contractual CCPH, KVA, and budgeted run hours."
@@ -117,8 +118,8 @@ export default function SiteBudgetUploadPage() {
         <div>
           {!selectedKey && (
             <div style={{
-              background: '#fef9c3', border: '2px solid #fde68a', borderRadius: 10,
-              padding: '12px 16px', marginBottom: 12, fontSize: 12, color: '#92400e',
+              background: statusTokens.warning.bg, border: `2px solid ${statusTokens.warning.border}`, borderRadius: 10,
+              padding: '12px 16px', marginBottom: 12, fontSize: 12, color: statusTokens.warning.text,
             }}>
               ⚠️ <strong>Select a cycle above before uploading.</strong> The Book11 file has no
               date column the cycle can be detected from — you must choose it explicitly.
@@ -133,7 +134,7 @@ export default function SiteBudgetUploadPage() {
             uploading={uploading}
           />
 
-          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '10px 14px', marginTop: 12, fontSize: 12, color: '#0369a1', lineHeight: 1.6 }}>
+          <div style={{ background: statusTokens.info.bg, border: `1px solid ${statusTokens.info.border}`, borderRadius: 8, padding: '10px 14px', marginTop: 12, fontSize: 12, color: statusTokens.info.text, lineHeight: 1.6 }}>
             <strong>What this upload does:</strong><br />
             • Sets <strong>CCPH</strong> (Genset CPH) and <strong>KVA</strong> (Genset Capacity
             Mapped) for every site in the file, for the cycle you select<br />
@@ -146,11 +147,11 @@ export default function SiteBudgetUploadPage() {
 
           {importResult && (
             <div style={{
-              marginTop: 14, background: '#dcfce7', border: '1px solid #bbf7d0',
+              marginTop: 14, background: statusTokens.success.bg, border: `1px solid ${statusTokens.success.border}`,
               borderRadius: 10, padding: '14px 18px',
             }}>
-              <p style={{ fontWeight: 600, color: '#166534', margin: '0 0 6px' }}>✅ Import Complete</p>
-              <div style={{ fontSize: 12, color: '#166534', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+              <p style={{ fontWeight: 600, color: statusTokens.success.text, margin: '0 0 6px' }}>✅ Import Complete</p>
+              <div style={{ fontSize: 12, color: statusTokens.success.text, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                 <span>Rows processed:</span><strong>{importResult.rows_total}</strong>
                 <span>New sites:</span><strong>{importResult.rows_imported}</strong>
                 <span>Updated sites:</span><strong>{importResult.rows_updated}</strong>
@@ -161,20 +162,20 @@ export default function SiteBudgetUploadPage() {
               </div>
 
               {importResult.warnings?.length > 0 && (
-                <div style={{ marginTop: 10, background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px' }}>
+                <div style={{ marginTop: 10, background: statusTokens.warning.bg, border: `1px solid ${statusTokens.warning.border}`, borderRadius: 8, padding: '8px 10px' }}>
                   {importResult.warnings.map((w: string, i: number) => (
-                    <p key={i} style={{ fontSize: 11, color: '#92400e', margin: '2px 0' }}>⚠️ {w}</p>
+                    <p key={i} style={{ fontSize: 11, color: statusTokens.warning.text, margin: '2px 0' }}>⚠️ {w}</p>
                   ))}
                 </div>
               )}
 
               {importResult.errors?.length > 0 && (
                 <details style={{ marginTop: 8 }}>
-                  <summary style={{ fontSize: 11, cursor: 'pointer', color: '#166534' }}>
+                  <summary style={{ fontSize: 11, cursor: 'pointer', color: statusTokens.success.text }}>
                     {importResult.errors.length} row error(s)
                   </summary>
                   {importResult.errors.map((e: any, i: number) => (
-                    <p key={i} style={{ fontSize: 11, color: '#7f1d1d', margin: '2px 0' }}>
+                    <p key={i} style={{ fontSize: 11, color: statusTokens.danger.text, margin: '2px 0' }}>
                       {typeof e === 'string' ? e : `${e.site}: ${e.error}`}
                     </p>
                   ))}
@@ -185,9 +186,9 @@ export default function SiteBudgetUploadPage() {
         </div>
 
         {/* ── Upload history ── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18, overflow: 'hidden' }}>
+        <Card style={{ overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Upload History</h3>
+            <SectionLabel style={{ marginBottom: 0 }}>Upload History</SectionLabel>
             <Btn size="sm" variant="ghost" onClick={refetchUploads}>↻ Refresh</Btn>
           </div>
           {uploadsLoading ? <Spinner size={24} /> : uploadList.length === 0 ? (
@@ -196,15 +197,15 @@ export default function SiteBudgetUploadPage() {
             <div style={{ maxHeight: 380, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb' }}>
+                  <tr style={{ background: neutral[50] }}>
                     {['Cycle', 'Filename', 'Status', 'New', 'Updated', 'Errors', 'Uploaded By', 'When'].map(h => (
-                      <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, color: '#6b7280', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, color: neutral[500], borderBottom: `1px solid ${neutral[200]}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {uploadList.map((u: any) => (
-                    <tr key={u._id} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }} onClick={() => setSelectedKey(u.cycle_key)}>
+                    <tr key={u._id} style={{ borderBottom: `1px solid ${neutral[100]}`, cursor: 'pointer' }} onClick={() => setSelectedKey(u.cycle_key)}>
                       <td style={{ padding: '6px 10px', fontWeight: 600 }}>
                         {u.cycle_key}
                         {u.month_labels_detected && new Set(Object.values(u.month_labels_detected)).size > 1 && (
@@ -215,25 +216,25 @@ export default function SiteBudgetUploadPage() {
                       <td style={{ padding: '6px 10px' }}><StatusPill status={u.status} /></td>
                       <td style={{ padding: '6px 10px', textAlign: 'center' }}>{u.rows_imported}</td>
                       <td style={{ padding: '6px 10px', textAlign: 'center' }}>{u.rows_updated}</td>
-                      <td style={{ padding: '6px 10px', textAlign: 'center', color: u.error_count > 0 ? '#dc2626' : '#16a34a' }}>{u.error_count}</td>
-                      <td style={{ padding: '6px 10px', color: '#6b7280' }}>{u.uploaded_by?.fullName || '—'}</td>
-                      <td style={{ padding: '6px 10px', color: '#9ca3af', fontSize: 11 }}>{fmtDate(u.createdAt)}</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'center', color: u.error_count > 0 ? statusTokens.danger.text : statusTokens.success.text }}>{u.error_count}</td>
+                      <td style={{ padding: '6px 10px', color: neutral[500] }}>{u.uploaded_by?.fullName || '—'}</td>
+                      <td style={{ padding: '6px 10px', color: neutral[400], fontSize: 11 }}>{fmtDate(u.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ── Current cycle's budgets — view & inline edit ── */}
       {selectedKey && (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18 }}>
+        <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
               Site Budgets — {selectedKey}
-              <span style={{ marginLeft: 8, background: '#f3f4f6', color: '#374151', borderRadius: 8, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
+              <span style={{ marginLeft: 8, background: neutral[100], color: neutral[700], borderRadius: 8, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
                 {budgetList.length}
               </span>
             </h3>
@@ -243,7 +244,7 @@ export default function SiteBudgetUploadPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Search site budgets by ID or name"
-              style={{ padding: '6px 10px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 6, width: 220 }}
+              style={{ padding: '6px 10px', fontSize: 12, border: `1px solid ${neutral[200]}`, borderRadius: 6, width: 220 }}
             />
           </div>
 
@@ -252,10 +253,10 @@ export default function SiteBudgetUploadPage() {
           ) : (
             <div style={{ overflowX: 'auto', maxHeight: 480, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead style={{ position: 'sticky', top: 0, background: '#f9fafb' }}>
+                <thead style={{ position: 'sticky', top: 0, background: neutral[50] }}>
                   <tr>
                     {['Site', 'Cluster', 'Topology', 'KVA', 'CCPH (L/h)', 'Budgeted RH', 'Budget (L)', 'Grid Target', 'Fueling', ''].map(h => (
-                      <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 11, color: '#6b7280', borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '7px 10px', textAlign: 'left', fontSize: 11, color: neutral[500], borderBottom: `1px solid ${neutral[200]}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -263,19 +264,19 @@ export default function SiteBudgetUploadPage() {
                   {filteredBudgets.map((b: any) => {
                     const isEditing = editingSite === b.site_id;
                     return (
-                      <tr key={b.site_id} style={{ borderBottom: '1px solid #f3f4f6', background: isEditing ? '#eff6ff' : undefined }}>
+                      <tr key={b.site_id} style={{ borderBottom: `1px solid ${neutral[100]}`, background: isEditing ? statusTokens.info.bg : undefined }}>
                         <td style={{ padding: '6px 10px' }}>
                           <div style={{ fontWeight: 600, fontSize: 11 }}>{b.site_id}</div>
-                          <div style={{ color: '#9ca3af', fontSize: 10 }}>{b.site_name}</div>
+                          <div style={{ color: neutral[400], fontSize: 10 }}>{b.site_name}</div>
                         </td>
-                        <td style={{ padding: '6px 10px', color: '#6b7280' }}>{b.cluster}</td>
-                        <td style={{ padding: '6px 10px', color: '#6b7280', fontSize: 11 }}>{b.topology}</td>
+                        <td style={{ padding: '6px 10px', color: neutral[500] }}>{b.cluster}</td>
+                        <td style={{ padding: '6px 10px', color: neutral[500], fontSize: 11 }}>{b.topology}</td>
                         <td style={{ padding: '6px 10px', textAlign: 'right' }}>
                           {isEditing ? (
                             <input type="number" value={editValues.dg_kva}
                               onChange={(e) => setEditValues(v => ({ ...v, dg_kva: e.target.value }))}
                               aria-label={`DG KVA for ${b.site_id}`}
-                              style={{ width: 60, fontSize: 11, padding: '2px 4px', border: '1px solid #93c5fd', borderRadius: 4 }} />
+                              style={{ width: 60, fontSize: 11, padding: '2px 4px', border: `1px solid ${statusTokens.info.border}`, borderRadius: 4 }} />
                           ) : b.dg_kva}
                         </td>
                         <td style={{ padding: '6px 10px', textAlign: 'right' }}>
@@ -283,7 +284,7 @@ export default function SiteBudgetUploadPage() {
                             <input type="number" step="0.01" value={editValues.ccph}
                               onChange={(e) => setEditValues(v => ({ ...v, ccph: e.target.value }))}
                               aria-label={`CCPH for ${b.site_id}`}
-                              style={{ width: 60, fontSize: 11, padding: '2px 4px', border: '1px solid #93c5fd', borderRadius: 4 }} />
+                              style={{ width: 60, fontSize: 11, padding: '2px 4px', border: `1px solid ${statusTokens.info.border}`, borderRadius: 4 }} />
                           ) : b.ccph}
                         </td>
                         <td style={{ padding: '6px 10px', textAlign: 'right' }}>
@@ -291,7 +292,7 @@ export default function SiteBudgetUploadPage() {
                             <input type="number" value={editValues.budgeted_rh}
                               onChange={(e) => setEditValues(v => ({ ...v, budgeted_rh: e.target.value }))}
                               aria-label={`Budgeted run-hours for ${b.site_id}`}
-                              style={{ width: 70, fontSize: 11, padding: '2px 4px', border: '1px solid #93c5fd', borderRadius: 4 }} />
+                              style={{ width: 70, fontSize: 11, padding: '2px 4px', border: `1px solid ${statusTokens.info.border}`, borderRadius: 4 }} />
                           ) : fmtNum(b.budgeted_rh, 0)}
                         </td>
                         <td style={{ padding: '6px 10px', textAlign: 'right' }}>
@@ -299,7 +300,7 @@ export default function SiteBudgetUploadPage() {
                             <input type="number" value={editValues.budget_liters}
                               onChange={(e) => setEditValues(v => ({ ...v, budget_liters: e.target.value }))}
                               aria-label={`Budget liters for ${b.site_id}`}
-                              style={{ width: 70, fontSize: 11, padding: '2px 4px', border: '1px solid #93c5fd', borderRadius: 4 }} />
+                              style={{ width: 70, fontSize: 11, padding: '2px 4px', border: `1px solid ${statusTokens.info.border}`, borderRadius: 4 }} />
                           ) : fmtNum(b.budget_liters, 0)}
                         </td>
                         <td style={{ padding: '6px 10px', textAlign: 'right' }}>
@@ -325,7 +326,7 @@ export default function SiteBudgetUploadPage() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   );
